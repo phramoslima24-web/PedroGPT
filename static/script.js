@@ -1,10 +1,14 @@
 async function enviar() {
-    const input = document.getElementById("mensagem").value;
+    const campo = document.getElementById("mensagem");
     const chat = document.getElementById("chat");
 
-    if (!input) return;
+    const texto = campo.value.trim();
 
-    chat.innerHTML += `<div><b>Você:</b> ${input}</div>`;
+    if (!texto) return;
+
+    chat.innerHTML += `<div><b>Você:</b> ${texto}</div>`;
+
+    campo.value = "";
 
     try {
         const resposta = await fetch("/chat", {
@@ -12,17 +16,24 @@ async function enviar() {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ message: input })
+            body: JSON.stringify({
+                message: texto
+            })
         });
 
         const data = await resposta.json();
 
         chat.innerHTML += `<div><b>Bot:</b> ${data.reply}</div>`;
 
-    } catch (error) {
-        console.error(error);
-        chat.innerHTML += `<div style="color:red"><b>Erro ao conectar com o servidor</b></div>`;
+    } catch (erro) {
+        console.error(erro);
+
+        chat.innerHTML += `
+            <div style="color:red">
+                <b>Erro ao conectar com o servidor</b>
+            </div>
+        `;
     }
 
-    document.getElementById("mensagem").value = "";
+    chat.scrollTop = chat.scrollHeight;
 }
