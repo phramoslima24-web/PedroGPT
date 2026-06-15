@@ -23,12 +23,24 @@
             style="width:100%;padding:12px;margin-bottom:10px;"
         >
 
-        <input
-            type="password"
-            id="password"
-            placeholder="Senha"
-            style="width:100%;padding:12px;margin-bottom:10px;"
-        >
+        <div style="display:flex;gap:5px;margin-bottom:10px;">
+
+            <input
+                type="password"
+                id="password"
+                placeholder="Senha"
+                style="width:100%;padding:12px;"
+            >
+
+            <button
+                type="button"
+                onclick="mostrarSenha()"
+                style="padding:12px;cursor:pointer;"
+            >
+                👁️
+            </button>
+
+        </div>
 
         <button
             onclick="login()"
@@ -46,6 +58,24 @@
 </div>
 
 <script>
+
+function mostrarSenha() {
+
+    const senha =
+        document.getElementById("password");
+
+    if (senha.type === "password") {
+
+        senha.type = "text";
+
+    } else {
+
+        senha.type = "password";
+
+    }
+
+}
+
 async function login() {
 
     const username =
@@ -55,11 +85,11 @@ async function login() {
         document.getElementById("password").value;
 
     const resposta = await fetch("/api/login", {
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json"
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
         },
-        body:JSON.stringify({
+        body: JSON.stringify({
             username,
             password
         })
@@ -67,16 +97,28 @@ async function login() {
 
     const data = await resposta.json();
 
-    if(data.success){
+    if (data.success) {
 
         window.location = "/";
 
-    }else{
+    } else {
 
         alert(data.message);
 
     }
+
 }
+
+document.addEventListener("keypress", function(event) {
+
+    if (event.key === "Enter") {
+
+        login();
+
+    }
+
+});
+
 </script>
 
 </body>
