@@ -30,11 +30,11 @@ def chat():
             })
 
         resposta = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {
                     "role": "system",
-                    "content": "Você é um assistente útil e responde em português."
+                    "content": "Você é PedroGPT, um assistente útil que responde sempre em português."
                 },
                 {
                     "role": "user",
@@ -58,4 +58,5 @@ def chat():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
