@@ -6,20 +6,21 @@ from groq import Groq
 app = Flask(__name__)
 app.secret_key = "pedrogpt_secret_key"
 
-client = Groq(
-    api_key=os.getenv("GROQ_API_KEY")
-)
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 # ==========================
-# BANCO DE DADOS
+# BANCO DE DADOS SEGURO
 # ==========================
 
 def get_db():
-    return sqlite3.connect(
+    conn = sqlite3.connect(
         "database.db",
-        timeout=30,
+        timeout=10,
         check_same_thread=False
     )
+    conn.execute("PRAGMA journal_mode=WAL")
+    return conn
+
 
 def init_db():
     with get_db() as conn:
@@ -54,7 +55,6 @@ init_db()
 def home():
     if "user" not in session:
         return redirect(url_for("login"))
-
     return render_template("index.html", username=session["user"])
 
 
@@ -81,20 +81,16 @@ def logout():
 def api_register():
 
     data = request.get_json()
-
     username = data["username"]
     password = data["password"]
 
     try:
-
         with get_db() as conn:
             cursor = conn.cursor()
-
             cursor.execute(
                 "INSERT INTO users (username,password) VALUES (?,?)",
                 (username, password)
             )
-
             conn.commit()
 
         return jsonify({"success": True})
@@ -113,27 +109,20 @@ def api_register():
 def api_login():
 
     data = request.get_json()
-
     username = data["username"]
     password = data["password"]
 
     with get_db() as conn:
         cursor = conn.cursor()
-
         cursor.execute(
             "SELECT * FROM users WHERE username=? AND password=?",
             (username, password)
         )
-
         user = cursor.fetchone()
 
     if user:
-
         session["user"] = username
-
-        return jsonify({
-            "success": True
-        })
+        return jsonify({"success": True})
 
     return jsonify({
         "success": False,
@@ -148,12 +137,9 @@ def api_login():
 def chat():
 
     if "user" not in session:
-        return jsonify({
-            "reply": "Faça login primeiro."
-        })
+        return jsonify({"reply": "Faça login primeiro."})
 
     try:
-
         data = request.get_json()
         mensagem = data.get("message", "")
 
@@ -162,13 +148,8 @@ def chat():
 
             cursor.execute(
                 "INSERT INTO messages (username,sender,message) VALUES (?,?,?)",
-                (
-                    session["user"],
-                    "user",
-                    mensagem
-                )
+                (session["user"], "user", mensagem)
             )
-
             conn.commit()
 
         resposta = client.chat.completions.create(
@@ -176,12 +157,7 @@ def chat():
             messages=[
                 {
                     "role": "system",
-                    "content": """
-Você é PedroGPT.
-Criado por Pedro Henrique.
-Responda sempre em português.
-Seja amigável, inteligente e útil.
-"""
+                    "content": "Você é PedroGPT. Responda sempre em português."
                 },
                 {
                     "role": "user",
@@ -197,24 +173,14 @@ Seja amigável, inteligente e útil.
 
             cursor.execute(
                 "INSERT INTO messages (username,sender,message) VALUES (?,?,?)",
-                (
-                    session["user"],
-                    "bot",
-                    texto
-                )
+                (session["user"], "bot", texto)
             )
-
             conn.commit()
 
-        return jsonify({
-            "reply": texto
-        })
+        return jsonify({"reply": texto})
 
     except Exception as e:
-
-        return jsonify({
-            "reply": f"Erro: {str(e)}"
-        })
+        return jsonify({"reply": f"Erro: {str(e)}"})
 
 # ==========================
 # HISTÓRICO
@@ -228,16 +194,10 @@ def history():
 
     with get_db() as conn:
         cursor = conn.cursor()
-
         cursor.execute(
-            """
-            SELECT sender,message
-            FROM messages
-            WHERE username=?
-            """,
+            "SELECT sender,message FROM messages WHERE username=?",
             (session["user"],)
         )
-
         dados = cursor.fetchall()
 
     return jsonify(dados)
@@ -248,8 +208,4 @@ def history():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-
-    app.run(
-        host="0.0.0.0",
-        port=port
-    )
+    app.run(host="0.0.0.0", port=port)
