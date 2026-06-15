@@ -1,115 +1,136 @@
 async function carregarHistorico() {
 
-    try {
+```
+try {
 
-        const resposta = await fetch("/history");
-        const historico = await resposta.json();
+    const resposta = await fetch("/history");
+    const historico = await resposta.json();
 
-        const chat = document.getElementById("chat");
+    const chat = document.getElementById("chat");
 
-        chat.innerHTML = "";
+    chat.innerHTML = "";
 
-        historico.forEach(item => {
+    historico.forEach(item => {
 
-            const sender = item[0];
-            const message = item[1];
+        const sender = item[0];
+        const message = item[1];
 
-            if (sender === "user") {
+        if (sender === "user") {
 
-                chat.innerHTML += `
-                    <div class="msg-user">
-                        ${message}
-                    </div>
-                `;
+            chat.innerHTML += `
+                <div class="msg-user">
+                    ${message}
+                </div>
+            `;
 
-            } else {
+        } else {
 
-                chat.innerHTML += `
-                    <div class="msg-bot">
-                        ${message}
-                    </div>
-                `;
-            }
+            chat.innerHTML += `
+                <div class="msg-bot">
+                    ${message}
+                </div>
+            `;
+        }
 
-        });
+    });
 
-        chat.scrollTop = chat.scrollHeight;
+    chat.scrollTop = chat.scrollHeight;
 
-    } catch (erro) {
+} catch (erro) {
 
-        console.error(erro);
+    console.error(erro);
 
-    }
+}
+```
 
 }
 
 async function enviar() {
 
-    const campo = document.getElementById("mensagem");
-    const chat = document.getElementById("chat");
+```
+const campo = document.getElementById("mensagem");
+const chat = document.getElementById("chat");
 
-    const texto = campo.value.trim();
+const texto = campo.value.trim();
 
-    if (!texto) return;
+if (!texto) return;
+
+chat.innerHTML += `
+    <div class="msg-user">
+        ${texto}
+    </div>
+`;
+
+chat.scrollTop = chat.scrollHeight;
+
+campo.value = "";
+
+try {
+
+    const resposta = await fetch("/chat", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            message: texto
+        })
+    });
+
+    const data = await resposta.json();
 
     chat.innerHTML += `
-        <div class="msg-user">
-            ${texto}
+        <div class="msg-bot">
+            ${data.reply}
         </div>
     `;
 
     chat.scrollTop = chat.scrollHeight;
 
-    campo.value = "";
+    const opcaoVoz =
+        document.getElementById("voz");
 
-    try {
+    if (opcaoVoz && opcaoVoz.checked) {
 
-        const resposta = await fetch("/chat", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                message: texto
-            })
-        });
+        speechSynthesis.cancel();
 
-        const data = await resposta.json();
+        const voz =
+            new SpeechSynthesisUtterance(
+                data.reply
+            );
 
-        chat.innerHTML += `
-            <div class="msg-bot">
-                ${data.reply}
-            </div>
-        `;
-
-        chat.scrollTop = chat.scrollHeight;
-
-        // Voz do bot
-        const voz = new SpeechSynthesisUtterance(data.reply);
         voz.lang = "pt-BR";
+
         speechSynthesis.speak(voz);
 
-    } catch (erro) {
-
-        console.error(erro);
-
-        chat.innerHTML += `
-            <div class="msg-bot">
-                Erro ao conectar com o servidor.
-            </div>
-        `;
-
     }
+
+} catch (erro) {
+
+    console.error(erro);
+
+    chat.innerHTML += `
+        <div class="msg-bot">
+            Erro ao conectar com o servidor.
+        </div>
+    `;
+
+}
+```
 
 }
 
 document.addEventListener("DOMContentLoaded", () => {
 
-    carregarHistorico();
+```
+carregarHistorico();
 
-    const campo = document.getElementById("mensagem");
+const campo =
+    document.getElementById("mensagem");
 
-    campo.addEventListener("keypress", function(event) {
+campo.addEventListener(
+    "keypress",
+    function(event) {
 
         if (event.key === "Enter") {
 
@@ -117,6 +138,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
         }
 
-    });
+    }
+);
+
+const opcaoVoz =
+    document.getElementById("voz");
+
+if (opcaoVoz) {
+
+    opcaoVoz.addEventListener(
+        "change",
+        () => {
+
+            if (!opcaoVoz.checked) {
+
+                speechSynthesis.cancel();
+
+            }
+
+        }
+    );
+
+}
+```
 
 });
