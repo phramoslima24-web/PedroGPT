@@ -14,29 +14,35 @@ client = Groq(
 # BANCO DE DADOS
 # ==========================
 
+def get_db():
+    return sqlite3.connect(
+        "database.db",
+        timeout=30,
+        check_same_thread=False
+    )
+
 def init_db():
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
+    with get_db() as conn:
+        cursor = conn.cursor()
 
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT
-    )
-    """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            password TEXT
+        )
+        """)
 
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS messages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT,
-        sender TEXT,
-        message TEXT
-    )
-    """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            sender TEXT,
+            message TEXT
+        )
+        """)
 
-    conn.commit()
-    conn.close()
+        conn.commit()
 
 init_db()
 
@@ -81,20 +87,19 @@ def api_register():
 
     try:
 
-        conn = sqlite3.connect("database.db")
-        cursor = conn.cursor()
+        with get_db() as conn:
+            cursor = conn.cursor()
 
-        cursor.execute(
-            "INSERT INTO users (username,password) VALUES (?,?)",
-            (username, password)
-        )
+            cursor.execute(
+                "INSERT INTO users (username,password) VALUES (?,?)",
+                (username, password)
+            )
 
-        conn.commit()
-        conn.close()
+            conn.commit()
 
         return jsonify({"success": True})
 
-    except:
+    except Exception:
         return jsonify({
             "success": False,
             "message": "Usuário já existe."
@@ -112,17 +117,15 @@ def api_login():
     username = data["username"]
     password = data["password"]
 
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
+    with get_db() as conn:
+        cursor = conn.cursor()
 
-    cursor.execute(
-        "SELECT * FROM users WHERE username=? AND password=?",
-        (username, password)
-    )
+        cursor.execute(
+            "SELECT * FROM users WHERE username=? AND password=?",
+            (username, password)
+        )
 
-    user = cursor.fetchone()
-
-    conn.close()
+        user = cursor.fetchone()
 
     if user:
 
@@ -152,22 +155,21 @@ def chat():
     try:
 
         data = request.get_json()
-
         mensagem = data.get("message", "")
 
-        conn = sqlite3.connect("database.db")
-        cursor = conn.cursor()
+        with get_db() as conn:
+            cursor = conn.cursor()
 
-        cursor.execute(
-            "INSERT INTO messages (username,sender,message) VALUES (?,?,?)",
-            (
-                session["user"],
-                "user",
-                mensagem
+            cursor.execute(
+                "INSERT INTO messages (username,sender,message) VALUES (?,?,?)",
+                (
+                    session["user"],
+                    "user",
+                    mensagem
+                )
             )
-        )
 
-        conn.commit()
+            conn.commit()
 
         resposta = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
@@ -190,17 +192,19 @@ Seja amigável, inteligente e útil.
 
         texto = resposta.choices[0].message.content
 
-        cursor.execute(
-            "INSERT INTO messages (username,sender,message) VALUES (?,?,?)",
-            (
-                session["user"],
-                "bot",
-                texto
-            )
-        )
+        with get_db() as conn:
+            cursor = conn.cursor()
 
-        conn.commit()
-        conn.close()
+            cursor.execute(
+                "INSERT INTO messages (username,sender,message) VALUES (?,?,?)",
+                (
+                    session["user"],
+                    "bot",
+                    texto
+                )
+            )
+
+            conn.commit()
 
         return jsonify({
             "reply": texto
@@ -222,21 +226,19 @@ def history():
     if "user" not in session:
         return jsonify([])
 
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
+    with get_db() as conn:
+        cursor = conn.cursor()
 
-    cursor.execute(
-        """
-        SELECT sender,message
-        FROM messages
-        WHERE username=?
-        """,
-        (session["user"],)
-    )
+        cursor.execute(
+            """
+            SELECT sender,message
+            FROM messages
+            WHERE username=?
+            """,
+            (session["user"],)
+        )
 
-    dados = cursor.fetchall()
-
-    conn.close()
+        dados = cursor.fetchall()
 
     return jsonify(dados)
 
