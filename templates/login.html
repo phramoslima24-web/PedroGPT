@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - PedroGPT</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="main" style="justify-content:center;align-items:center;">
+
+    <div style="width:350px;background:#343541;padding:25px;border-radius:15px;">
+
+        <h2 style="text-align:center;margin-bottom:20px;">
+            🤖 PedroGPT
+        </h2>
+
+        <input
+            type="text"
+            id="username"
+            placeholder="Usuário"
+            style="width:100%;padding:12px;margin-bottom:10px;"
+        >
+
+        <input
+            type="password"
+            id="password"
+            placeholder="Senha"
+            style="width:100%;padding:12px;margin-bottom:10px;"
+        >
+
+        <button
+            onclick="login()"
+            style="width:100%;padding:12px;"
+        >
+            Entrar
+        </button>
+
+        <p style="margin-top:15px;text-align:center;">
+            <a href="/register">Criar conta</a>
+        </p>
+
+    </div>
+
+</div>
+
+<script>
+async function login() {
+
+    const username =
+        document.getElementById("username").value;
+
+    const password =
+        document.getElementById("password").value;
+
+    const resposta = await fetch("/api/login", {
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            username,
+            password
+        })
+    });
+
+    const data = await resposta.json();
+
+    if(data.success){
+
+        window.location = "/";
+
+    }else{
+
+        alert(data.message);
+
+    }
+}
+</script>
+
+</body>
+</html>

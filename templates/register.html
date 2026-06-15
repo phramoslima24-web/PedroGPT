@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cadastro - PedroGPT</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="main" style="justify-content:center;align-items:center;">
+
+    <div style="width:350px;background:#343541;padding:25px;border-radius:15px;">
+
+        <h2 style="text-align:center;margin-bottom:20px;">
+            Criar Conta
+        </h2>
+
+        <input
+            type="text"
+            id="username"
+            placeholder="Usuário"
+            style="width:100%;padding:12px;margin-bottom:10px;"
+        >
+
+        <input
+            type="password"
+            id="password"
+            placeholder="Senha"
+            style="width:100%;padding:12px;margin-bottom:10px;"
+        >
+
+        <button
+            onclick="register()"
+            style="width:100%;padding:12px;"
+        >
+            Cadastrar
+        </button>
+
+        <p style="margin-top:15px;text-align:center;">
+            <a href="/login">Voltar ao Login</a>
+        </p>
+
+    </div>
+
+</div>
+
+<script>
+async function register() {
+
+    const username =
+        document.getElementById("username").value;
+
+    const password =
+        document.getElementById("password").value;
+
+    const resposta = await fetch("/api/register", {
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            username,
+            password
+        })
+    });
+
+    const data = await resposta.json();
+
+    if(data.success){
+
+        alert("Conta criada!");
+        window.location = "/login";
+
+    }else{
+
+        alert(data.message);
+
+    }
+}
+</script>
+
+</body>
+</html>

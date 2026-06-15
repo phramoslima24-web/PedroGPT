@@ -1,34 +1,48 @@
 <!DOCTYPE html>
-
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Meu ChatBot IA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PedroGPT</title>
+
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
-<div class="container">
+<div class="sidebar">
+    <h2>🤖 PedroGPT</h2>
 
-```
-<div class="topo">
-    <h1>🤖 Meu ChatBot IA</h1>
+    <div class="usuario">
+        Olá, {{ username }}
+    </div>
+
+    <a href="/logout" class="logout">
+        Sair
+    </a>
 </div>
 
-<div id="chat"></div>
+<div class="main">
 
-<div class="entrada">
-    <input
-        type="text"
-        id="mensagem"
-        placeholder="Digite uma mensagem..."
-    >
+    <div class="header">
+        <h1>PedroGPT</h1>
+    </div>
 
-    <button onclick="enviar()">
-        Enviar
-    </button>
-</div>
-```
+    <div id="chat" class="chat"></div>
+
+    <div class="entrada">
+
+        <input
+            type="text"
+            id="mensagem"
+            placeholder="Digite sua mensagem..."
+            autocomplete="off"
+        >
+
+        <button onclick="enviar()">
+            Enviar
+        </button>
+
+    </div>
 
 </div>
 
