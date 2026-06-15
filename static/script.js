@@ -1,52 +1,32 @@
-async function enviar() {
-
-    const input = document.getElementById("mensagem");
-    const texto = input.value.trim();
-
-    if (!texto) return;
-
+async function enviarMensagem() {
+    const input = document.getElementById("input").value;
     const chat = document.getElementById("chat");
 
-    chat.innerHTML += `
-        <div class="user">👤 ${texto}</div>
-    `;
+    if (!input) return;
 
-    input.value = "";
+    chat.innerHTML += `<div><b>Você:</b> ${input}</div>`;
 
     try {
-
         const resposta = await fetch("/chat", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-                mensagem: texto
-            })
+            body: JSON.stringify({ message: input })
         });
 
-        const dados = await resposta.json();
+        if (!resposta.ok) {
+            throw new Error("Servidor respondeu erro");
+        }
 
-        chat.innerHTML += `
-            <div class="bot">🤖 ${dados.resposta}</div>
-        `;
+        const data = await resposta.json();
 
-    } catch (erro) {
+        chat.innerHTML += `<div><b>Bot:</b> ${data.reply}</div>`;
 
-        chat.innerHTML += `
-            <div class="bot">❌ Erro ao conectar com o servidor</div>
-        `;
-
-        console.error(erro);
+    } catch (error) {
+        console.error(error);
+        chat.innerHTML += `<div style="color:red"><b>Erro ao conectar com o servidor</b></div>`;
     }
 
-    chat.scrollTop = chat.scrollHeight;
+    document.getElementById("input").value = "";
 }
-
-document
-.getElementById("mensagem")
-.addEventListener("keypress", function(e){
-    if(e.key === "Enter"){
-        enviar();
-    }
-});
