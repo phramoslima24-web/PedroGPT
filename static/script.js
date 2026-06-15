@@ -1,165 +1,134 @@
 async function carregarHistorico() {
 
-```
-try {
+    try {
 
-    const resposta = await fetch("/history");
-    const historico = await resposta.json();
+        const resposta = await fetch("/history");
+        const historico = await resposta.json();
 
-    const chat = document.getElementById("chat");
+        const chat = document.getElementById("chat");
+        chat.innerHTML = "";
 
-    chat.innerHTML = "";
+        historico.forEach(item => {
 
-    historico.forEach(item => {
+            const sender = item[0];
+            const message = item[1];
 
-        const sender = item[0];
-        const message = item[1];
+            if (sender === "user") {
 
-        if (sender === "user") {
+                chat.innerHTML += `
+                    <div class="msg-user">
+                        ${message}
+                    </div>
+                `;
 
-            chat.innerHTML += `
-                <div class="msg-user">
-                    ${message}
-                </div>
-            `;
+            } else {
 
-        } else {
+                chat.innerHTML += `
+                    <div class="msg-bot">
+                        ${message}
+                    </div>
+                `;
 
-            chat.innerHTML += `
-                <div class="msg-bot">
-                    ${message}
-                </div>
-            `;
-        }
+            }
 
-    });
+        });
 
-    chat.scrollTop = chat.scrollHeight;
+        chat.scrollTop = chat.scrollHeight;
 
-} catch (erro) {
-
-    console.error(erro);
-
-}
-```
-
+    } catch (erro) {
+        console.error(erro);
+    }
 }
 
 async function enviar() {
 
-```
-const campo = document.getElementById("mensagem");
-const chat = document.getElementById("chat");
+    const campo = document.getElementById("mensagem");
+    const chat = document.getElementById("chat");
 
-const texto = campo.value.trim();
+    const texto = campo.value.trim();
 
-if (!texto) return;
+    if (!texto) return;
 
-chat.innerHTML += `
-    <div class="msg-user">
-        ${texto}
-    </div>
-`;
-
-chat.scrollTop = chat.scrollHeight;
-
-campo.value = "";
-
-try {
-
-    const resposta = await fetch("/chat", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            message: texto
-        })
-    });
-
-    const data = await resposta.json();
-
+    // mostra mensagem do usuário
     chat.innerHTML += `
-        <div class="msg-bot">
-            ${data.reply}
+        <div class="msg-user">
+            ${texto}
         </div>
     `;
 
     chat.scrollTop = chat.scrollHeight;
 
-    const opcaoVoz =
-        document.getElementById("voz");
+    campo.value = "";
 
-    if (opcaoVoz && opcaoVoz.checked) {
+    try {
 
-        speechSynthesis.cancel();
+        const resposta = await fetch("/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message: texto
+            })
+        });
 
-        const voz =
-            new SpeechSynthesisUtterance(
-                data.reply
-            );
+        const data = await resposta.json();
 
-        voz.lang = "pt-BR";
+        chat.innerHTML += `
+            <div class="msg-bot">
+                ${data.reply}
+            </div>
+        `;
 
-        speechSynthesis.speak(voz);
+        chat.scrollTop = chat.scrollHeight;
 
+        // 🔊 VOZ
+        const opcaoVoz = document.getElementById("voz");
+
+        if (opcaoVoz && opcaoVoz.checked) {
+
+            speechSynthesis.cancel();
+
+            const voz = new SpeechSynthesisUtterance(data.reply);
+            voz.lang = "pt-BR";
+
+            speechSynthesis.speak(voz);
+        }
+
+    } catch (erro) {
+
+        console.error(erro);
+
+        chat.innerHTML += `
+            <div class="msg-bot">
+                Erro ao conectar com o servidor.
+            </div>
+        `;
     }
-
-} catch (erro) {
-
-    console.error(erro);
-
-    chat.innerHTML += `
-        <div class="msg-bot">
-            Erro ao conectar com o servidor.
-        </div>
-    `;
-
-}
-```
-
 }
 
+// ENTER + inicialização
 document.addEventListener("DOMContentLoaded", () => {
 
-```
-carregarHistorico();
+    carregarHistorico();
 
-const campo =
-    document.getElementById("mensagem");
+    const campo = document.getElementById("mensagem");
 
-campo.addEventListener(
-    "keypress",
-    function(event) {
-
-        if (event.key === "Enter") {
-
-            enviar();
-
-        }
-
-    }
-);
-
-const opcaoVoz =
-    document.getElementById("voz");
-
-if (opcaoVoz) {
-
-    opcaoVoz.addEventListener(
-        "change",
-        () => {
-
-            if (!opcaoVoz.checked) {
-
-                speechSynthesis.cancel();
-
+    if (campo) {
+        campo.addEventListener("keypress", function (event) {
+            if (event.key === "Enter") {
+                enviar();
             }
+        });
+    }
 
-        }
-    );
+    const opcaoVoz = document.getElementById("voz");
 
-}
-```
-
+    if (opcaoVoz) {
+        opcaoVoz.addEventListener("change", () => {
+            if (!opcaoVoz.checked) {
+                speechSynthesis.cancel();
+            }
+        });
+    }
 });
