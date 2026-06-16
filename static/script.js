@@ -3,6 +3,9 @@ async function carregarHistorico() {
     try {
 
         const resposta = await fetch("/history");
+
+        if (!resposta.ok) return;
+
         const historico = await resposta.json();
 
         const chat = document.getElementById("chat");
@@ -63,6 +66,10 @@ async function enviar() {
             })
         });
 
+        if (!resposta.ok) {
+            throw new Error("HTTP " + resposta.status);
+        }
+
         const data = await resposta.json();
 
         const botDiv = document.createElement("div");
@@ -91,7 +98,7 @@ async function enviar() {
 
         const erroDiv = document.createElement("div");
         erroDiv.className = "msg-bot";
-        erroDiv.textContent = "Erro ao conectar com o servidor.";
+        erroDiv.textContent = "Erro ao conectar com o servidor (" + erro.message + ")";
 
         chat.appendChild(erroDiv);
     }
@@ -107,6 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (campo) {
         campo.addEventListener("keydown", function (event) {
             if (event.key === "Enter") {
+                event.preventDefault();
                 enviar();
             }
         });

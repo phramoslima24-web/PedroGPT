@@ -1,97 +1,26 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cadastro - PedroGPT</title>
-<link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
+<div style="position:relative;width:100%;margin-bottom:10px;">
+    <input
+        type="password"
+        id="password"
+        placeholder="Senha"
+        style="width:100%;padding:12px;padding-right:40px;"
+    >
 
-<div class="main" style="justify-content:center;align-items:center;">
-
-    <div style="width:350px;background:#343541;padding:25px;border-radius:15px;">
-
-        <h2 style="text-align:center;margin-bottom:20px;">
-            Criar Conta
-        </h2>
-
-        <input
-            type="text"
-            id="username"
-            placeholder="Usuário"
-            style="width:100%;padding:12px;margin-bottom:10px;"
-        >
-
-        <input
-            type="password"
-            id="password"
-            placeholder="Senha"
-            style="width:100%;padding:12px;margin-bottom:10px;"
-        >
-
-        <button
-            onclick="register()"
-            style="width:100%;padding:12px;"
-        >
-            Cadastrar
-        </button>
-
-        <p style="margin-top:15px;text-align:center;">
-            <a href="/login">Voltar ao Login</a>
-        </p>
-
-    </div>
-
+    <button
+        type="button"
+        onclick="toggleSenha()"
+        id="btnOlho"
+        style="
+            position:absolute;
+            right:10px;
+            top:50%;
+            transform:translateY(-50%);
+            background:none;
+            border:none;
+            cursor:pointer;
+            font-size:18px;
+        "
+    >
+        👁️
+    </button>
 </div>
-
-<script>
-
-async function register() {
-
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value.trim();
-
-    if (!username || !password) {
-        alert("Preencha usuário e senha!");
-        return;
-    }
-
-    try {
-
-        const resposta = await fetch("/api/register", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                username,
-                password
-            })
-        });
-
-        const data = await resposta.json();
-
-        if (data.success) {
-
-            alert("Conta criada com sucesso!");
-            window.location = "/login";
-
-        } else {
-
-            alert(data.message || "Erro ao criar conta");
-
-        }
-
-    } catch (error) {
-
-        console.error(error);
-        alert("Erro no servidor");
-
-    }
-}
-
-</script>
-
-</body>
-</html>
