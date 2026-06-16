@@ -1,26 +1,155 @@
-<div style="position:relative;width:100%;margin-bottom:10px;">
-    <input
-        type="password"
-        id="password"
-        placeholder="Senha"
-        style="width:100%;padding:12px;padding-right:40px;"
-    >
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cadastro - PedroGPT</title>
 
-    <button
-        type="button"
-        onclick="toggleSenha()"
-        id="btnOlho"
-        style="
-            position:absolute;
-            right:10px;
-            top:50%;
-            transform:translateY(-50%);
-            background:none;
-            border:none;
-            cursor:pointer;
-            font-size:18px;
-        "
-    >
-        👁️
-    </button>
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #2b2d31;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* CARD */
+.card {
+    background: #343541;
+    padding: 30px;
+    border-radius: 15px;
+    width: 320px;
+    color: white;
+    text-align: center;
+}
+
+/* INPUT */
+input {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 8px;
+    outline: none;
+    background: #eceff6;
+}
+
+/* BOTÃO */
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 15px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(90deg, #dcdcdc, #bdbdbd);
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* LINK */
+a {
+    color: #7c3aed;
+    display: block;
+    margin-top: 12px;
+    text-decoration: none;
+}
+
+/* SENHA BOX */
+.senha-box {
+    position: relative;
+}
+
+.senha-box button {
+    position: absolute;
+    right: 10px;
+    top: 55%;
+    transform: translateY(-50%);
+    width: auto;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+}
+</style>
+
+</head>
+<body>
+
+<div class="card">
+
+    <h2>🤖 PedroGPT</h2>
+
+    <input type="text" id="username" placeholder="Usuário">
+
+    <!-- SENHA COM OLHO -->
+    <div class="senha-box">
+        <input type="password" id="password" placeholder="Senha">
+        <button type="button" onclick="toggleSenha()" id="btnOlho">👁️</button>
+    </div>
+
+    <button onclick="register()">Cadastrar</button>
+
+    <a href="/login">Já tenho conta</a>
+
 </div>
+
+<script>
+
+// 👁️ OLHO DA SENHA (FUNCIONANDO 100%)
+function toggleSenha() {
+
+    const senha = document.getElementById("password");
+    const btn = document.getElementById("btnOlho");
+
+    if (senha.type === "password") {
+        senha.type = "text";
+        btn.textContent = "🙈";
+    } else {
+        senha.type = "password";
+        btn.textContent = "👁️";
+    }
+}
+
+// CADASTRO
+async function register() {
+
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (!username || !password) {
+        alert("Preencha tudo!");
+        return;
+    }
+
+    try {
+
+        const resposta = await fetch("/api/register", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ username, password })
+        });
+
+        const data = await resposta.json();
+
+        if (data.success) {
+            alert("Conta criada com sucesso!");
+            window.location = "/login";
+        } else {
+            alert(data.message || "Erro ao criar conta");
+        }
+
+    } catch (erro) {
+        alert("Erro no servidor");
+        console.error(erro);
+    }
+}
+
+</script>
+
+</body>
+</html>
