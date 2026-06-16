@@ -98,7 +98,7 @@ async function enviar() {
 
         const erroDiv = document.createElement("div");
         erroDiv.className = "msg-bot";
-        erroDiv.textContent = "Erro ao conectar com o servidor (" + erro.message + ")";
+        erroDiv.textContent = "Erro ao conectar com o servidor";
 
         chat.appendChild(erroDiv);
     }
