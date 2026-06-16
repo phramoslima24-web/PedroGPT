@@ -183,6 +183,28 @@ def history():
         return jsonify(cursor.fetchall())
 
 # ==========================
+# NOVA CONVERSA
+# ==========================
+
+@app.route("/new_chat", methods=["POST"])
+def new_chat():
+
+    if "user" not in session:
+        return jsonify({"success": False})
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "DELETE FROM messages WHERE username=?",
+            (session["user"],)
+        )
+
+        conn.commit()
+
+    return jsonify({"success": True})
+
+# ==========================
 # START
 # ==========================
 

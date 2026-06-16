@@ -79,7 +79,6 @@ async function enviar() {
         chat.appendChild(botDiv);
         chat.scrollTop = chat.scrollHeight;
 
-        // 🔊 VOZ
         const opcaoVoz = document.getElementById("voz");
 
         if (opcaoVoz && opcaoVoz.checked) {
@@ -101,6 +100,41 @@ async function enviar() {
         erroDiv.textContent = "Erro ao conectar com o servidor";
 
         chat.appendChild(erroDiv);
+    }
+}
+
+// 🆕 NOVA CONVERSA
+async function novaConversa() {
+
+    const confirmar = confirm(
+        "Deseja apagar todo o histórico desta conversa?"
+    );
+
+    if (!confirmar) return;
+
+    try {
+
+        const resposta = await fetch("/new_chat", {
+            method: "POST"
+        });
+
+        const data = await resposta.json();
+
+        if (data.success) {
+
+            document.getElementById("chat").innerHTML = "";
+
+            speechSynthesis.cancel();
+
+        } else {
+
+            alert("Erro ao criar nova conversa.");
+        }
+
+    } catch (erro) {
+
+        console.error(erro);
+        alert("Erro ao conectar com o servidor.");
     }
 }
 
