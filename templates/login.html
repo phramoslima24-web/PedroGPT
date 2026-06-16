@@ -23,7 +23,8 @@
             style="width:100%;padding:12px;margin-bottom:10px;"
         >
 
-        <div style="display:flex;gap:5px;margin-bottom:10px;">
+        <!-- SENHA + OLHINHO -->
+        <div style="display:flex;gap:5px;margin-bottom:10px;align-items:center;">
 
             <input
                 type="password"
@@ -35,6 +36,7 @@
             <button
                 type="button"
                 onclick="mostrarSenha()"
+                id="btnOlho"
                 style="padding:12px;cursor:pointer;"
             >
                 👁️
@@ -61,19 +63,20 @@
 
 function mostrarSenha() {
 
-    const senha =
-        document.getElementById("password");
+    const senha = document.getElementById("password");
+    const botao = document.getElementById("btnOlho");
 
     if (senha.type === "password") {
 
         senha.type = "text";
+        botao.textContent = "🙈";
 
     } else {
 
         senha.type = "password";
+        botao.textContent = "👁️";
 
     }
-
 }
 
 async function login() {
@@ -106,7 +109,6 @@ async function login() {
         alert(data.message);
 
     }
-
 }
 
 document.addEventListener("keypress", function(event) {

@@ -13,30 +13,23 @@ async function carregarHistorico() {
             const sender = item[0];
             const message = item[1];
 
+            const div = document.createElement("div");
+
             if (sender === "user") {
-
-                chat.innerHTML += `
-                    <div class="msg-user">
-                        ${message}
-                    </div>
-                `;
-
+                div.className = "msg-user";
             } else {
-
-                chat.innerHTML += `
-                    <div class="msg-bot">
-                        ${message}
-                    </div>
-                `;
-
+                div.className = "msg-bot";
             }
 
+            div.textContent = message;
+
+            chat.appendChild(div);
         });
 
         chat.scrollTop = chat.scrollHeight;
 
     } catch (erro) {
-        console.error(erro);
+        console.error("Erro no histórico:", erro);
     }
 }
 
@@ -49,13 +42,12 @@ async function enviar() {
 
     if (!texto) return;
 
-    // mostra mensagem do usuário
-    chat.innerHTML += `
-        <div class="msg-user">
-            ${texto}
-        </div>
-    `;
+    // mensagem do usuário
+    const userDiv = document.createElement("div");
+    userDiv.className = "msg-user";
+    userDiv.textContent = texto;
 
+    chat.appendChild(userDiv);
     chat.scrollTop = chat.scrollHeight;
 
     campo.value = "";
@@ -74,15 +66,14 @@ async function enviar() {
 
         const data = await resposta.json();
 
-        chat.innerHTML += `
-            <div class="msg-bot">
-                ${data.reply}
-            </div>
-        `;
+        const botDiv = document.createElement("div");
+        botDiv.className = "msg-bot";
+        botDiv.textContent = data.reply;
 
+        chat.appendChild(botDiv);
         chat.scrollTop = chat.scrollHeight;
 
-        // 🔊 VOZ
+        // 🔊 VOZ (opcional)
         const opcaoVoz = document.getElementById("voz");
 
         if (opcaoVoz && opcaoVoz.checked) {
@@ -97,17 +88,17 @@ async function enviar() {
 
     } catch (erro) {
 
-        console.error(erro);
+        console.error("Erro no chat:", erro);
 
-        chat.innerHTML += `
-            <div class="msg-bot">
-                Erro ao conectar com o servidor.
-            </div>
-        `;
+        const erroDiv = document.createElement("div");
+        erroDiv.className = "msg-bot";
+        erroDiv.textContent = "Erro ao conectar com o servidor.";
+
+        chat.appendChild(erroDiv);
     }
 }
 
-// ENTER + inicialização
+// INIT
 document.addEventListener("DOMContentLoaded", () => {
 
     carregarHistorico();
@@ -115,7 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const campo = document.getElementById("mensagem");
 
     if (campo) {
-        campo.addEventListener("keypress", function (event) {
+        campo.addEventListener("keydown", function (event) {
             if (event.key === "Enter") {
                 enviar();
             }
