@@ -46,38 +46,51 @@
 </div>
 
 <script>
+
 async function register() {
 
-    const username =
-        document.getElementById("username").value;
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
 
-    const password =
-        document.getElementById("password").value;
+    if (!username || !password) {
+        alert("Preencha usuário e senha!");
+        return;
+    }
 
-    const resposta = await fetch("/api/register", {
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-            username,
-            password
-        })
-    });
+    try {
 
-    const data = await resposta.json();
+        const resposta = await fetch("/api/register", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                username,
+                password
+            })
+        });
 
-    if(data.success){
+        const data = await resposta.json();
 
-        alert("Conta criada!");
-        window.location = "/login";
+        if (data.success) {
 
-    }else{
+            alert("Conta criada com sucesso!");
+            window.location = "/login";
 
-        alert(data.message);
+        } else {
+
+            alert(data.message || "Erro ao criar conta");
+
+        }
+
+    } catch (error) {
+
+        console.error(error);
+        alert("Erro no servidor");
 
     }
 }
+
 </script>
 
 </body>
