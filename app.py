@@ -9,7 +9,7 @@ app.secret_key = "pedrogpt_secret_key"
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 # ==========================
-# BANCO DE DADOS SEGURO
+# BANCO DE DADOS
 # ==========================
 
 def get_db():
@@ -63,9 +63,10 @@ def login():
     return render_template("login.html")
 
 
-@app.route("/register")
-def register():
-    return render_template("register.html")
+# ✔ CORRIGIDO: nome consistente com seu arquivo real
+@app.route("/registro")
+def registro():
+    return render_template("registro.html")
 
 
 @app.route("/logout")
@@ -81,14 +82,20 @@ def logout():
 def api_register():
 
     data = request.get_json()
-    username = data["username"]
-    password = data["password"]
+    username = data.get("username")
+    password = data.get("password")
+
+    if not username or not password:
+        return jsonify({
+            "success": False,
+            "message": "Campos vazios"
+        })
 
     try:
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO users (username,password) VALUES (?,?)",
+                "INSERT INTO users (username, password) VALUES (?, ?)",
                 (username, password)
             )
             conn.commit()
@@ -109,8 +116,8 @@ def api_register():
 def api_login():
 
     data = request.get_json()
-    username = data["username"]
-    password = data["password"]
+    username = data.get("username")
+    password = data.get("password")
 
     with get_db() as conn:
         cursor = conn.cursor()
@@ -147,7 +154,7 @@ def chat():
             cursor = conn.cursor()
 
             cursor.execute(
-                "INSERT INTO messages (username,sender,message) VALUES (?,?,?)",
+                "INSERT INTO messages (username, sender, message) VALUES (?, ?, ?)",
                 (session["user"], "user", mensagem)
             )
             conn.commit()
@@ -172,7 +179,7 @@ def chat():
             cursor = conn.cursor()
 
             cursor.execute(
-                "INSERT INTO messages (username,sender,message) VALUES (?,?,?)",
+                "INSERT INTO messages (username, sender, message) VALUES (?, ?, ?)",
                 (session["user"], "bot", texto)
             )
             conn.commit()
@@ -195,7 +202,7 @@ def history():
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT sender,message FROM messages WHERE username=?",
+            "SELECT sender, message FROM messages WHERE username=?",
             (session["user"],)
         )
         dados = cursor.fetchall()
