@@ -1,4 +1,5 @@
 import os
+import requests
 import sqlite3
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from groq import Groq
@@ -144,15 +145,68 @@ def chat():
         )
         conn.commit()
 
-    resposta = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {"role": "system", "content": "Você é PedroGPT. Responda em português."},
-            {"role": "user", "content": mensagem}
-        ]
-    )
+    try:
 
-    texto = resposta.choices[0].message.content
+        # PESQUISA NA INTERNET
+        if mensagem.lower().startswith("pesquise:"):
+
+            consulta = mensagem.replace("pesquise:", "").strip()
+
+            headers = {
+                "X-API-KEY": os.getenv("SERPER_API_KEY"),
+                "Content-Type": "application/json"
+            }
+
+            resultado = requests.post(
+                "https://google.serper.dev/search",
+                headers=headers,
+                json={"q": consulta}
+            )
+
+            dados = resultado.json()
+
+            contexto = ""
+
+            for item in dados.get("organic", [])[:5]:
+                contexto += (
+                    f"Título: {item.get('title', '')}\n"
+                    f"Resumo: {item.get('snippet', '')}\n\n"
+                )
+
+            resposta = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "Você é PedroGPT. Use os resultados da pesquisa para responder em português."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Pergunta: {consulta}\n\nResultados:\n{contexto}"
+                    }
+                ]
+            )
+
+        else:
+
+            resposta = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "Você é PedroGPT. Responda em português."
+                    },
+                    {
+                        "role": "user",
+                        "content": mensagem
+                    }
+                ]
+            )
+
+        texto = resposta.choices[0].message.content
+
+    except Exception as e:
+        texto = f"Erro na pesquisa: {str(e)}"
 
     with get_db() as conn:
         cursor = conn.cursor()
