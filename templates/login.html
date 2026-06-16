@@ -18,80 +18,80 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background: linear-gradient(135deg, #1c1f26, #2b2d31, #1a1c22);
+    background: #202123;
     color: white;
 }
 
 .card {
     width: 360px;
-    padding: 35px;
-    border-radius: 18px;
-    background: rgba(255,255,255,0.06);
-    backdrop-filter: blur(12px);
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    padding: 30px;
+    border-radius: 15px;
+    background: #2c2f3a;
     text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
 
 h2 {
     margin-bottom: 20px;
 }
 
+/* INPUT */
 input {
     width: 100%;
-    padding: 14px 36px 14px 14px; /* espaço pro olho */
-    margin-top: 12px;
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: rgba(255,255,255,0.08);
-    color: white;
-    outline: none;
-}
-
-button {
-    width: 100%;
     padding: 14px;
-    margin-top: 18px;
+    margin-top: 12px;
     border: none;
     border-radius: 10px;
-    background: linear-gradient(90deg, #7c3aed, #5b21b6);
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
+    outline: none;
+    background: #eceff6;
 }
 
-button:hover {
-    transform: scale(1.03);
-}
-
-a {
-    display: block;
-    margin-top: 14px;
-    color: #a78bfa;
-    text-decoration: none;
-    font-size: 13px;
-}
-
+/* SENHA BOX */
 .senha-box {
     position: relative;
-    margin-top: 10px;
+    width: 100%;
 }
 
-.eye-box {
+.senha-box input {
+    padding-right: 45px; /* espaço pro olho */
+}
+
+/* OLHO */
+.eye {
     position: absolute;
-    right: 8px;
+    right: 12px;
     top: 50%;
     transform: translateY(-50%);
     width: 18px;
     height: 18px;
-    border: 2px solid rgba(255,255,255,0.3);
+    border: 2px solid #999;
     border-radius: 5px;
     cursor: pointer;
-    transition: 0.2s;
 }
 
-.eye-box.active {
+.eye.active {
     background: #7c3aed;
     border-color: #7c3aed;
+}
+
+/* BOTÃO */
+button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 15px;
+    border: none;
+    border-radius: 10px;
+    background: #bdbdbd;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* LINK */
+a {
+    display: block;
+    margin-top: 12px;
+    color: #7c4dff;
+    text-decoration: none;
 }
 </style>
 
@@ -106,12 +106,12 @@ a {
 
 <div class="senha-box">
     <input type="password" id="password" placeholder="Senha">
-    <span class="eye-box" id="btnOlho" onclick="toggleSenha()"></span>
+    <span class="eye" id="eye" onclick="toggleSenha()"></span>
 </div>
 
 <button onclick="login()">Entrar</button>
 
-<a href="/registro">Criar conta</a>
+<a href="/register">Criar conta</a>
 
 </div>
 
@@ -119,14 +119,14 @@ a {
 
 function toggleSenha() {
     const senha = document.getElementById("password");
-    const box = document.getElementById("btnOlho");
+    const eye = document.getElementById("eye");
 
     if (senha.type === "password") {
         senha.type = "text";
-        box.classList.add("active");
+        eye.classList.add("active");
     } else {
         senha.type = "password";
-        box.classList.remove("active");
+        eye.classList.remove("active");
     }
 }
 
