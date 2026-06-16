@@ -52,7 +52,8 @@
         </button>
 
         <p style="margin-top:15px;text-align:center;">
-            <a href="/register">Criar conta</a>
+            <!-- ✔ CORRIGIDO AQUI -->
+            <a href="/registro">Criar conta</a>
         </p>
 
     </div>
@@ -87,23 +88,30 @@ async function login() {
         return;
     }
 
-    const resposta = await fetch("/api/login", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            username,
-            password
-        })
-    });
+    try {
 
-    const data = await resposta.json();
+        const resposta = await fetch("/api/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                username,
+                password
+            })
+        });
 
-    if (data.success) {
-        window.location = "/";
-    } else {
-        alert(data.message);
+        const data = await resposta.json();
+
+        if (data.success) {
+            window.location = "/";
+        } else {
+            alert(data.message || "Login inválido");
+        }
+
+    } catch (erro) {
+        alert("Erro no servidor");
+        console.error(erro);
     }
 }
 

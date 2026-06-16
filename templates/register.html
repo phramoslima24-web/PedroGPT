@@ -95,7 +95,7 @@ a {
 
 <script>
 
-// 👁️ TOGGLE SENHA
+// 👁️ MOSTRAR / OCULTAR SENHA
 function toggleSenha() {
 
     const senha = document.getElementById("password");
@@ -130,6 +130,10 @@ async function register() {
             },
             body: JSON.stringify({ username, password })
         });
+
+        if (!resposta.ok) {
+            throw new Error("Erro HTTP " + resposta.status);
+        }
 
         const data = await resposta.json();
 
