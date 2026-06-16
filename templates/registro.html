@@ -8,56 +8,80 @@
 <style>
 body {
     margin: 0;
-    font-family: Arial;
-    background: #2b2d31;
+    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    font-family: Arial;
+    background: linear-gradient(135deg, #1c1f26, #2b2d31, #1a1c22);
 }
 
-/* CARD */
+/* CARD GLASS */
 .card {
-    background: #343541;
-    padding: 30px;
-    border-radius: 15px;
-    width: 320px;
+    width: 360px;
+    padding: 35px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
     color: white;
     text-align: center;
 }
 
-/* INPUT */
+/* TITULO */
+.card h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+}
+
+/* INPUTS */
 input {
     width: 100%;
-    padding: 12px;
-    margin-top: 10px;
-    border: none;
-    border-radius: 8px;
+    padding: 14px;
+    margin-top: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
     outline: none;
-    background: #eceff6;
+    background: rgba(255,255,255,0.08);
+    color: white;
+    font-size: 14px;
+    transition: 0.3s;
+}
+
+input:focus {
+    border: 1px solid #7c3aed;
+    background: rgba(255,255,255,0.12);
 }
 
 /* BOTÃO */
 button {
     width: 100%;
-    padding: 12px;
-    margin-top: 15px;
+    padding: 14px;
+    margin-top: 18px;
     border: none;
-    border-radius: 8px;
-    background: linear-gradient(90deg, #dcdcdc, #bdbdbd);
-    cursor: pointer;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #7c3aed, #5b21b6);
+    color: white;
     font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    transform: scale(1.03);
+    box-shadow: 0 5px 20px rgba(124,58,237,0.4);
 }
 
 /* LINK */
 a {
-    color: #7c3aed;
     display: block;
-    margin-top: 12px;
+    margin-top: 14px;
+    color: #a78bfa;
     text-decoration: none;
+    font-size: 13px;
 }
 
-/* SENHA BOX */
+/* SENHA */
 .senha-box {
     position: relative;
 }
@@ -69,6 +93,12 @@ a {
     transform: translateY(-50%);
     cursor: pointer;
     font-size: 18px;
+    opacity: 0.8;
+    transition: 0.2s;
+}
+
+.eye:hover {
+    opacity: 1;
 }
 </style>
 
@@ -77,17 +107,16 @@ a {
 
 <div class="card">
 
-    <h2>🤖 PedroGPT</h2>
+    <h2>🤖 Criar conta</h2>
 
     <input type="text" id="username" placeholder="Usuário">
 
-    <!-- SENHA COM OLHO -->
     <div class="senha-box">
         <input type="password" id="password" placeholder="Senha">
         <span class="eye" id="btnOlho" onclick="toggleSenha()">👁️</span>
     </div>
 
-    <button onclick="register()">Cadastrar</button>
+    <button onclick="register()">Criar conta</button>
 
     <a href="/login">Já tenho conta</a>
 
@@ -95,7 +124,6 @@ a {
 
 <script>
 
-// 👁️ MOSTRAR / OCULTAR SENHA
 function toggleSenha() {
 
     const senha = document.getElementById("password");
@@ -110,7 +138,6 @@ function toggleSenha() {
     }
 }
 
-// CADASTRO
 async function register() {
 
     const username = document.getElementById("username").value.trim();
@@ -131,10 +158,6 @@ async function register() {
             body: JSON.stringify({ username, password })
         });
 
-        if (!resposta.ok) {
-            throw new Error("Erro HTTP " + resposta.status);
-        }
-
         const data = await resposta.json();
 
         if (data.success) {
@@ -146,7 +169,6 @@ async function register() {
 
     } catch (erro) {
         alert("Erro no servidor");
-        console.error(erro);
     }
 }
 
