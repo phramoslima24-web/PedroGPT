@@ -62,14 +62,11 @@ a {
     position: relative;
 }
 
-.senha-box button {
+.eye {
     position: absolute;
-    right: 10px;
+    right: 12px;
     top: 55%;
     transform: translateY(-50%);
-    width: auto;
-    background: none;
-    border: none;
     cursor: pointer;
     font-size: 18px;
 }
@@ -87,7 +84,7 @@ a {
     <!-- SENHA COM OLHO -->
     <div class="senha-box">
         <input type="password" id="password" placeholder="Senha">
-        <button type="button" onclick="toggleSenha()" id="btnOlho">👁️</button>
+        <span class="eye" id="btnOlho" onclick="toggleSenha()">👁️</span>
     </div>
 
     <button onclick="register()">Cadastrar</button>
@@ -98,18 +95,18 @@ a {
 
 <script>
 
-// 👁️ OLHO DA SENHA (FUNCIONANDO 100%)
+// 👁️ TOGGLE SENHA
 function toggleSenha() {
 
     const senha = document.getElementById("password");
-    const btn = document.getElementById("btnOlho");
+    const olho = document.getElementById("btnOlho");
 
     if (senha.type === "password") {
         senha.type = "text";
-        btn.textContent = "🙈";
+        olho.textContent = "🙈";
     } else {
         senha.type = "password";
-        btn.textContent = "👁️";
+        olho.textContent = "👁️";
     }
 }
 
