@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cadastro - PedroGPT</title>
+<title>Registro - PedroGPT</title>
 
 <style>
 body {
@@ -16,7 +16,7 @@ body {
     background: linear-gradient(135deg, #1c1f26, #2b2d31, #1a1c22);
 }
 
-/* CARD GLASS */
+/* CARD */
 .card {
     width: 360px;
     padding: 35px;
@@ -28,29 +28,20 @@ body {
     text-align: center;
 }
 
-/* TITULO */
-.card h2 {
+h2 {
     margin-bottom: 20px;
-    font-size: 24px;
 }
 
-/* INPUTS */
+/* INPUT */
 input {
     width: 100%;
     padding: 14px;
     margin-top: 12px;
-    border: 1px solid rgba(255,255,255,0.1);
     border-radius: 10px;
-    outline: none;
+    border: 1px solid rgba(255,255,255,0.1);
     background: rgba(255,255,255,0.08);
     color: white;
-    font-size: 14px;
-    transition: 0.3s;
-}
-
-input:focus {
-    border: 1px solid #7c3aed;
-    background: rgba(255,255,255,0.12);
+    outline: none;
 }
 
 /* BOTÃO */
@@ -64,12 +55,28 @@ button {
     color: white;
     font-weight: bold;
     cursor: pointer;
-    transition: 0.3s;
 }
 
-button:hover {
-    transform: scale(1.03);
-    box-shadow: 0 5px 20px rgba(124,58,237,0.4);
+/* SENHA */
+.senha-box {
+    position: relative;
+}
+
+.eye-box {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,0.5);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.eye-box.active {
+    background: #7c3aed;
+    border-color: #7c3aed;
 }
 
 /* LINK */
@@ -79,26 +86,6 @@ a {
     color: #a78bfa;
     text-decoration: none;
     font-size: 13px;
-}
-
-/* SENHA */
-.senha-box {
-    position: relative;
-}
-
-.eye {
-    position: absolute;
-    right: 12px;
-    top: 55%;
-    transform: translateY(-50%);
-    cursor: pointer;
-    font-size: 18px;
-    opacity: 0.8;
-    transition: 0.2s;
-}
-
-.eye:hover {
-    opacity: 1;
 }
 </style>
 
@@ -113,7 +100,7 @@ a {
 
     <div class="senha-box">
         <input type="password" id="password" placeholder="Senha">
-        <span class="eye" id="btnOlho" onclick="toggleSenha()">👁️</span>
+        <span class="eye-box" id="btnOlho" onclick="toggleSenha()"></span>
     </div>
 
     <button onclick="register()">Criar conta</button>
@@ -127,14 +114,14 @@ a {
 function toggleSenha() {
 
     const senha = document.getElementById("password");
-    const olho = document.getElementById("btnOlho");
+    const box = document.getElementById("btnOlho");
 
     if (senha.type === "password") {
         senha.type = "text";
-        olho.textContent = "🙈";
+        box.classList.add("active");
     } else {
         senha.type = "password";
-        olho.textContent = "👁️";
+        box.classList.remove("active");
     }
 }
 
@@ -143,32 +130,18 @@ async function register() {
     const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value.trim();
 
-    if (!username || !password) {
-        alert("Preencha tudo!");
-        return;
-    }
+    const res = await fetch("/api/register", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ username, password })
+    });
 
-    try {
+    const data = await res.json();
 
-        const resposta = await fetch("/api/register", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ username, password })
-        });
-
-        const data = await resposta.json();
-
-        if (data.success) {
-            alert("Conta criada com sucesso!");
-            window.location = "/login";
-        } else {
-            alert(data.message || "Erro ao criar conta");
-        }
-
-    } catch (erro) {
-        alert("Erro no servidor");
+    if (data.success) {
+        window.location = "/login";
+    } else {
+        alert(data.message || "Erro ao criar conta");
     }
 }
 
