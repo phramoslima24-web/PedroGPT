@@ -4,59 +4,122 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Login - PedroGPT</title>
-<link rel="stylesheet" href="/static/style.css">
+
+<style>
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Arial;
+    background: linear-gradient(135deg, #1c1f26, #2b2d31, #1a1c22);
+}
+
+/* CARD MODERNO */
+.card {
+    width: 360px;
+    padding: 35px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    color: white;
+    text-align: center;
+}
+
+/* TÍTULO */
+h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+}
+
+/* INPUTS */
+input {
+    width: 100%;
+    padding: 14px;
+    margin-top: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    outline: none;
+    background: rgba(255,255,255,0.08);
+    color: white;
+    font-size: 14px;
+    transition: 0.3s;
+}
+
+input:focus {
+    border: 1px solid #7c3aed;
+    background: rgba(255,255,255,0.12);
+}
+
+/* BOTÃO */
+button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 18px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #7c3aed, #5b21b6);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    transform: scale(1.03);
+    box-shadow: 0 5px 20px rgba(124,58,237,0.4);
+}
+
+/* LINK */
+a {
+    display: block;
+    margin-top: 14px;
+    color: #a78bfa;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+/* SENHA */
+.senha-box {
+    position: relative;
+    margin-top: 10px;
+}
+
+.eye {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 18px;
+    opacity: 0.8;
+    transition: 0.2s;
+}
+
+.eye:hover {
+    opacity: 1;
+}
+</style>
+
 </head>
 <body>
 
-<div class="main" style="justify-content:center;align-items:center;">
+<div class="card">
 
-    <div style="width:350px;background:#343541;padding:25px;border-radius:15px;">
+    <h2>🤖 PedroGPT</h2>
 
-        <h2 style="text-align:center;margin-bottom:20px;">
-            🤖 PedroGPT
-        </h2>
+    <input type="text" id="username" placeholder="Usuário">
 
-        <input
-            type="text"
-            id="username"
-            placeholder="Usuário"
-            style="width:100%;padding:12px;margin-bottom:10px;"
-        >
-
-        <!-- SENHA + OLHINHO -->
-        <div style="display:flex;gap:5px;margin-bottom:10px;align-items:center;">
-
-            <input
-                type="password"
-                id="password"
-                placeholder="Senha"
-                style="width:100%;padding:12px;"
-            >
-
-            <button
-                type="button"
-                onclick="mostrarSenha()"
-                id="btnOlho"
-                style="padding:12px;cursor:pointer;border:none;background:none;font-size:18px;"
-            >
-                👁️
-            </button>
-
-        </div>
-
-        <button
-            onclick="login()"
-            style="width:100%;padding:12px;cursor:pointer;"
-        >
-            Entrar
-        </button>
-
-        <p style="margin-top:15px;text-align:center;">
-            <!-- ✔ CORRIGIDO AQUI -->
-            <a href="/registro">Criar conta</a>
-        </p>
-
+    <div class="senha-box">
+        <input type="password" id="password" placeholder="Senha">
+        <span class="eye" id="btnOlho" onclick="mostrarSenha()">👁️</span>
     </div>
+
+    <button onclick="login()">Entrar</button>
+
+    <a href="/registro">Criar conta</a>
 
 </div>
 
@@ -66,8 +129,6 @@ function mostrarSenha() {
 
     const senha = document.getElementById("password");
     const botao = document.getElementById("btnOlho");
-
-    if (!senha || !botao) return;
 
     if (senha.type === "password") {
         senha.type = "text";
@@ -95,10 +156,7 @@ async function login() {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-                username,
-                password
-            })
+            body: JSON.stringify({ username, password })
         });
 
         const data = await resposta.json();
@@ -115,7 +173,7 @@ async function login() {
     }
 }
 
-// ENTER funciona
+// ENTER
 document.addEventListener("keydown", function(event) {
     if (event.key === "Enter") {
         login();
