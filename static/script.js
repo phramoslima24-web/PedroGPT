@@ -42,7 +42,6 @@ async function enviar() {
 
     if (!texto) return;
 
-    // mensagem do usuário
     const userDiv = document.createElement("div");
     userDiv.className = "msg-user";
     userDiv.textContent = texto;
@@ -73,7 +72,7 @@ async function enviar() {
         chat.appendChild(botDiv);
         chat.scrollTop = chat.scrollHeight;
 
-        // 🔊 VOZ (opcional)
+        // 🔊 VOZ
         const opcaoVoz = document.getElementById("voz");
 
         if (opcaoVoz && opcaoVoz.checked) {

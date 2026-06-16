@@ -37,7 +37,7 @@
                 type="button"
                 onclick="mostrarSenha()"
                 id="btnOlho"
-                style="padding:12px;cursor:pointer;"
+                style="padding:12px;cursor:pointer;border:none;background:none;font-size:18px;"
             >
                 👁️
             </button>
@@ -46,7 +46,7 @@
 
         <button
             onclick="login()"
-            style="width:100%;padding:12px;"
+            style="width:100%;padding:12px;cursor:pointer;"
         >
             Entrar
         </button>
@@ -66,26 +66,26 @@ function mostrarSenha() {
     const senha = document.getElementById("password");
     const botao = document.getElementById("btnOlho");
 
-    if (senha.type === "password") {
+    if (!senha || !botao) return;
 
+    if (senha.type === "password") {
         senha.type = "text";
         botao.textContent = "🙈";
-
     } else {
-
         senha.type = "password";
         botao.textContent = "👁️";
-
     }
 }
 
 async function login() {
 
-    const username =
-        document.getElementById("username").value;
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
 
-    const password =
-        document.getElementById("password").value;
+    if (!username || !password) {
+        alert("Preencha usuário e senha");
+        return;
+    }
 
     const resposta = await fetch("/api/login", {
         method: "POST",
@@ -101,24 +101,17 @@ async function login() {
     const data = await resposta.json();
 
     if (data.success) {
-
         window.location = "/";
-
     } else {
-
         alert(data.message);
-
     }
 }
 
-document.addEventListener("keypress", function(event) {
-
+// ENTER funciona
+document.addEventListener("keydown", function(event) {
     if (event.key === "Enter") {
-
         login();
-
     }
-
 });
 
 </script>
