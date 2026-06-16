@@ -9,15 +9,11 @@ app.secret_key = "pedrogpt_secret_key"
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 # ==========================
-# BANCO DE DADOS
+# BANCO
 # ==========================
 
 def get_db():
-    conn = sqlite3.connect(
-        "database.db",
-        timeout=10,
-        check_same_thread=False
-    )
+    conn = sqlite3.connect("database.db", timeout=10, check_same_thread=False)
     conn.execute("PRAGMA journal_mode=WAL")
     return conn
 
@@ -63,10 +59,10 @@ def login():
     return render_template("login.html")
 
 
-# ✔ CORRIGIDO: nome consistente com seu arquivo real
-@app.route("/registro")
-def registro():
-    return render_template("registro.html")
+# ✔ PADRÃO CORRETO (SEM CONFUSÃO)
+@app.route("/register")
+def register():
+    return render_template("register.html")
 
 
 @app.route("/logout")
@@ -75,7 +71,7 @@ def logout():
     return redirect(url_for("login"))
 
 # ==========================
-# CADASTRO
+# REGISTER
 # ==========================
 
 @app.route("/api/register", methods=["POST"])
@@ -86,10 +82,7 @@ def api_register():
     password = data.get("password")
 
     if not username or not password:
-        return jsonify({
-            "success": False,
-            "message": "Campos vazios"
-        })
+        return jsonify({"success": False, "message": "Campos vazios"})
 
     try:
         with get_db() as conn:
@@ -103,10 +96,7 @@ def api_register():
         return jsonify({"success": True})
 
     except Exception:
-        return jsonify({
-            "success": False,
-            "message": "Usuário já existe."
-        })
+        return jsonify({"success": False, "message": "Usuário já existe"})
 
 # ==========================
 # LOGIN
@@ -131,10 +121,7 @@ def api_login():
         session["user"] = username
         return jsonify({"success": True})
 
-    return jsonify({
-        "success": False,
-        "message": "Login inválido."
-    })
+    return jsonify({"success": False, "message": "Login inválido"})
 
 # ==========================
 # CHAT
@@ -146,51 +133,39 @@ def chat():
     if "user" not in session:
         return jsonify({"reply": "Faça login primeiro."})
 
-    try:
-        data = request.get_json()
-        mensagem = data.get("message", "")
+    data = request.get_json()
+    mensagem = data.get("message", "")
 
-        with get_db() as conn:
-            cursor = conn.cursor()
-
-            cursor.execute(
-                "INSERT INTO messages (username, sender, message) VALUES (?, ?, ?)",
-                (session["user"], "user", mensagem)
-            )
-            conn.commit()
-
-        resposta = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "Você é PedroGPT. Responda sempre em português."
-                },
-                {
-                    "role": "user",
-                    "content": mensagem
-                }
-            ]
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO messages (username, sender, message) VALUES (?, ?, ?)",
+            (session["user"], "user", mensagem)
         )
+        conn.commit()
 
-        texto = resposta.choices[0].message.content
+    resposta = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {"role": "system", "content": "Você é PedroGPT. Responda em português."},
+            {"role": "user", "content": mensagem}
+        ]
+    )
 
-        with get_db() as conn:
-            cursor = conn.cursor()
+    texto = resposta.choices[0].message.content
 
-            cursor.execute(
-                "INSERT INTO messages (username, sender, message) VALUES (?, ?, ?)",
-                (session["user"], "bot", texto)
-            )
-            conn.commit()
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO messages (username, sender, message) VALUES (?, ?, ?)",
+            (session["user"], "bot", texto)
+        )
+        conn.commit()
 
-        return jsonify({"reply": texto})
-
-    except Exception as e:
-        return jsonify({"reply": f"Erro: {str(e)}"})
+    return jsonify({"reply": texto})
 
 # ==========================
-# HISTÓRICO
+# HISTORY
 # ==========================
 
 @app.route("/history")
@@ -205,9 +180,7 @@ def history():
             "SELECT sender, message FROM messages WHERE username=?",
             (session["user"],)
         )
-        dados = cursor.fetchall()
-
-    return jsonify(dados)
+        return jsonify(cursor.fetchall())
 
 # ==========================
 # START
