@@ -13,7 +13,7 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 def version():
     return {
         "version": "1.0",
-        "apk_url": "https://SEU-LINK-DO-APK"
+        "apk_url": ""
     }
 
 # ==========================
