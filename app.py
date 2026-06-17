@@ -9,6 +9,13 @@ app.secret_key = "pedrogpt_secret_key"
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
+@app.route("/version")
+def version():
+    return {
+        "version": "1.0",
+        "apk_url": "https://SEU-LINK-DO-APK"
+    }
+
 # ==========================
 # BANCO
 # ==========================
