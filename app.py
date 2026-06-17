@@ -147,10 +147,34 @@ def chat():
 
     try:
 
-        # PESQUISA NA INTERNET
-        if mensagem.lower().startswith("pesquise:"):
+        consulta = mensagem.strip()
 
-            consulta = mensagem.replace("pesquise:", "").strip()
+        palavras_busca = [
+            "hoje",
+            "agora",
+            "últimas",
+            "ultimas",
+            "notícias",
+            "noticias",
+            "preço",
+            "preco",
+            "cotação",
+            "cotacao",
+            "clima",
+            "tempo",
+            "resultado",
+            "jogo",
+            "presidente",
+            "quem é",
+            "quem foi"
+        ]
+
+        usar_internet = any(
+            palavra in consulta.lower()
+            for palavra in palavras_busca
+        )
+
+        if usar_internet:
 
             headers = {
                 "X-API-KEY": os.getenv("SERPER_API_KEY"),
