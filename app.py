@@ -13,7 +13,7 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 def version():
     return {
         "version": "1.1",
-        "apk_url": ""
+        "apk_url": "https://drive.google.com/file/d/1mdpeCrIJNcU2DlHLabjgh17zvM2ha703/view?usp=drive_link"
     }
 
 # ==========================
