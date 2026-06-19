@@ -1,8 +1,15 @@
+// =====================
+// HISTÓRICO
+// =====================
 async function carregarHistorico() {
 
     try {
         const resposta = await fetch("/history");
-        if (!resposta.ok) return;
+
+        if (!resposta.ok) {
+            console.warn("Erro ao carregar histórico:", resposta.status);
+            return;
+        }
 
         const historico = await resposta.json();
 
@@ -11,8 +18,8 @@ async function carregarHistorico() {
 
         historico.forEach(item => {
 
-            const sender = item[0];
-            const message = item[1];
+            const sender = item?.[0] ?? "bot";
+            const message = item?.[1] ?? "";
 
             addMensagem(message, sender === "user" ? "user" : "bot");
         });
@@ -31,12 +38,12 @@ async function enviar() {
 
     const campo = document.getElementById("mensagem");
     const texto = campo.value.trim();
+
     if (!texto) return;
 
     addMensagem(texto, "user");
     campo.value = "";
 
-    // efeito digitando (WhatsApp style)
     const typing = addMensagem("digitando...", "bot typing");
 
     try {
@@ -50,12 +57,15 @@ async function enviar() {
         });
 
         if (!resposta.ok) {
-            throw new Error("HTTP " + resposta.status);
+            console.warn("Erro HTTP:", resposta.status);
+            if (typing) typing.remove();
+            addMensagem("Erro ao conectar com o servidor", "bot");
+            return;
         }
 
         const data = await resposta.json();
 
-        typing.remove();
+        if (typing) typing.remove();
 
         addMensagem(data.reply, "bot");
 
@@ -67,6 +77,7 @@ async function enviar() {
 
             const voz = new SpeechSynthesisUtterance(data.reply);
             voz.lang = "pt-BR";
+
             speechSynthesis.speak(voz);
         }
 
@@ -74,13 +85,13 @@ async function enviar() {
 
         console.error("Erro no chat:", erro);
 
-        typing.remove();
+        if (typing) typing.remove();
         addMensagem("Erro ao conectar com o servidor", "bot");
     }
 }
 
 // =====================
-// MENSAGEM ESTILO WHATSAPP
+// MENSAGEM (WHATSAPP STYLE)
 // =====================
 function addMensagem(texto, tipo) {
 
@@ -95,7 +106,6 @@ function addMensagem(texto, tipo) {
         div.style.fontStyle = "italic";
     }
 
-    // hora estilo WhatsApp
     const now = new Date();
     const hora =
         now.getHours().toString().padStart(2, "0") + ":" +
@@ -108,8 +118,12 @@ function addMensagem(texto, tipo) {
         </div>
     `;
 
-    document.getElementById("chat").appendChild(div);
-    scrollBottom();
+    const chat = document.getElementById("chat");
+    chat.appendChild(div);
+
+    requestAnimationFrame(() => {
+        chat.scrollTop = chat.scrollHeight;
+    });
 
     return div;
 }

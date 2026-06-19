@@ -12,7 +12,7 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 @app.route("/version")
 def version():
     return {
-        "version": "1.1",
+        "version": "1.2",
         "apk_url": "https://drive.google.com/file/d/1mdpeCrIJNcU2DlHLabjgh17zvM2ha703/view?usp=drive_link"
     }
 
