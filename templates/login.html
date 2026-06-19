@@ -35,7 +35,6 @@ h2 {
     margin-bottom: 20px;
 }
 
-/* INPUT */
 input {
     width: 100%;
     padding: 14px;
@@ -46,17 +45,16 @@ input {
     background: #eceff6;
 }
 
-/* SENHA BOX */
+/* SENHA */
 .senha-box {
     position: relative;
     width: 100%;
 }
 
 .senha-box input {
-    padding-right: 45px; /* espaço pro olho */
+    padding-right: 45px;
 }
 
-/* OLHO */
 .eye {
     position: absolute;
     right: 12px;
@@ -74,7 +72,6 @@ input {
     border-color: #7c3aed;
 }
 
-/* BOTÃO */
 button {
     width: 100%;
     padding: 14px;
@@ -86,7 +83,6 @@ button {
     cursor: pointer;
 }
 
-/* LINK */
 a {
     display: block;
     margin-top: 12px;
@@ -117,6 +113,16 @@ a {
 
 <script>
 
+// =========================
+// AUTO LOGIN (CORRIGIDO)
+// =========================
+if (localStorage.getItem("logged") === "true") {
+    window.location.replace("/");
+}
+
+// =========================
+// TOGGLE SENHA
+// =========================
 function toggleSenha() {
     const senha = document.getElementById("password");
     const eye = document.getElementById("eye");
@@ -130,6 +136,9 @@ function toggleSenha() {
     }
 }
 
+// =========================
+// LOGIN
+// =========================
 async function login() {
 
     const username = document.getElementById("username").value.trim();
@@ -144,6 +153,9 @@ async function login() {
     const data = await res.json();
 
     if (data.success) {
+        localStorage.setItem("logged", "true");
+        localStorage.setItem("user", username);
+
         window.location = "/";
     } else {
         alert(data.message || "Erro ao logar");
