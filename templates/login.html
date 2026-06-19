@@ -22,31 +22,20 @@ body {
     color: white;
 }
 
-/* CARD GLASS */
 .card {
     width: 360px;
     padding: 35px;
     border-radius: 20px;
     background: rgba(255, 255, 255, 0.06);
     backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     text-align: center;
-    box-shadow: 0 15px 40px rgba(0,0,0,0.5);
-    animation: fadeIn 0.6s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 h2 {
     margin-bottom: 20px;
-    font-size: 26px;
 }
 
-/* INPUT */
 input {
     width: 100%;
     padding: 14px;
@@ -54,39 +43,8 @@ input {
     border: none;
     border-radius: 12px;
     outline: none;
-    background: rgba(255,255,255,0.9);
-    font-size: 14px;
 }
 
-/* SENHA */
-.senha-box {
-    position: relative;
-    width: 100%;
-}
-
-.senha-box input {
-    padding-right: 45px;
-}
-
-/* OLHO */
-.eye {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 18px;
-    height: 18px;
-    border: 2px solid #888;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.eye.active {
-    background: #7c3aed;
-    border-color: #7c3aed;
-}
-
-/* BOTÃO */
 button {
     width: 100%;
     padding: 14px;
@@ -97,74 +55,48 @@ button {
     color: white;
     font-weight: bold;
     cursor: pointer;
-    transition: 0.3s;
 }
 
 button:hover {
-    transform: scale(1.03);
     opacity: 0.9;
 }
 
-/* LINK */
 a {
     display: block;
     margin-top: 15px;
     color: #c4b5fd;
     text-decoration: none;
-    font-size: 13px;
-}
-
-a:hover {
-    text-decoration: underline;
 }
 </style>
-
 </head>
+
 <body>
 
 <div class="card">
+    <h2>🤖 PedroGPT</h2>
 
-<h2>🤖 PedroGPT</h2>
-
-<input type="text" id="username" placeholder="Usuário">
-
-<div class="senha-box">
+    <input type="text" id="username" placeholder="Usuário">
     <input type="password" id="password" placeholder="Senha">
-    <span class="eye" id="eye" onclick="toggleSenha()"></span>
-</div>
 
-<button onclick="login()">Entrar</button>
+    <button onclick="login()">Entrar</button>
 
-<a href="/register">Criar conta</a>
-
+    <a href="/register">Criar conta</a>
 </div>
 
 <script>
 
-// AUTO LOGIN
-if (localStorage.getItem("logged") === "true") {
-    window.location.replace("/");
-}
+// ❌ REMOVE AUTO LOOP COMPLETAMENTE
+// NÃO usar localStorage para login aqui
 
-// TOGGLE SENHA
-function toggleSenha() {
-    const senha = document.getElementById("password");
-    const eye = document.getElementById("eye");
-
-    if (senha.type === "password") {
-        senha.type = "text";
-        eye.classList.add("active");
-    } else {
-        senha.type = "password";
-        eye.classList.remove("active");
-    }
-}
-
-// LOGIN
 async function login() {
 
     const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value.trim();
+
+    if (!username || !password) {
+        alert("Preencha tudo");
+        return;
+    }
 
     const res = await fetch("/api/login", {
         method: "POST",
@@ -175,12 +107,10 @@ async function login() {
     const data = await res.json();
 
     if (data.success) {
-        localStorage.setItem("logged", "true");
-        localStorage.setItem("user", username);
-
-        window.location = "/";
+        // 🔥 só redireciona, NÃO usa localStorage
+        window.location.href = "/";
     } else {
-        alert(data.message || "Erro ao logar");
+        alert(data.message || "Login inválido");
     }
 }
 

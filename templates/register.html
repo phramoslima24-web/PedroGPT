@@ -1,144 +1,3 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Registro - PedroGPT</title>
-
-<style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: Arial;
-}
-
-body {
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: linear-gradient(135deg, #0f0f1a, #1f1f2e, #2c2f3a);
-    color: white;
-}
-
-/* CARD GLASS */
-.card {
-    width: 360px;
-    padding: 35px;
-    border-radius: 20px;
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    text-align: center;
-    box-shadow: 0 15px 40px rgba(0,0,0,0.5);
-    animation: fadeIn 0.6s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-h2 {
-    margin-bottom: 20px;
-    font-size: 24px;
-}
-
-/* INPUT */
-input {
-    width: 100%;
-    padding: 14px;
-    margin-top: 12px;
-    border: none;
-    border-radius: 12px;
-    outline: none;
-    background: rgba(255,255,255,0.9);
-    font-size: 14px;
-}
-
-/* SENHA */
-.senha-box {
-    position: relative;
-    width: 100%;
-}
-
-.senha-box input {
-    padding-right: 45px;
-}
-
-/* OLHO */
-.eye {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 18px;
-    height: 18px;
-    border: 2px solid #888;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.eye.active {
-    background: #7c3aed;
-    border-color: #7c3aed;
-}
-
-/* BOTÃO */
-button {
-    width: 100%;
-    padding: 14px;
-    margin-top: 18px;
-    border: none;
-    border-radius: 12px;
-    background: linear-gradient(90deg, #7c3aed, #4f46e5);
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
-    transition: 0.3s;
-}
-
-button:hover {
-    transform: scale(1.03);
-    opacity: 0.9;
-}
-
-/* LINK */
-a {
-    display: block;
-    margin-top: 15px;
-    color: #c4b5fd;
-    text-decoration: none;
-    font-size: 13px;
-}
-
-a:hover {
-    text-decoration: underline;
-}
-</style>
-
-</head>
-<body>
-
-<div class="card">
-
-<h2>🤖 Criar conta</h2>
-
-<input type="text" id="username" placeholder="Usuário">
-
-<div class="senha-box">
-    <input type="password" id="password" placeholder="Senha">
-    <span class="eye" id="eye" onclick="toggleSenha()"></span>
-</div>
-
-<button onclick="register()">Criar conta</button>
-
-<a href="/login">Já tenho conta</a>
-
-</div>
-
 <script>
 
 // =========================
@@ -158,29 +17,38 @@ function toggleSenha() {
 }
 
 // =========================
-// REGISTER
+// REGISTER (CORRIGIDO)
 // =========================
 async function register() {
 
     const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value.trim();
 
-    const res = await fetch("/api/register", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ username, password })
-    });
+    if (!username || !password) {
+        alert("Preencha todos os campos");
+        return;
+    }
 
-    const data = await res.json();
+    try {
+        const res = await fetch("/api/register", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ username, password })
+        });
 
-    if (data.success) {
-        window.location = "/login";
-    } else {
-        alert(data.message || "Erro ao criar conta");
+        const data = await res.json();
+
+        if (data.success) {
+            alert("Conta criada com sucesso!");
+            window.location = "/login";
+        } else {
+            alert(data.message || "Erro ao criar conta");
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert("Erro de conexão com o servidor");
     }
 }
 
 </script>
-
-</body>
-</html>
