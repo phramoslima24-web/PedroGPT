@@ -1,9 +1,7 @@
 async function carregarHistorico() {
 
     try {
-
         const resposta = await fetch("/history");
-
         if (!resposta.ok) return;
 
         const historico = await resposta.json();
@@ -16,43 +14,30 @@ async function carregarHistorico() {
             const sender = item[0];
             const message = item[1];
 
-            const div = document.createElement("div");
-
-            if (sender === "user") {
-                div.className = "msg-user";
-            } else {
-                div.className = "msg-bot";
-            }
-
-            div.textContent = message;
-
-            chat.appendChild(div);
+            addMensagem(message, sender === "user" ? "user" : "bot");
         });
 
-        chat.scrollTop = chat.scrollHeight;
+        scrollBottom();
 
     } catch (erro) {
         console.error("Erro no histórico:", erro);
     }
 }
 
+// =====================
+// ENVIAR MENSAGEM
+// =====================
 async function enviar() {
 
     const campo = document.getElementById("mensagem");
-    const chat = document.getElementById("chat");
-
     const texto = campo.value.trim();
-
     if (!texto) return;
 
-    const userDiv = document.createElement("div");
-    userDiv.className = "msg-user";
-    userDiv.textContent = texto;
-
-    chat.appendChild(userDiv);
-    chat.scrollTop = chat.scrollHeight;
-
+    addMensagem(texto, "user");
     campo.value = "";
+
+    // efeito digitando (WhatsApp style)
+    const typing = addMensagem("digitando...", "bot typing");
 
     try {
 
@@ -61,9 +46,7 @@ async function enviar() {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-                message: texto
-            })
+            body: JSON.stringify({ message: texto })
         });
 
         if (!resposta.ok) {
@@ -72,22 +55,18 @@ async function enviar() {
 
         const data = await resposta.json();
 
-        const botDiv = document.createElement("div");
-        botDiv.className = "msg-bot";
-        botDiv.textContent = data.reply;
+        typing.remove();
 
-        chat.appendChild(botDiv);
-        chat.scrollTop = chat.scrollHeight;
+        addMensagem(data.reply, "bot");
 
+        // VOZ
         const opcaoVoz = document.getElementById("voz");
 
         if (opcaoVoz && opcaoVoz.checked) {
-
             speechSynthesis.cancel();
 
             const voz = new SpeechSynthesisUtterance(data.reply);
             voz.lang = "pt-BR";
-
             speechSynthesis.speak(voz);
         }
 
@@ -95,22 +74,52 @@ async function enviar() {
 
         console.error("Erro no chat:", erro);
 
-        const erroDiv = document.createElement("div");
-        erroDiv.className = "msg-bot";
-        erroDiv.textContent = "Erro ao conectar com o servidor";
-
-        chat.appendChild(erroDiv);
+        typing.remove();
+        addMensagem("Erro ao conectar com o servidor", "bot");
     }
 }
 
-// 🆕 NOVA CONVERSA
+// =====================
+// MENSAGEM ESTILO WHATSAPP
+// =====================
+function addMensagem(texto, tipo) {
+
+    const div = document.createElement("div");
+    div.classList.add("msg");
+
+    if (tipo.includes("user")) div.classList.add("user");
+    else div.classList.add("bot");
+
+    if (tipo.includes("typing")) {
+        div.style.opacity = "0.6";
+        div.style.fontStyle = "italic";
+    }
+
+    // hora estilo WhatsApp
+    const now = new Date();
+    const hora =
+        now.getHours().toString().padStart(2, "0") + ":" +
+        now.getMinutes().toString().padStart(2, "0");
+
+    div.innerHTML = `
+        <div>${texto}</div>
+        <div style="font-size:10px;opacity:0.5;margin-top:5px;text-align:right;">
+            ${hora}
+        </div>
+    `;
+
+    document.getElementById("chat").appendChild(div);
+    scrollBottom();
+
+    return div;
+}
+
+// =====================
+// NOVA CONVERSA
+// =====================
 async function novaConversa() {
 
-    const confirmar = confirm(
-        "Deseja apagar todo o histórico desta conversa?"
-    );
-
-    if (!confirmar) return;
+    if (!confirm("Deseja apagar todo o histórico desta conversa?")) return;
 
     try {
 
@@ -121,24 +130,29 @@ async function novaConversa() {
         const data = await resposta.json();
 
         if (data.success) {
-
             document.getElementById("chat").innerHTML = "";
-
             speechSynthesis.cancel();
-
         } else {
-
             alert("Erro ao criar nova conversa.");
         }
 
     } catch (erro) {
-
         console.error(erro);
         alert("Erro ao conectar com o servidor.");
     }
 }
 
+// =====================
+// SCROLL
+// =====================
+function scrollBottom() {
+    const chat = document.getElementById("chat");
+    chat.scrollTop = chat.scrollHeight;
+}
+
+// =====================
 // INIT
+// =====================
 document.addEventListener("DOMContentLoaded", () => {
 
     carregarHistorico();
