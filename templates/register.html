@@ -18,33 +18,47 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #202123;
+    background: linear-gradient(135deg, #0f0f1a, #1f1f2e, #2c2f3a);
     color: white;
 }
 
+/* CARD GLASS */
 .card {
     width: 360px;
-    padding: 30px;
-    border-radius: 15px;
-    background: #2c2f3a;
+    padding: 35px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     text-align: center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+    animation: fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 h2 {
     margin-bottom: 20px;
+    font-size: 24px;
 }
 
+/* INPUT */
 input {
     width: 100%;
     padding: 14px;
     margin-top: 12px;
     border: none;
-    border-radius: 10px;
+    border-radius: 12px;
     outline: none;
-    background: #eceff6;
+    background: rgba(255,255,255,0.9);
+    font-size: 14px;
 }
 
+/* SENHA */
 .senha-box {
     position: relative;
     width: 100%;
@@ -62,32 +76,46 @@ input {
     transform: translateY(-50%);
     width: 18px;
     height: 18px;
-    border: 2px solid #999;
+    border: 2px solid #888;
     border-radius: 5px;
     cursor: pointer;
 }
 
 .eye.active {
-    background: #7c4dff;
-    border-color: #7c4dff;
+    background: #7c3aed;
+    border-color: #7c3aed;
 }
 
+/* BOTÃO */
 button {
     width: 100%;
     padding: 14px;
-    margin-top: 15px;
+    margin-top: 18px;
     border: none;
-    border-radius: 10px;
-    background: #bdbdbd;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #7c3aed, #4f46e5);
+    color: white;
     font-weight: bold;
     cursor: pointer;
+    transition: 0.3s;
 }
 
+button:hover {
+    transform: scale(1.03);
+    opacity: 0.9;
+}
+
+/* LINK */
 a {
     display: block;
-    margin-top: 12px;
-    color: #7c4dff;
+    margin-top: 15px;
+    color: #c4b5fd;
     text-decoration: none;
+    font-size: 13px;
+}
+
+a:hover {
+    text-decoration: underline;
 }
 </style>
 
@@ -113,6 +141,9 @@ a {
 
 <script>
 
+// =========================
+// TOGGLE SENHA
+// =========================
 function toggleSenha() {
     const senha = document.getElementById("password");
     const eye = document.getElementById("eye");
@@ -126,6 +157,9 @@ function toggleSenha() {
     }
 }
 
+// =========================
+// REGISTER
+// =========================
 async function register() {
 
     const username = document.getElementById("username").value.trim();
