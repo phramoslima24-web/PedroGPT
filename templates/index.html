@@ -16,19 +16,20 @@
 body {
     display: flex;
     height: 100vh;
-    background: #0f0f1a;
+    background: radial-gradient(circle at top, #111827, #0b0f19);
     color: white;
 }
 
-/* SIDEBAR */
+/* SIDEBAR MODERNA */
 .sidebar {
     width: 260px;
-    background: #171717;
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: blur(12px);
+    border-right: 1px solid rgba(255,255,255,0.08);
     padding: 20px;
     display: flex;
     flex-direction: column;
     gap: 15px;
-    border-right: 1px solid #2f2f2f;
 }
 
 .sidebar h2 {
@@ -36,39 +37,42 @@ body {
 }
 
 .usuario {
-    background: #2b2b2b;
+    background: rgba(255,255,255,0.05);
     padding: 12px;
-    border-radius: 8px;
+    border-radius: 10px;
     text-align: center;
     font-size: 14px;
+    border: 1px solid rgba(255,255,255,0.06);
 }
 
 /* BOTÕES */
 .nova-conversa {
     border: none;
-    background: #19c37d;
+    background: linear-gradient(135deg, #10b981, #059669);
     color: white;
     padding: 12px;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
     font-weight: bold;
+    transition: 0.2s;
 }
 
 .nova-conversa:hover {
-    opacity: 0.9;
+    transform: scale(1.03);
 }
 
 .logout {
     text-decoration: none;
     color: white;
-    background: #444;
+    background: rgba(255,255,255,0.08);
     padding: 10px;
-    border-radius: 8px;
+    border-radius: 10px;
     text-align: center;
+    border: 1px solid rgba(255,255,255,0.08);
 }
 
 .logout:hover {
-    background: #666;
+    background: rgba(255,255,255,0.15);
 }
 
 /* MAIN */
@@ -79,16 +83,19 @@ body {
     height: 100vh;
 }
 
+/* HEADER */
 .header {
-    padding: 20px;
-    border-bottom: 1px solid #333;
+    padding: 18px;
     text-align: center;
+    font-weight: bold;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
 }
 
-/* OPÇÕES */
+/* OPTIONS */
 .opcoes {
     padding: 10px 20px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
     font-size: 14px;
 }
 
@@ -100,59 +107,92 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    scroll-behavior: smooth;
 }
 
-/* MENSAGENS */
+/* SCROLL */
+.chat::-webkit-scrollbar {
+    width: 6px;
+}
+.chat::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+}
+
+/* USER MESSAGE */
 .msg-user {
     align-self: flex-end;
-    background: #0b93f6;
-    color: white;
-    padding: 12px;
-    border-radius: 12px;
     max-width: 75%;
-    word-wrap: break-word;
+    padding: 12px 14px;
+    border-radius: 16px 16px 4px 16px;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    color: white;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    animation: pop 0.15s ease;
 }
 
+/* BOT MESSAGE */
 .msg-bot {
     align-self: flex-start;
-    background: #343541;
-    color: white;
-    padding: 12px;
-    border-radius: 12px;
     max-width: 75%;
-    word-wrap: break-word;
+    padding: 12px 14px;
+    border-radius: 16px 16px 16px 4px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
+    animation: pop 0.15s ease;
+}
+
+/* ANIMATION */
+@keyframes pop {
+    from {
+        transform: translateY(5px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 /* INPUT */
 .entrada {
     display: flex;
     gap: 10px;
-    padding: 20px;
-    border-top: 1px solid #333;
+    padding: 15px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.25);
+    backdrop-filter: blur(10px);
 }
 
 .entrada input {
     flex: 1;
-    padding: 15px;
-    border: none;
-    border-radius: 10px;
-    outline: none;
-    background: #343541;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
     color: white;
+    outline: none;
+}
+
+.entrada input:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 2px rgba(124,58,237,0.25);
 }
 
 .entrada button {
-    padding: 15px 20px;
+    padding: 14px 18px;
+    border-radius: 12px;
     border: none;
-    border-radius: 10px;
     cursor: pointer;
-    background: #19c37d;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
     color: white;
     font-weight: bold;
+    transition: 0.2s;
 }
 
 .entrada button:hover {
-    opacity: 0.9;
+    transform: scale(1.05);
 }
 
 /* MOBILE */
