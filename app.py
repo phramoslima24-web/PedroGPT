@@ -1,5 +1,4 @@
 import os
-import requests
 import sqlite3
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from groq import Groq
@@ -8,6 +7,10 @@ app = Flask(__name__)
 app.secret_key = "pedrogpt_secret_key"
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+# ==========================
+# VERSION
+# ==========================
 
 @app.route("/version")
 def version():
@@ -57,6 +60,7 @@ init_db()
 
 @app.route("/")
 def home():
+    # 🔥 proteção de sessão (sem loop infinito)
     if "user" not in session:
         return redirect(url_for("login"))
     return render_template("index.html", username=session["user"])
@@ -78,14 +82,15 @@ def logout():
     return redirect(url_for("login"))
 
 # ==========================
-# REGISTER
+# REGISTER API
 # ==========================
 
 @app.route("/api/register", methods=["POST"])
 def api_register():
     data = request.get_json()
-    username = data.get("username")
-    password = data.get("password")
+
+    username = (data.get("username") or "").strip()
+    password = (data.get("password") or "").strip()
 
     if not username or not password:
         return jsonify({"success": False, "message": "Campos vazios"})
@@ -105,14 +110,15 @@ def api_register():
         return jsonify({"success": False, "message": "Usuário já existe"})
 
 # ==========================
-# LOGIN
+# LOGIN API
 # ==========================
 
 @app.route("/api/login", methods=["POST"])
 def api_login():
     data = request.get_json()
-    username = data.get("username")
-    password = data.get("password")
+
+    username = (data.get("username") or "").strip()
+    password = (data.get("password") or "").strip()
 
     with get_db() as conn:
         cursor = conn.cursor()
@@ -139,12 +145,12 @@ def chat():
         return jsonify({"reply": "Faça login primeiro."})
 
     data = request.get_json()
-    mensagem = data.get("message", "").strip()
+    mensagem = (data.get("message") or "").strip()
 
     if not mensagem:
         return jsonify({"reply": "Digite uma mensagem."})
 
-    # salva mensagem do usuário
+    # salva mensagem user
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -166,7 +172,6 @@ def chat():
                 """,
                 (session["user"],)
             )
-
             historico = cursor.fetchall()
 
         mensagens_ia = [
@@ -196,8 +201,9 @@ def chat():
         texto = resposta.choices[0].message.content
 
     except Exception as e:
-        texto = f"Erro: {str(e)}"
+        texto = f"Erro IA: {str(e)}"
 
+    # salva resposta bot
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute(
