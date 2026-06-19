@@ -67,7 +67,6 @@ def login():
     return render_template("login.html")
 
 
-# ✔ PADRÃO CORRETO (SEM CONFUSÃO)
 @app.route("/register")
 def register():
     return render_template("register.html")
@@ -84,7 +83,6 @@ def logout():
 
 @app.route("/api/register", methods=["POST"])
 def api_register():
-
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
@@ -112,7 +110,6 @@ def api_register():
 
 @app.route("/api/login", methods=["POST"])
 def api_login():
-
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
@@ -142,8 +139,12 @@ def chat():
         return jsonify({"reply": "Faça login primeiro."})
 
     data = request.get_json()
-    mensagem = data.get("message", "")
+    mensagem = data.get("message", "").strip()
 
+    if not mensagem:
+        return jsonify({"reply": "Digite uma mensagem."})
+
+    # salva mensagem do usuário
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -153,91 +154,49 @@ def chat():
         conn.commit()
 
     try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT sender, message
+                FROM messages
+                WHERE username=?
+                ORDER BY id DESC
+                LIMIT 10
+                """,
+                (session["user"],)
+            )
 
-        consulta = mensagem.strip()
+            historico = cursor.fetchall()
 
-        palavras_busca = [
-            "hoje",
-            "agora",
-            "últimas",
-            "ultimas",
-            "notícias",
-            "noticias",
-            "preço",
-            "preco",
-            "cotação",
-            "cotacao",
-            "clima",
-            "tempo",
-            "resultado",
-            "jogo",
-            "presidente",
-            "quem é",
-            "quem foi"
+        mensagens_ia = [
+            {
+                "role": "system",
+                "content": "Você é PedroGPT. Responda sempre em português do Brasil."
+            }
         ]
 
-        usar_internet = any(
-            palavra in consulta.lower()
-            for palavra in palavras_busca
+        for sender, texto in reversed(historico):
+            role = "assistant" if sender == "bot" else "user"
+            mensagens_ia.append({
+                "role": role,
+                "content": texto
+            })
+
+        mensagens_ia.append({
+            "role": "user",
+            "content": mensagem
+        })
+
+        resposta = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=mensagens_ia
         )
-
-        if usar_internet:
-
-            headers = {
-                "X-API-KEY": os.getenv("SERPER_API_KEY"),
-                "Content-Type": "application/json"
-            }
-
-            resultado = requests.post(
-                "https://google.serper.dev/search",
-                headers=headers,
-                json={"q": consulta}
-            )
-
-            dados = resultado.json()
-
-            contexto = ""
-
-            for item in dados.get("organic", [])[:5]:
-                contexto += (
-                    f"Título: {item.get('title', '')}\n"
-                    f"Resumo: {item.get('snippet', '')}\n\n"
-                )
-
-            resposta = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "Você é PedroGPT. Use os resultados da pesquisa para responder em português."
-                    },
-                    {
-                        "role": "user",
-                        "content": f"Pergunta: {consulta}\n\nResultados:\n{contexto}"
-                    }
-                ]
-            )
-
-        else:
-
-            resposta = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "Você é PedroGPT. Responda em português."
-                    },
-                    {
-                        "role": "user",
-                        "content": mensagem
-                    }
-                ]
-            )
 
         texto = resposta.choices[0].message.content
 
     except Exception as e:
-        texto = f"Erro na pesquisa: {str(e)}"
+        texto = f"Erro: {str(e)}"
 
     with get_db() as conn:
         cursor = conn.cursor()
@@ -255,7 +214,6 @@ def chat():
 
 @app.route("/history")
 def history():
-
     if "user" not in session:
         return jsonify([])
 
@@ -268,23 +226,20 @@ def history():
         return jsonify(cursor.fetchall())
 
 # ==========================
-# NOVA CONVERSA
+# NEW CHAT
 # ==========================
 
 @app.route("/new_chat", methods=["POST"])
 def new_chat():
-
     if "user" not in session:
         return jsonify({"success": False})
 
     with get_db() as conn:
         cursor = conn.cursor()
-
         cursor.execute(
             "DELETE FROM messages WHERE username=?",
             (session["user"],)
         )
-
         conn.commit()
 
     return jsonify({"success": True})
