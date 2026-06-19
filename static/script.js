@@ -96,10 +96,9 @@ async function enviar() {
 function addMensagem(texto, tipo) {
 
     const div = document.createElement("div");
-    div.classList.add("msg");
 
-    if (tipo.includes("user")) div.classList.add("user");
-    else div.classList.add("bot");
+    // 🔥 CORREÇÃO PRINCIPAL (compatível com seu CSS)
+    div.classList.add(tipo === "user" ? "msg-user" : "msg-bot");
 
     if (tipo.includes("typing")) {
         div.style.opacity = "0.6";
