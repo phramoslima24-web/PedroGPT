@@ -37,7 +37,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE,
-            password TEXT
+            password TEXT,
+            plan TEXT DEFAULT 'free'
         )
         """)
 
@@ -98,8 +99,8 @@ def api_register():
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO users (username, password) VALUES (?, ?)",
-                (username, password)
+                "INSERT INTO users (username, password, plan) VALUES (?, ?, ?)",
+                (username, password, "free")
             )
             conn.commit()
 
@@ -122,14 +123,15 @@ def api_login():
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT * FROM users WHERE username=? AND password=?",
+            "SELECT username, plan FROM users WHERE username=? AND password=?",
             (username, password)
         )
         user = cursor.fetchone()
 
     if user:
-        session["user"] = username
-        return jsonify({"success": True})
+        session["user"] = user[0]
+        session["plan"] = user[1] if user[1] else "free"
+        return jsonify({"success": True, "plan": session["plan"]})
 
     return jsonify({"success": False, "message": "Login inválido"})
 
@@ -173,24 +175,26 @@ def chat():
             historico = cursor.fetchall()
 
         # ==========================
-        # 🔥 PROMPT CORRIGIDO
+        # PLANO
         # ==========================
+        plan = session.get("plan", "free")
+
+        if plan == "premium":
+            estilo = "Responda de forma mais completa e detalhada."
+        else:
+            estilo = "Responda de forma curta e simples."
+
         mensagens_ia = [
             {
                 "role": "system",
-                "content": """
+                "content": f"""
 Você é o PedroGPT.
 
-🚨 REGRAS DE RESPOSTA:
-
-- Responda em português do Brasil
-- Seja claro e natural
-- Use texto normal sempre que possível
-- Use tópicos apenas quando for realmente necessário
-- Emojis são OPCIONAIS (apenas para destacar pontos importantes)
-- NÃO use emoji em todas as linhas
-- NÃO force formato rígido
-- Evite respostas exageradas ou artificiais
+Regras:
+- Português do Brasil
+- {estilo}
+- Não invente informações
+- Seja claro e direto
 """
             }
         ]
@@ -204,7 +208,7 @@ Você é o PedroGPT.
 
         mensagens_ia.append({
             "role": "user",
-            "content": mensagem + "\n\nResponda de forma natural e clara. Use emojis apenas se necessário."
+            "content": mensagem
         })
 
         resposta = client.chat.completions.create(
