@@ -1,10 +1,16 @@
+
+// =====================
+// BASE URL (NOVO - SÓ ISSO FOI ADICIONADO)
+// =====================
+const API = "https://pedrogpt.onrender.com";
+
 // =====================
 // HISTÓRICO
 // =====================
 async function carregarHistorico() {
 
     try {
-        const resposta = await fetch("/history");
+        const resposta = await fetch(`${API}/history`);
 
         if (!resposta.ok) {
             console.warn("Erro ao carregar histórico:", resposta.status);
@@ -48,7 +54,7 @@ async function enviar() {
 
     try {
 
-        const resposta = await fetch("/chat", {
+        const resposta = await fetch(`${API}/chat`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -97,7 +103,6 @@ function addMensagem(texto, tipo) {
 
     const div = document.createElement("div");
 
-    // 🔥 CORREÇÃO PRINCIPAL (compatível com seu CSS)
     div.classList.add(tipo === "user" ? "msg-user" : "msg-bot");
 
     if (tipo.includes("typing")) {
@@ -136,7 +141,7 @@ async function novaConversa() {
 
     try {
 
-        const resposta = await fetch("/new_chat", {
+        const resposta = await fetch(`${API}/new_chat`, {
             method: "POST"
         });
 
