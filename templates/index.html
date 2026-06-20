@@ -20,7 +20,7 @@ body {
     color: white;
 }
 
-/* SIDEBAR */
+/* SIDEBAR MODERNA */
 .sidebar {
     width: 260px;
     background: rgba(255,255,255,0.03);
@@ -42,6 +42,7 @@ body {
     border-radius: 10px;
     text-align: center;
     font-size: 14px;
+    border: 1px solid rgba(255,255,255,0.06);
 }
 
 /* BOTÕES */
@@ -53,6 +54,11 @@ body {
     border-radius: 10px;
     cursor: pointer;
     font-weight: bold;
+    transition: 0.2s;
+}
+
+.nova-conversa:hover {
+    transform: scale(1.03);
 }
 
 .logout {
@@ -62,6 +68,11 @@ body {
     padding: 10px;
     border-radius: 10px;
     text-align: center;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.logout:hover {
+    background: rgba(255,255,255,0.15);
 }
 
 /* MAIN */
@@ -69,6 +80,23 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
+    height: 100vh;
+}
+
+/* HEADER */
+.header {
+    padding: 18px;
+    text-align: center;
+    font-weight: bold;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+}
+
+/* OPTIONS */
+.opcoes {
+    padding: 10px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 14px;
 }
 
 /* CHAT */
@@ -76,9 +104,74 @@ body {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
-    display: none; /* começa escondido */
+    display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
+    scroll-behavior: smooth;
+}
+
+/* SCROLL */
+.chat::-webkit-scrollbar {
+    width: 6px;
+}
+.chat::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+}
+
+/* USER MESSAGE */
+.msg-user {
+    align-self: flex-end;
+    max-width: 75%;
+    padding: 12px 14px;
+    border-radius: 16px 16px 4px 16px;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    color: white;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    animation: pop 0.15s ease;
+}
+
+/* BOT MESSAGE */
+.msg-bot {
+    align-self: flex-start;
+    max-width: 75%;
+    padding: 12px 14px;
+    border-radius: 16px 16px 16px 4px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
+    animation: pop 0.15s ease;
+}
+
+/* DIGITANDO */
+.typing-dots {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    margin-top: 6px;
+}
+
+.typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: white;
+    opacity: 0.4;
+    animation: typing 1.4s infinite;
+}
+
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing {
+    0% { transform: translateY(0); opacity: 0.3; }
+    50% { transform: translateY(-4px); opacity: 1; }
+    100% { transform: translateY(0); opacity: 0.3; }
+}
+
+@keyframes pop {
+    from { transform: translateY(5px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
 /* INPUT */
@@ -86,25 +179,42 @@ body {
     display: flex;
     gap: 10px;
     padding: 15px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.25);
+    backdrop-filter: blur(10px);
 }
 
 .entrada input {
     flex: 1;
     padding: 14px;
-    border-radius: 10px;
-    border: none;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
+    color: white;
+    outline: none;
+}
+
+.entrada input:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 2px rgba(124,58,237,0.25);
 }
 
 .entrada button {
     padding: 14px 18px;
-    border-radius: 10px;
+    border-radius: 12px;
     border: none;
-    background: #7c3aed;
-    color: white;
     cursor: pointer;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    color: white;
+    font-weight: bold;
+    transition: 0.2s;
 }
 
-/* WELCOME */
+.entrada button:hover {
+    transform: scale(1.05);
+}
+
+/* WELCOME (CORRIGIDO) */
 .welcome {
     position: absolute;
     inset: 0;
@@ -115,14 +225,15 @@ body {
     gap: 15px;
     background: radial-gradient(circle at top, #111827, #0b0f19);
     text-align: center;
+    z-index: 10;
 }
 
+/* QUICK ACTIONS (CORRIGIDO) */
 .quick-actions {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
     justify-content: center;
-    margin-top: 10px;
 }
 
 .quick {
@@ -137,61 +248,81 @@ body {
     transform: scale(1.05);
     background: rgba(255,255,255,0.15);
 }
-</style>
-</head>
 
+/* MOBILE */
+@media(max-width: 768px) {
+    body {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    .main {
+        height: 100%;
+    }
+}
+</style>
+
+</head>
 <body>
 
 <div class="sidebar">
+
     <h2>🤖 PedroGPT</h2>
 
     <div class="usuario">
         Olá, {{ username }}
     </div>
 
-    <button class="nova-conversa">🆕 Nova Conversa</button>
+    <button class="nova-conversa" onclick="novaConversa()">
+        🆕 Nova Conversa
+    </button>
 
-    <a href="/logout" class="logout">Sair</a>
+    <a href="/logout" class="logout">
+        Sair
+    </a>
+
 </div>
 
 <div class="main">
 
+    <div class="header">PedroGPT</div>
+
+    <div class="opcoes">
+        <label>
+            <input type="checkbox" id="voz" checked>
+            🔊 Ouvir respostas
+        </label>
+    </div>
+
     <div id="chat" class="chat"></div>
 
-    <!-- WELCOME -->
     <div id="welcome" class="welcome">
         <h2>🤖 PedroGPT</h2>
         <p>Como posso ajudar hoje?</p>
 
         <div class="quick-actions">
-            <div class="quick" onclick="quickAction('Criar código 💻')">💻 Criar código</div>
-            <div class="quick" onclick="quickAction('Estudar 📚')">📚 Estudar</div>
-            <div class="quick" onclick="quickAction('Fazer resumo 📝')">📝 Fazer resumo</div>
-            <div class="quick" onclick="quickAction('Tirar dúvidas ❓')">❓ Tirar dúvidas</div>
+            <div class="msg-bot quick" onclick="atalho('Criar código 💻')">💻 Criar código</div>
+            <div class="msg-bot quick" onclick="atalho('Estudar 📚')">📚 Estudar</div>
+            <div class="msg-bot quick" onclick="atalho('Fazer resumo 📝')">📝 Fazer resumo</div>
+            <div class="msg-bot quick" onclick="atalho('Tirar dúvidas ❓')">❓ Tirar dúvidas</div>
         </div>
     </div>
 
-    <!-- INPUT -->
     <div class="entrada">
-        <input type="text" id="mensagem" placeholder="Digite sua mensagem...">
+        <input type="text" id="mensagem" placeholder="Digite sua mensagem..." autocomplete="off">
         <button onclick="enviar()">Enviar</button>
     </div>
 
 </div>
 
-<script>
-// =====================
-// WELCOME SYSTEM RESET
-// =====================
-function quickAction(texto) {
-    document.getElementById("welcome").style.display = "none";
-    document.getElementById("chat").style.display = "flex";
-
-    const input = document.getElementById("mensagem");
-    input.value = texto;
-    input.focus();
-}
-</script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="/static/script.js"></script>
 
 </body>
 </html>
