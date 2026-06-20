@@ -151,65 +151,68 @@ def chat():
     if not mensagem:
         return jsonify({"reply": "Digite uma mensagem."})
 
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO messages (username, sender, message) VALUES (?, ?, ?)",
-            (session["user"], "user", mensagem)
-        )
-        conn.commit()
+    plan = session.get("plan", "free")
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # ==========================
+    # LIMITE FREE (20/dia)
+    # ==========================
+    if plan == "free":
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM messages
+            WHERE username=?
+            AND sender='user'
+            AND date(id) = date('now')
+        """, (session["user"],))
+
+        total = cursor.fetchone()[0]
+
+        if total >= 20:
+            return jsonify({
+                "reply": "❌ Limite diário do plano FREE atingido (20 mensagens)."
+            })
+
+    # salva mensagem user
+    cursor.execute(
+        "INSERT INTO messages (username, sender, message) VALUES (?, ?, ?)",
+        (session["user"], "user", mensagem)
+    )
+    conn.commit()
 
     try:
-        with get_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT sender, message
-                FROM messages
-                WHERE username=?
-                ORDER BY id DESC
-                LIMIT 10
-                """,
-                (session["user"],)
-            )
-            historico = cursor.fetchall()
+        cursor.execute(
+            """
+            SELECT sender, message
+            FROM messages
+            WHERE username=?
+            ORDER BY id DESC
+            LIMIT 10
+            """,
+            (session["user"],)
+        )
+        historico = cursor.fetchall()
 
-        # ==========================
-        # PLANO
-        # ==========================
-        plan = session.get("plan", "free")
-
-        if plan == "premium":
-            estilo = "Responda de forma mais completa e detalhada."
-        else:
-            estilo = "Responda de forma curta e simples."
+        estilo = "Responda curto e simples." if plan == "free" else "Responda completo e detalhado."
 
         mensagens_ia = [
             {
                 "role": "system",
                 "content": f"""
 Você é o PedroGPT.
-
-Regras:
-- Português do Brasil
-- {estilo}
-- Não invente informações
-- Seja claro e direto
+{estilo}
+Português do Brasil.
 """
             }
         ]
 
         for sender, texto in reversed(historico):
             role = "assistant" if sender == "bot" else "user"
-            mensagens_ia.append({
-                "role": role,
-                "content": texto
-            })
+            mensagens_ia.append({"role": role, "content": texto})
 
-        mensagens_ia.append({
-            "role": "user",
-            "content": mensagem
-        })
+        mensagens_ia.append({"role": "user", "content": mensagem})
 
         resposta = client.chat.completions.create(
             model="llama-3.1-8b-instant",
@@ -221,13 +224,11 @@ Regras:
     except Exception as e:
         texto = f"Erro IA: {str(e)}"
 
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO messages (username, sender, message) VALUES (?, ?, ?)",
-            (session["user"], "bot", texto)
-        )
-        conn.commit()
+    cursor.execute(
+        "INSERT INTO messages (username, sender, message) VALUES (?, ?, ?)",
+        (session["user"], "bot", texto)
+    )
+    conn.commit()
 
     return jsonify({"reply": texto})
 
