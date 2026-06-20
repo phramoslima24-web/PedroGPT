@@ -149,7 +149,6 @@ def chat():
     if not mensagem:
         return jsonify({"reply": "Digite uma mensagem."})
 
-    # salva mensagem user
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -173,23 +172,21 @@ def chat():
             )
             historico = cursor.fetchall()
 
-        # ==========================
-        # 🔥 SYSTEM PROMPT MELHORADO
-        # ==========================
         mensagens_ia = [
             {
                 "role": "system",
                 "content": """
 Você é o PedroGPT.
 
-REGRAS:
+REGRAS DE RESPOSTA:
 - Responda SEMPRE em português do Brasil
+- Use tópicos organizados
+- Use emojis para destacar pontos importantes
+- NÃO use asteriscos (*)
+- NÃO use markdown de listas
 - Seja direto e claro
-- Use tópicos sempre que possível
 - Evite textos longos
 - Explique passo a passo apenas quando necessário
-- Use emojis apenas se ajudar na explicação
-- Organize tudo de forma fácil de ler
 """
             }
         ]
@@ -203,7 +200,7 @@ REGRAS:
 
         mensagens_ia.append({
             "role": "user",
-            "content": mensagem + "\n\nResponda de forma curta e em tópicos."
+            "content": mensagem + "\n\nResponda em tópicos com emojis e sem usar asteriscos."
         })
 
         resposta = client.chat.completions.create(
@@ -216,7 +213,6 @@ REGRAS:
     except Exception as e:
         texto = f"Erro IA: {str(e)}"
 
-    # salva resposta bot
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute(
