@@ -179,22 +179,11 @@ def chat():
 Você é o PedroGPT.
 
 🚨 REGRA OBRIGATÓRIA:
-
-- Cada informação DEVE estar em uma linha separada
-- NUNCA junte duas informações na mesma linha
-- Sempre comece cada linha com um emoji
-- NÃO use asteriscos (*)
-- NÃO use listas markdown
-- NÃO escreva texto corrido
-- RESPOSTA ERRADA se não seguir isso
-
-📌 FORMATO:
-
-📌 Título
-🇫🇷 Informação
-⚔️ Informação
-📅 Informação
-🪦 Informação final
+- Cada informação deve estar em UMA linha separada
+- Sempre começar com emoji
+- NÃO usar texto corrido
+- NÃO usar asteriscos
+- Responda de forma curta e organizada
 """
             }
         ]
@@ -208,7 +197,7 @@ Você é o PedroGPT.
 
         mensagens_ia.append({
             "role": "user",
-            "content": mensagem + "\n\nOBRIGATÓRIO: responda em tópicos, 1 por linha, com emojis e sem texto corrido."
+            "content": mensagem
         })
 
         resposta = client.chat.completions.create(
@@ -216,7 +205,17 @@ Você é o PedroGPT.
             messages=mensagens_ia
         )
 
+        # ==========================
+        # 🔥 FORÇA QUEBRA DE LINHA POR EMOJI
+        # ==========================
         texto = resposta.choices[0].message.content
+
+        emojis = ["📌", "🇫🇷", "⚔️", "📅", "👑", "💼", "🏛️", "📚", "🪦", "💡", "⚡"]
+
+        for emoji in emojis:
+            texto = texto.replace(emoji, "\n" + emoji)
+
+        texto = texto.strip()
 
     except Exception as e:
         texto = f"Erro IA: {str(e)}"
