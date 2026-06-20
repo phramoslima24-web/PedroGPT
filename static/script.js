@@ -105,11 +105,35 @@ function addMensagem(texto, tipo) {
 
     div.classList.add(tipo === "user" ? "msg-user" : "msg-bot");
 
+    // =====================
+    // TYPING (CORRIGIDO)
+    // =====================
     if (tipo.includes("typing")) {
-        div.style.opacity = "0.6";
-        div.style.fontStyle = "italic";
+
+        div.innerHTML = `
+            <div>
+                🤖 PedroGPT está digitando...
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        `;
+
+        const chat = document.getElementById("chat");
+        chat.appendChild(div);
+
+        requestAnimationFrame(() => {
+            chat.scrollTop = chat.scrollHeight;
+        });
+
+        return div;
     }
 
+    // =====================
+    // MENSAGEM NORMAL
+    // =====================
     const now = new Date();
     const hora =
         now.getHours().toString().padStart(2, "0") + ":" +

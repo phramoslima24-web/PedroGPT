@@ -143,6 +143,46 @@ body {
     animation: pop 0.15s ease;
 }
 
+/* DIGITANDO */
+.typing-dots {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    margin-top: 6px;
+}
+
+.typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: white;
+    opacity: 0.4;
+    animation: typing 1.4s infinite;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing {
+    0% {
+        transform: translateY(0);
+        opacity: 0.3;
+    }
+    50% {
+        transform: translateY(-4px);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 0.3;
+    }
+}
+
 /* ANIMATION */
 @keyframes pop {
     from {
@@ -248,7 +288,36 @@ body {
         </label>
     </div>
 
-    <div id="chat" class="chat"></div>
+    <div id="chat" class="chat">
+
+    <div id="welcome" style="
+        text-align:center;
+        margin:auto;
+        opacity:0.8;
+    ">
+        <h2 style="margin-bottom:15px;">
+            🤖 PedroGPT
+        </h2>
+
+        <p style="margin-bottom:20px;">
+            Como posso ajudar hoje?
+        </p>
+
+        <div style="
+            display:flex;
+            flex-wrap:wrap;
+            gap:10px;
+            justify-content:center;
+        ">
+            <div class="msg-bot">💻 Criar código</div>
+            <div class="msg-bot">📚 Estudar</div>
+            <div class="msg-bot">📝 Fazer resumo</div>
+            <div class="msg-bot">❓ Tirar dúvidas</div>
+        </div>
+
+    </div>
+
+</div>
 
     <div class="entrada">
         <input type="text" id="mensagem" placeholder="Digite sua mensagem..." autocomplete="off">
