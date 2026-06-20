@@ -63,7 +63,11 @@ init_db()
 def home():
     if "user" not in session:
         return redirect(url_for("login"))
-    return render_template("index.html", username=session["user"])
+    return render_template(
+        "index.html",
+        username=session["user"],
+        plan=session.get("plan", "free")  # 🔥 CORREÇÃO AQUI
+    )
 
 
 @app.route("/login")
@@ -156,15 +160,10 @@ def chat():
     conn = get_db()
     cursor = conn.cursor()
 
-    # ==========================
-    # LIMITE FREE (20/dia)
-    # ==========================
     if plan == "free":
         cursor.execute("""
-            SELECT COUNT(*)
-            FROM messages
-            WHERE username=?
-            AND sender='user'
+            SELECT COUNT(*) FROM messages
+            WHERE username=? AND sender='user'
             AND date(id) = date('now')
         """, (session["user"],))
 
@@ -175,7 +174,6 @@ def chat():
                 "reply": "❌ Limite diário do plano FREE atingido (20 mensagens)."
             })
 
-    # salva mensagem user
     cursor.execute(
         "INSERT INTO messages (username, sender, message) VALUES (?, ?, ?)",
         (session["user"], "user", mensagem)
@@ -183,16 +181,14 @@ def chat():
     conn.commit()
 
     try:
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT sender, message
             FROM messages
             WHERE username=?
             ORDER BY id DESC
             LIMIT 10
-            """,
-            (session["user"],)
-        )
+        """, (session["user"],))
+
         historico = cursor.fetchall()
 
         estilo = "Responda curto e simples." if plan == "free" else "Responda completo e detalhado."
