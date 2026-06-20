@@ -288,35 +288,19 @@ body {
         </label>
     </div>
 
-    <div id="chat" class="chat">
+<div id="chat" class="chat"></div>
 
-    <div id="welcome" style="
-        text-align:center;
-        margin:auto;
-        opacity:0.8;
-    ">
-        <h2 style="margin-bottom:15px;">
-            🤖 PedroGPT
-        </h2>
+<div id="welcome" class="welcome">
+    <h2>🤖 PedroGPT</h2>
 
-        <p style="margin-bottom:20px;">
-            Como posso ajudar hoje?
-        </p>
+    <p>Como posso ajudar hoje?</p>
 
-        <div style="
-            display:flex;
-            flex-wrap:wrap;
-            gap:10px;
-            justify-content:center;
-        ">
-            <div class="msg-bot">💻 Criar código</div>
-            <div class="msg-bot">📚 Estudar</div>
-            <div class="msg-bot">📝 Fazer resumo</div>
-            <div class="msg-bot">❓ Tirar dúvidas</div>
-        </div>
-
+    <div class="quick-actions">
+        <div class="msg-bot" onclick="atalho('Criar código 💻')">💻 Criar código</div>
+        <div class="msg-bot" onclick="atalho('Estudar 📚')">📚 Estudar</div>
+        <div class="msg-bot" onclick="atalho('Fazer resumo 📝')">📝 Fazer resumo</div>
+        <div class="msg-bot" onclick="atalho('Tirar dúvidas ❓')">❓ Tirar dúvidas</div>
     </div>
-
 </div>
 
     <div class="entrada">
@@ -326,6 +310,7 @@ body {
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="/static/script.js"></script>
 
 </body>
