@@ -68,11 +68,6 @@ body {
     padding: 10px;
     border-radius: 10px;
     text-align: center;
-    border: 1px solid rgba(255,255,255,0.08);
-}
-
-.logout:hover {
-    background: rgba(255,255,255,0.15);
 }
 
 /* MAIN */
@@ -143,37 +138,6 @@ body {
     animation: pop 0.15s ease;
 }
 
-/* DIGITANDO */
-.typing-dots {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-    margin-top: 6px;
-}
-
-.typing-dots span {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: white;
-    opacity: 0.4;
-    animation: typing 1.4s infinite;
-}
-
-.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes typing {
-    0% { transform: translateY(0); opacity: 0.3; }
-    50% { transform: translateY(-4px); opacity: 1; }
-    100% { transform: translateY(0); opacity: 0.3; }
-}
-
-@keyframes pop {
-    from { transform: translateY(5px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
 /* INPUT */
 .entrada {
     display: flex;
@@ -192,11 +156,6 @@ body {
     background: rgba(255,255,255,0.05);
     color: white;
     outline: none;
-}
-
-.entrada input:focus {
-    border-color: #7c3aed;
-    box-shadow: 0 0 0 2px rgba(124,58,237,0.25);
 }
 
 .entrada button {
@@ -225,10 +184,11 @@ body {
     gap: 15px;
     background: radial-gradient(circle at top, #111827, #0b0f19);
     text-align: center;
-    z-index: 10;
+    z-index: 999;
+    pointer-events: auto;
 }
 
-/* QUICK ACTIONS (CORRIGIDO) */
+/* QUICK ACTIONS */
 .quick-actions {
     display: flex;
     gap: 10px;
@@ -247,6 +207,11 @@ body {
 .quick:hover {
     transform: scale(1.05);
     background: rgba(255,255,255,0.15);
+}
+
+/* ESCONDER */
+.hidden {
+    display: none !important;
 }
 
 /* MOBILE */
@@ -302,6 +267,7 @@ body {
 
     <div id="chat" class="chat"></div>
 
+    <!-- WELCOME -->
     <div id="welcome" class="welcome">
         <h2>🤖 PedroGPT</h2>
         <p>Como posso ajudar hoje?</p>
@@ -314,12 +280,22 @@ body {
         </div>
     </div>
 
+    <!-- INPUT -->
     <div class="entrada">
         <input type="text" id="mensagem" placeholder="Digite sua mensagem..." autocomplete="off">
         <button onclick="enviar()">Enviar</button>
     </div>
 
 </div>
+
+<script>
+function atalho(texto) {
+    document.getElementById("welcome").classList.add("hidden");
+    document.getElementById("chat").style.display = "flex";
+
+    document.getElementById("mensagem").value = texto;
+}
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="/static/script.js"></script>
