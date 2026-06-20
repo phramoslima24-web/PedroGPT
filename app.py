@@ -60,7 +60,6 @@ init_db()
 
 @app.route("/")
 def home():
-    # 🔥 proteção de sessão (sem loop infinito)
     if "user" not in session:
         return redirect(url_for("login"))
     return render_template("index.html", username=session["user"])
@@ -174,10 +173,24 @@ def chat():
             )
             historico = cursor.fetchall()
 
+        # ==========================
+        # 🔥 SYSTEM PROMPT MELHORADO
+        # ==========================
         mensagens_ia = [
             {
                 "role": "system",
-                "content": "Você é PedroGPT. Responda sempre em português do Brasil."
+                "content": """
+Você é o PedroGPT.
+
+REGRAS:
+- Responda SEMPRE em português do Brasil
+- Seja direto e claro
+- Use tópicos sempre que possível
+- Evite textos longos
+- Explique passo a passo apenas quando necessário
+- Use emojis apenas se ajudar na explicação
+- Organize tudo de forma fácil de ler
+"""
             }
         ]
 
@@ -190,7 +203,7 @@ def chat():
 
         mensagens_ia.append({
             "role": "user",
-            "content": mensagem
+            "content": mensagem + "\n\nResponda de forma curta e em tópicos."
         })
 
         resposta = client.chat.completions.create(
