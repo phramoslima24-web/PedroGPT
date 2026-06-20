@@ -180,10 +180,10 @@ Você é o PedroGPT.
 
 🚨 REGRA OBRIGATÓRIA:
 - Cada informação deve estar em UMA linha separada
-- Sempre começar com emoji
-- NÃO usar texto corrido
-- NÃO usar asteriscos
-- Responda de forma curta e organizada
+- Sempre comece cada linha com um emoji
+- NÃO use texto corrido
+- NÃO use asteriscos
+- Responda curto e organizado
 """
             }
         ]
@@ -206,16 +206,17 @@ Você é o PedroGPT.
         )
 
         # ==========================
-        # 🔥 FORÇA QUEBRA DE LINHA POR EMOJI
+        # 🔥 CORREÇÃO REAL DE FORMATAÇÃO
         # ==========================
         texto = resposta.choices[0].message.content
 
-        emojis = ["📌", "🇫🇷", "⚔️", "📅", "👑", "💼", "🏛️", "📚", "🪦", "💡", "⚡"]
+        import re
 
-        for emoji in emojis:
-            texto = texto.replace(emoji, "\n" + emoji)
+        # força quebra antes de qualquer emoji
+        texto = re.sub(r'([📌🇫🇷⚔️📅👑💼🏛️📚🪦💡⚡])', r'\n\1', texto)
 
-        texto = texto.strip()
+        # limpa linhas vazias
+        texto = "\n".join([l.strip() for l in texto.split("\n") if l.strip()])
 
     except Exception as e:
         texto = f"Erro IA: {str(e)}"
