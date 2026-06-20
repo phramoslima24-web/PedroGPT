@@ -50,7 +50,7 @@ async function enviar() {
     addMensagem(texto, "user");
     campo.value = "";
 
-    const typing = addMensagem("digitando...", "bot typing");
+    const typing = addMensagem("", "bot typing");
 
     try {
 
