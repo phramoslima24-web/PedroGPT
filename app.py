@@ -172,18 +172,29 @@ def chat():
             )
             historico = cursor.fetchall()
 
+        # ==========================
+        # 🔥 PROMPT CORRIGIDO
+        # ==========================
         mensagens_ia = [
             {
                 "role": "system",
                 "content": """
 Você é o PedroGPT.
 
-🚨 REGRA OBRIGATÓRIA:
-- Cada informação deve estar em UMA linha separada
-- Sempre comece cada linha com um emoji
-- NÃO use texto corrido
-- NÃO use asteriscos
-- Responda curto e organizado
+🚨 REGRA ABSOLUTA:
+- Cada linha deve conter APENAS 1 informação
+- Sempre começar com emoji
+- Nunca escrever frases longas
+- Nunca juntar informações na mesma linha
+- Proibido texto corrido
+
+📌 EXEMPLO:
+
+📌 Napoleão Bonaparte
+🇫🇷 Francês
+⚔️ Militar
+📅 1769 - 1821
+👑 Imperador da França
 """
             }
         ]
@@ -197,26 +208,16 @@ Você é o PedroGPT.
 
         mensagens_ia.append({
             "role": "user",
-            "content": mensagem
+            "content": mensagem + "\n\nResponda em tópicos. Uma informação por linha com emoji."
         })
 
+        # 🔥 MODELO MELHOR PARA SEGUIR FORMATO
         resposta = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="llama-3.1-8b-instant",
             messages=mensagens_ia
         )
 
-        # ==========================
-        # 🔥 CORREÇÃO REAL DE FORMATAÇÃO
-        # ==========================
         texto = resposta.choices[0].message.content
-
-        import re
-
-        # força quebra antes de qualquer emoji
-        texto = re.sub(r'([📌🇫🇷⚔️📅👑💼🏛️📚🪦💡⚡])', r'\n\1', texto)
-
-        # limpa linhas vazias
-        texto = "\n".join([l.strip() for l in texto.split("\n") if l.strip()])
 
     except Exception as e:
         texto = f"Erro IA: {str(e)}"
