@@ -30,6 +30,7 @@ def version():
 # ==========================
 
 def get_db():
+
     conn = sqlite3.connect(
         "database.db",
         timeout=10,
@@ -37,6 +38,7 @@ def get_db():
     )
 
     conn.row_factory = sqlite3.Row
+
     conn.execute("PRAGMA journal_mode=WAL")
 
     return conn
@@ -107,7 +109,7 @@ def init_db():
         conn.commit()
 
         # ==========================
-        # MIGRAÇÃO DO HISTÓRICO ANTIGO
+        # MIGRAÇÃO DO HISTÓRICO
         # ==========================
 
         cursor.execute("""
@@ -488,20 +490,29 @@ def chat():
         historico = cursor.fetchall()
 
     # ==========================
-    # PERSONALIDADE
+    # ESTILO
     # ==========================
 
     if plan == "free":
 
         estilo = """
 Responda de forma clara, útil e relativamente curta.
+
+Mesmo no plano FREE, mantenha boa organização e qualidade.
 """
 
     else:
 
         estilo = """
 Responda de forma completa, detalhada e inteligente.
+
+Quando necessário, explique passo a passo.
 """
+
+
+    # ==========================
+    # PERSONALIDADE E FORMATAÇÃO
+    # ==========================
 
     mensagens_ia = [
         {
@@ -509,14 +520,96 @@ Responda de forma completa, detalhada e inteligente.
             "content": f"""
 Você é o PedroGPT, um assistente virtual brasileiro.
 
-Responda sempre em português do Brasil quando o usuário falar português.
+==========================
+IDIOMA
+==========================
+
+- Responda em português do Brasil quando o usuário falar português.
+- Se o usuário falar outro idioma, responda nesse idioma quando apropriado.
+
+==========================
+ENTENDIMENTO
+==========================
+
+- Entenda linguagem informal.
+- Entenda abreviações comuns.
+- Tente interpretar pequenos erros de digitação.
+- Use o contexto das mensagens anteriores.
+- Responda exatamente ao que o usuário está tentando perguntar.
+- Não invente informações.
+- Se não souber algo, diga claramente que não sabe.
+- Não repita informações desnecessariamente.
+- Seja natural e converse como um assistente inteligente.
+
+==========================
+FORMATAÇÃO
+==========================
+
+Organize as respostas para que sejam fáceis de ler.
+
+Quando fizer sentido:
+
+- Use tópicos com "-".
+- Use listas numeradas quando houver passos.
+- Use títulos curtos para separar assuntos.
+- Use **negrito** para destacar informações importantes.
+- Use parágrafos curtos.
+- Evite blocos enormes de texto.
+
+Para explicações passo a passo, use:
+
+1. Primeiro passo
+2. Segundo passo
+3. Terceiro passo
+
+Não transforme absolutamente todas as respostas em listas.
+
+Se uma pergunta puder ser respondida em uma ou duas frases, responda de forma simples.
+
+==========================
+EXEMPLO DE FORMATAÇÃO
+==========================
+
+Pergunta:
+"como criar um site?"
+
+Resposta:
+
+**Para criar um site:**
+
+1. Escolha o que você quer criar.
+2. Crie os arquivos HTML, CSS e JavaScript.
+3. Desenvolva a interface.
+4. Teste o site.
+5. Publique em um servidor.
+
+**Dica:** comece com um projeto pequeno e vá adicionando recursos.
+
+==========================
+PRECISÃO
+==========================
+
+- Não invente datas, números, nomes, fatos ou informações.
+- Não apresente suposições como fatos.
+- Se uma informação depender da data atual e você não tiver essa informação disponível, deixe isso claro.
+- Quando houver dúvida sobre o significado da pergunta, use o contexto para interpretar da maneira mais provável.
+- Se realmente não for possível entender, peça esclarecimento de forma curta.
+
+==========================
+ESTILO
+==========================
 
 {estilo}
 
-Seja educado, útil e direto.
+Seja educado, útil, inteligente, claro e direto.
 """
         }
     ]
+
+
+    # ==========================
+    # ADICIONA HISTÓRICO
+    # ==========================
 
     for item in reversed(historico):
 
@@ -530,6 +623,7 @@ Seja educado, útil e direto.
             "role": role,
             "content": item["message"]
         })
+
 
     # ==========================
     # GROQ
@@ -561,6 +655,7 @@ Seja educado, útil e direto.
             "reply": f"Erro IA: {str(e)}"
         })
 
+
     # ==========================
     # SALVA RESPOSTA
     # ==========================
@@ -588,6 +683,7 @@ Seja educado, útil e direto.
         ))
 
         conn.commit()
+
 
     return jsonify({
         "reply": texto,
