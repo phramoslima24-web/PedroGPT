@@ -26,7 +26,7 @@ def version():
 
 
 # ==========================
-# BANCO
+# BANCO DE DADOS
 # ==========================
 
 def get_db():
@@ -35,8 +35,11 @@ def get_db():
         timeout=10,
         check_same_thread=False
     )
+
     conn.row_factory = sqlite3.Row
+
     conn.execute("PRAGMA journal_mode=WAL")
+
     return conn
 
 
@@ -87,7 +90,7 @@ def init_db():
         """)
 
         # ==========================
-        # NOVA ESTRUTURA DE MENSAGENS
+        # MENSAGENS DAS CONVERSAS
         # ==========================
 
         cursor.execute("""
@@ -97,14 +100,15 @@ def init_db():
             sender TEXT NOT NULL,
             message TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (conversation_id) REFERENCES conversations(id)
+            FOREIGN KEY (conversation_id)
+            REFERENCES conversations(id)
         )
         """)
 
         conn.commit()
 
         # ==========================
-        # MIGRAÇÃO DO HISTÓRICO ANTIGO
+        # MIGRAÇÃO DO HISTÓRICO
         # ==========================
 
         cursor.execute("""
@@ -119,7 +123,6 @@ def init_db():
 
             username = usuario["username"]
 
-            # Verifica se o usuário já possui alguma conversa
             cursor.execute("""
             SELECT id
             FROM conversations
@@ -132,7 +135,6 @@ def init_db():
             if conversa:
                 continue
 
-            # Procura mensagens antigas
             cursor.execute("""
             SELECT sender, message
             FROM messages
@@ -145,7 +147,6 @@ def init_db():
             if not mensagens_antigas:
                 continue
 
-            # Cria conversa para o histórico antigo
             cursor.execute("""
             INSERT INTO conversations
             (username, title)
@@ -157,7 +158,6 @@ def init_db():
 
             conversation_id = cursor.lastrowid
 
-            # Copia as mensagens
             for mensagem in mensagens_antigas:
 
                 cursor.execute("""
@@ -235,7 +235,6 @@ def conversa_atual():
         ):
             return conversation_id
 
-    # Se não existe conversa atual, cria uma
     conversation_id = criar_conversa(
         session["user"]
     )
@@ -255,7 +254,6 @@ def home():
     if "user" not in session:
         return redirect(url_for("login"))
 
-    # Garante que o usuário tenha uma conversa atual
     conversa_atual()
 
     return render_template(
@@ -284,7 +282,7 @@ def logout():
 
 
 # ==========================
-# REGISTER API
+# REGISTER
 # ==========================
 
 @app.route("/api/register", methods=["POST"])
@@ -308,18 +306,15 @@ def api_register():
 
             cursor = conn.cursor()
 
-            cursor.execute(
-                """
-                INSERT INTO users
-                (username, password, plan)
-                VALUES (?, ?, ?)
-                """,
-                (
-                    username,
-                    password,
-                    "free"
-                )
-            )
+            cursor.execute("""
+            INSERT INTO users
+            (username, password, plan)
+            VALUES (?, ?, ?)
+            """, (
+                username,
+                password,
+                "free"
+            ))
 
             conn.commit()
 
@@ -343,7 +338,7 @@ def api_register():
 
 
 # ==========================
-# LOGIN API
+# LOGIN
 # ==========================
 
 @app.route("/api/login", methods=["POST"])
@@ -358,17 +353,14 @@ def api_login():
 
         cursor = conn.cursor()
 
-        cursor.execute(
-            """
-            SELECT username, plan
-            FROM users
-            WHERE username=? AND password=?
-            """,
-            (
-                username,
-                password
-            )
-        )
+        cursor.execute("""
+        SELECT username, plan
+        FROM users
+        WHERE username=? AND password=?
+        """, (
+            username,
+            password
+        ))
 
         user = cursor.fetchone()
 
@@ -377,7 +369,6 @@ def api_login():
         session["user"] = user["username"]
         session["plan"] = user["plan"] or "free"
 
-        # Cria ou recupera uma conversa
         conversation_id = criar_conversa(
             username,
             "Nova conversa"
@@ -458,7 +449,7 @@ def chat():
                 })
 
         # ==========================
-        # SALVA MENSAGEM DO USUÁRIO
+        # SALVA MENSAGEM
         # ==========================
 
         cursor.execute("""
@@ -471,7 +462,6 @@ def chat():
             mensagem
         ))
 
-        # Atualiza data da conversa
         cursor.execute("""
         UPDATE conversations
         SET updated_at=CURRENT_TIMESTAMP
@@ -483,7 +473,7 @@ def chat():
         conn.commit()
 
         # ==========================
-        # HISTÓRICO DA CONVERSA
+        # HISTÓRICO
         # ==========================
 
         cursor.execute("""
@@ -499,27 +489,32 @@ def chat():
         historico = cursor.fetchall()
 
     # ==========================
-    # CONFIGURAÇÃO DA IA
+    # PERSONALIDADE
     # ==========================
 
-    estilo = (
-        "Responda curto e simples."
-        if plan == "free"
-        else
-        "Responda completo e detalhado."
-    )
+    if plan == "free":
+
+        estilo = """
+Responda de forma clara, útil e relativamente curta.
+"""
+
+    else:
+
+        estilo = """
+Responda de forma completa, detalhada e inteligente.
+"""
 
     mensagens_ia = [
         {
             "role": "system",
             "content": f"""
-Você é o PedroGPT.
+Você é o PedroGPT, um assistente virtual brasileiro.
+
+Responda sempre em português do Brasil quando o usuário falar português.
 
 {estilo}
 
-Português do Brasil.
-
-Seja útil, educado e claro.
+Seja educado, útil e direto.
 """
         }
     ]
@@ -537,18 +532,35 @@ Seja útil, educado e claro.
             "content": item["message"]
         })
 
+    # ==========================
+    # GROQ
+    # ==========================
+
     try:
 
         resposta = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=mensagens_ia
+
+            model="llama-3.3-70b-versatile",
+
+            messages=mensagens_ia,
+
+            temperature=0.7,
+
+            max_completion_tokens=1024
         )
 
         texto = resposta.choices[0].message.content
 
     except Exception as e:
 
-        texto = f"Erro IA: {str(e)}"
+        print(
+            "ERRO GROQ:",
+            repr(e)
+        )
+
+        return jsonify({
+            "reply": f"Erro IA: {str(e)}"
+        }), 500
 
     # ==========================
     # SALVA RESPOSTA
@@ -680,7 +692,11 @@ def open_conversation(conversation_id):
     return jsonify({
         "success": True,
         "conversation_id": conversation_id,
-        "title": conversa["title"] if conversa else "Nova conversa",
+        "title": (
+            conversa["title"]
+            if conversa
+            else "Nova conversa"
+        ),
         "messages": [
             {
                 "sender": item["sender"],
@@ -731,7 +747,7 @@ def history():
 
 
 # ==========================
-# NEW CHAT
+# NOVA CONVERSA
 # ==========================
 
 @app.route("/new_chat", methods=["POST"])
@@ -762,7 +778,10 @@ def new_chat():
 # RENOMEAR CONVERSA
 # ==========================
 
-@app.route("/conversation/<int:conversation_id>/rename", methods=["POST"])
+@app.route(
+    "/conversation/<int:conversation_id>/rename",
+    methods=["POST"]
+)
 def rename_conversation(conversation_id):
 
     if "user" not in session:
@@ -823,7 +842,10 @@ def rename_conversation(conversation_id):
 # EXCLUIR CONVERSA
 # ==========================
 
-@app.route("/conversation/<int:conversation_id>", methods=["DELETE"])
+@app.route(
+    "/conversation/<int:conversation_id>",
+    methods=["DELETE"]
+)
 def delete_conversation(conversation_id):
 
     if "user" not in session:
@@ -847,7 +869,6 @@ def delete_conversation(conversation_id):
 
         cursor = conn.cursor()
 
-        # Primeiro apaga as mensagens
         cursor.execute("""
         DELETE FROM chat_messages
         WHERE conversation_id=?
@@ -855,7 +876,6 @@ def delete_conversation(conversation_id):
             conversation_id,
         ))
 
-        # Depois apaga a conversa
         cursor.execute("""
         DELETE FROM conversations
         WHERE id=? AND username=?
@@ -866,7 +886,6 @@ def delete_conversation(conversation_id):
 
         conn.commit()
 
-    # Se era a conversa atual, cria outra
     if session.get("conversation_id") == conversation_id:
 
         nova_conversa = criar_conversa(
@@ -878,7 +897,9 @@ def delete_conversation(conversation_id):
 
     return jsonify({
         "success": True,
-        "conversation_id": session.get("conversation_id")
+        "conversation_id": session.get(
+            "conversation_id"
+        )
     })
 
 
