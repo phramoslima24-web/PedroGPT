@@ -4,7 +4,12 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from groq import Groq
 
 app = Flask(__name__)
-app.secret_key = "pedrogpt_secret_key"
+
+# ==========================
+# CONFIGURAÇÕES
+# ==========================
+
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "pedrogpt_secret_key")
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
@@ -19,19 +24,31 @@ def version():
         "apk_url": "https://drive.google.com/file/d/1mdpeCrIJNcU2DlHLabjgh17zvM2ha703/view?usp=drive_link"
     }
 
+
 # ==========================
 # BANCO
 # ==========================
 
 def get_db():
-    conn = sqlite3.connect("database.db", timeout=10, check_same_thread=False)
+    conn = sqlite3.connect(
+        "database.db",
+        timeout=10,
+        check_same_thread=False
+    )
+    conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     return conn
 
 
 def init_db():
+
     with get_db() as conn:
+
         cursor = conn.cursor()
+
+        # ==========================
+        # USUÁRIOS
+        # ==========================
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -42,6 +59,10 @@ def init_db():
         )
         """)
 
+        # ==========================
+        # MENSAGENS ANTIGAS
+        # ==========================
+
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,9 +72,178 @@ def init_db():
         )
         """)
 
+        # ==========================
+        # CONVERSAS
+        # ==========================
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS conversations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            title TEXT DEFAULT 'Nova conversa',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        # ==========================
+        # NOVA ESTRUTURA DE MENSAGENS
+        # ==========================
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            conversation_id INTEGER NOT NULL,
+            sender TEXT NOT NULL,
+            message TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (conversation_id) REFERENCES conversations(id)
+        )
+        """)
+
         conn.commit()
 
+        # ==========================
+        # MIGRAÇÃO DO HISTÓRICO ANTIGO
+        # ==========================
+
+        cursor.execute("""
+        SELECT username
+        FROM messages
+        GROUP BY username
+        """)
+
+        usuarios_antigos = cursor.fetchall()
+
+        for usuario in usuarios_antigos:
+
+            username = usuario["username"]
+
+            # Verifica se o usuário já possui alguma conversa
+            cursor.execute("""
+            SELECT id
+            FROM conversations
+            WHERE username=?
+            LIMIT 1
+            """, (username,))
+
+            conversa = cursor.fetchone()
+
+            if conversa:
+                continue
+
+            # Procura mensagens antigas
+            cursor.execute("""
+            SELECT sender, message
+            FROM messages
+            WHERE username=?
+            ORDER BY id ASC
+            """, (username,))
+
+            mensagens_antigas = cursor.fetchall()
+
+            if not mensagens_antigas:
+                continue
+
+            # Cria conversa para o histórico antigo
+            cursor.execute("""
+            INSERT INTO conversations
+            (username, title)
+            VALUES (?, ?)
+            """, (
+                username,
+                "Conversa antiga"
+            ))
+
+            conversation_id = cursor.lastrowid
+
+            # Copia as mensagens
+            for mensagem in mensagens_antigas:
+
+                cursor.execute("""
+                INSERT INTO chat_messages
+                (conversation_id, sender, message)
+                VALUES (?, ?, ?)
+                """, (
+                    conversation_id,
+                    mensagem["sender"],
+                    mensagem["message"]
+                ))
+
+        conn.commit()
+
+
 init_db()
+
+
+# ==========================
+# FUNÇÕES AUXILIARES
+# ==========================
+
+def criar_conversa(username, titulo="Nova conversa"):
+
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        INSERT INTO conversations
+        (username, title)
+        VALUES (?, ?)
+        """, (
+            username,
+            titulo
+        ))
+
+        conversation_id = cursor.lastrowid
+
+        conn.commit()
+
+        return conversation_id
+
+
+def verificar_conversa(username, conversation_id):
+
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        SELECT id
+        FROM conversations
+        WHERE id=? AND username=?
+        """, (
+            conversation_id,
+            username
+        ))
+
+        return cursor.fetchone() is not None
+
+
+def conversa_atual():
+
+    if "user" not in session:
+        return None
+
+    conversation_id = session.get("conversation_id")
+
+    if conversation_id:
+
+        if verificar_conversa(
+            session["user"],
+            conversation_id
+        ):
+            return conversation_id
+
+    # Se não existe conversa atual, cria uma
+    conversation_id = criar_conversa(
+        session["user"]
+    )
+
+    session["conversation_id"] = conversation_id
+
+    return conversation_id
+
 
 # ==========================
 # PÁGINAS
@@ -61,12 +251,17 @@ init_db()
 
 @app.route("/")
 def home():
+
     if "user" not in session:
         return redirect(url_for("login"))
+
+    # Garante que o usuário tenha uma conversa atual
+    conversa_atual()
+
     return render_template(
         "index.html",
         username=session["user"],
-        plan=session.get("plan", "free")  # 🔥 CORREÇÃO AQUI
+        plan=session.get("plan", "free")
     )
 
 
@@ -82,8 +277,11 @@ def register():
 
 @app.route("/logout")
 def logout():
+
     session.clear()
+
     return redirect(url_for("login"))
+
 
 # ==========================
 # REGISTER API
@@ -91,27 +289,58 @@ def logout():
 
 @app.route("/api/register", methods=["POST"])
 def api_register():
-    data = request.get_json()
+
+    data = request.get_json() or {}
 
     username = (data.get("username") or "").strip()
     password = (data.get("password") or "").strip()
 
     if not username or not password:
-        return jsonify({"success": False, "message": "Campos vazios"})
+
+        return jsonify({
+            "success": False,
+            "message": "Campos vazios"
+        })
 
     try:
+
         with get_db() as conn:
+
             cursor = conn.cursor()
+
             cursor.execute(
-                "INSERT INTO users (username, password, plan) VALUES (?, ?, ?)",
-                (username, password, "free")
+                """
+                INSERT INTO users
+                (username, password, plan)
+                VALUES (?, ?, ?)
+                """,
+                (
+                    username,
+                    password,
+                    "free"
+                )
             )
+
             conn.commit()
 
-        return jsonify({"success": True})
+        return jsonify({
+            "success": True
+        })
 
-    except Exception:
-        return jsonify({"success": False, "message": "Usuário já existe"})
+    except sqlite3.IntegrityError:
+
+        return jsonify({
+            "success": False,
+            "message": "Usuário já existe"
+        })
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "message": f"Erro: {str(e)}"
+        })
+
 
 # ==========================
 # LOGIN API
@@ -119,25 +348,54 @@ def api_register():
 
 @app.route("/api/login", methods=["POST"])
 def api_login():
-    data = request.get_json()
+
+    data = request.get_json() or {}
 
     username = (data.get("username") or "").strip()
     password = (data.get("password") or "").strip()
 
     with get_db() as conn:
+
         cursor = conn.cursor()
+
         cursor.execute(
-            "SELECT username, plan FROM users WHERE username=? AND password=?",
-            (username, password)
+            """
+            SELECT username, plan
+            FROM users
+            WHERE username=? AND password=?
+            """,
+            (
+                username,
+                password
+            )
         )
+
         user = cursor.fetchone()
 
     if user:
-        session["user"] = user[0]
-        session["plan"] = user[1] if user[1] else "free"
-        return jsonify({"success": True, "plan": session["plan"]})
 
-    return jsonify({"success": False, "message": "Login inválido"})
+        session["user"] = user["username"]
+        session["plan"] = user["plan"] or "free"
+
+        # Cria ou recupera uma conversa
+        conversation_id = criar_conversa(
+            username,
+            "Nova conversa"
+        )
+
+        session["conversation_id"] = conversation_id
+
+        return jsonify({
+            "success": True,
+            "plan": session["plan"],
+            "conversation_id": conversation_id
+        })
+
+    return jsonify({
+        "success": False,
+        "message": "Login inválido"
+    })
+
 
 # ==========================
 # CHAT
@@ -147,68 +405,139 @@ def api_login():
 def chat():
 
     if "user" not in session:
-        return jsonify({"reply": "Faça login primeiro."})
 
-    data = request.get_json()
-    mensagem = (data.get("message") or "").strip()
+        return jsonify({
+            "reply": "Faça login primeiro."
+        })
+
+    data = request.get_json() or {}
+
+    mensagem = (
+        data.get("message") or ""
+    ).strip()
 
     if not mensagem:
-        return jsonify({"reply": "Digite uma mensagem."})
 
+        return jsonify({
+            "reply": "Digite uma mensagem."
+        })
+
+    username = session["user"]
     plan = session.get("plan", "free")
 
-    conn = get_db()
-    cursor = conn.cursor()
+    conversation_id = conversa_atual()
 
-    if plan == "free":
+    # ==========================
+    # LIMITE FREE
+    # ==========================
+
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        if plan == "free":
+
+            cursor.execute("""
+            SELECT COUNT(*)
+            FROM chat_messages cm
+            INNER JOIN conversations c
+            ON cm.conversation_id = c.id
+            WHERE c.username=?
+            AND cm.sender='user'
+            AND date(cm.created_at)=date('now')
+            """, (
+                username,
+            ))
+
+            total = cursor.fetchone()[0]
+
+            if total >= 20:
+
+                return jsonify({
+                    "reply": "❌ Limite diário do plano FREE atingido (20 mensagens)."
+                })
+
+        # ==========================
+        # SALVA MENSAGEM DO USUÁRIO
+        # ==========================
+
         cursor.execute("""
-            SELECT COUNT(*) FROM messages
-            WHERE username=? AND sender='user'
-            AND date(id) = date('now')
-        """, (session["user"],))
+        INSERT INTO chat_messages
+        (conversation_id, sender, message)
+        VALUES (?, ?, ?)
+        """, (
+            conversation_id,
+            "user",
+            mensagem
+        ))
 
-        total = cursor.fetchone()[0]
-
-        if total >= 20:
-            return jsonify({
-                "reply": "❌ Limite diário do plano FREE atingido (20 mensagens)."
-            })
-
-    cursor.execute(
-        "INSERT INTO messages (username, sender, message) VALUES (?, ?, ?)",
-        (session["user"], "user", mensagem)
-    )
-    conn.commit()
-
-    try:
+        # Atualiza data da conversa
         cursor.execute("""
-            SELECT sender, message
-            FROM messages
-            WHERE username=?
-            ORDER BY id DESC
-            LIMIT 10
-        """, (session["user"],))
+        UPDATE conversations
+        SET updated_at=CURRENT_TIMESTAMP
+        WHERE id=?
+        """, (
+            conversation_id,
+        ))
+
+        conn.commit()
+
+        # ==========================
+        # HISTÓRICO DA CONVERSA
+        # ==========================
+
+        cursor.execute("""
+        SELECT sender, message
+        FROM chat_messages
+        WHERE conversation_id=?
+        ORDER BY id DESC
+        LIMIT 10
+        """, (
+            conversation_id,
+        ))
 
         historico = cursor.fetchall()
 
-        estilo = "Responda curto e simples." if plan == "free" else "Responda completo e detalhado."
+    # ==========================
+    # CONFIGURAÇÃO DA IA
+    # ==========================
 
-        mensagens_ia = [
-            {
-                "role": "system",
-                "content": f"""
+    estilo = (
+        "Responda curto e simples."
+        if plan == "free"
+        else
+        "Responda completo e detalhado."
+    )
+
+    mensagens_ia = [
+        {
+            "role": "system",
+            "content": f"""
 Você é o PedroGPT.
+
 {estilo}
+
 Português do Brasil.
+
+Seja útil, educado e claro.
 """
-            }
-        ]
+        }
+    ]
 
-        for sender, texto in reversed(historico):
-            role = "assistant" if sender == "bot" else "user"
-            mensagens_ia.append({"role": role, "content": texto})
+    for item in reversed(historico):
 
-        mensagens_ia.append({"role": "user", "content": mensagem})
+        role = (
+            "assistant"
+            if item["sender"] == "bot"
+            else "user"
+        )
+
+        mensagens_ia.append({
+            "role": role,
+            "content": item["message"]
+        })
+
+    try:
 
         resposta = client.chat.completions.create(
             model="llama-3.1-8b-instant",
@@ -218,15 +547,150 @@ Português do Brasil.
         texto = resposta.choices[0].message.content
 
     except Exception as e:
+
         texto = f"Erro IA: {str(e)}"
 
-    cursor.execute(
-        "INSERT INTO messages (username, sender, message) VALUES (?, ?, ?)",
-        (session["user"], "bot", texto)
-    )
-    conn.commit()
+    # ==========================
+    # SALVA RESPOSTA
+    # ==========================
 
-    return jsonify({"reply": texto})
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        INSERT INTO chat_messages
+        (conversation_id, sender, message)
+        VALUES (?, ?, ?)
+        """, (
+            conversation_id,
+            "bot",
+            texto
+        ))
+
+        cursor.execute("""
+        UPDATE conversations
+        SET updated_at=CURRENT_TIMESTAMP
+        WHERE id=?
+        """, (
+            conversation_id,
+        ))
+
+        conn.commit()
+
+    return jsonify({
+        "reply": texto,
+        "conversation_id": conversation_id
+    })
+
+
+# ==========================
+# LISTAR CONVERSAS
+# ==========================
+
+@app.route("/conversations")
+def conversations():
+
+    if "user" not in session:
+
+        return jsonify([])
+
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        SELECT
+            id,
+            title,
+            created_at,
+            updated_at
+        FROM conversations
+        WHERE username=?
+        ORDER BY updated_at DESC
+        """, (
+            session["user"],
+        ))
+
+        lista = cursor.fetchall()
+
+    return jsonify([
+        {
+            "id": item["id"],
+            "title": item["title"],
+            "created_at": item["created_at"],
+            "updated_at": item["updated_at"]
+        }
+        for item in lista
+    ])
+
+
+# ==========================
+# ABRIR CONVERSA
+# ==========================
+
+@app.route("/conversation/<int:conversation_id>")
+def open_conversation(conversation_id):
+
+    if "user" not in session:
+
+        return jsonify({
+            "success": False,
+            "message": "Faça login primeiro."
+        }), 401
+
+    if not verificar_conversa(
+        session["user"],
+        conversation_id
+    ):
+
+        return jsonify({
+            "success": False,
+            "message": "Conversa não encontrada."
+        }), 404
+
+    session["conversation_id"] = conversation_id
+
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        SELECT sender, message, created_at
+        FROM chat_messages
+        WHERE conversation_id=?
+        ORDER BY id ASC
+        """, (
+            conversation_id,
+        ))
+
+        mensagens = cursor.fetchall()
+
+        cursor.execute("""
+        SELECT title
+        FROM conversations
+        WHERE id=? AND username=?
+        """, (
+            conversation_id,
+            session["user"]
+        ))
+
+        conversa = cursor.fetchone()
+
+    return jsonify({
+        "success": True,
+        "conversation_id": conversation_id,
+        "title": conversa["title"] if conversa else "Nova conversa",
+        "messages": [
+            {
+                "sender": item["sender"],
+                "message": item["message"],
+                "created_at": item["created_at"]
+            }
+            for item in mensagens
+        ]
+    })
+
 
 # ==========================
 # HISTORY
@@ -234,16 +698,37 @@ Português do Brasil.
 
 @app.route("/history")
 def history():
+
     if "user" not in session:
+
         return jsonify([])
 
+    conversation_id = conversa_atual()
+
     with get_db() as conn:
+
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT sender, message FROM messages WHERE username=?",
-            (session["user"],)
-        )
-        return jsonify(cursor.fetchall())
+
+        cursor.execute("""
+        SELECT sender, message, created_at
+        FROM chat_messages
+        WHERE conversation_id=?
+        ORDER BY id ASC
+        """, (
+            conversation_id,
+        ))
+
+        mensagens = cursor.fetchall()
+
+    return jsonify([
+        {
+            "sender": item["sender"],
+            "message": item["message"],
+            "created_at": item["created_at"]
+        }
+        for item in mensagens
+    ])
+
 
 # ==========================
 # NEW CHAT
@@ -251,23 +736,166 @@ def history():
 
 @app.route("/new_chat", methods=["POST"])
 def new_chat():
+
     if "user" not in session:
-        return jsonify({"success": False})
+
+        return jsonify({
+            "success": False,
+            "message": "Faça login primeiro."
+        })
+
+    conversation_id = criar_conversa(
+        session["user"],
+        "Nova conversa"
+    )
+
+    session["conversation_id"] = conversation_id
+
+    return jsonify({
+        "success": True,
+        "conversation_id": conversation_id,
+        "title": "Nova conversa"
+    })
+
+
+# ==========================
+# RENOMEAR CONVERSA
+# ==========================
+
+@app.route("/conversation/<int:conversation_id>/rename", methods=["POST"])
+def rename_conversation(conversation_id):
+
+    if "user" not in session:
+
+        return jsonify({
+            "success": False,
+            "message": "Faça login primeiro."
+        }), 401
+
+    if not verificar_conversa(
+        session["user"],
+        conversation_id
+    ):
+
+        return jsonify({
+            "success": False,
+            "message": "Conversa não encontrada."
+        }), 404
+
+    data = request.get_json() or {}
+
+    title = (
+        data.get("title") or ""
+    ).strip()
+
+    if not title:
+
+        return jsonify({
+            "success": False,
+            "message": "Digite um nome para a conversa."
+        })
+
+    title = title[:100]
 
     with get_db() as conn:
+
         cursor = conn.cursor()
-        cursor.execute(
-            "DELETE FROM messages WHERE username=?",
-            (session["user"],)
-        )
+
+        cursor.execute("""
+        UPDATE conversations
+        SET title=?
+        WHERE id=? AND username=?
+        """, (
+            title,
+            conversation_id,
+            session["user"]
+        ))
+
         conn.commit()
 
-    return jsonify({"success": True})
+    return jsonify({
+        "success": True,
+        "title": title
+    })
+
+
+# ==========================
+# EXCLUIR CONVERSA
+# ==========================
+
+@app.route("/conversation/<int:conversation_id>", methods=["DELETE"])
+def delete_conversation(conversation_id):
+
+    if "user" not in session:
+
+        return jsonify({
+            "success": False,
+            "message": "Faça login primeiro."
+        }), 401
+
+    if not verificar_conversa(
+        session["user"],
+        conversation_id
+    ):
+
+        return jsonify({
+            "success": False,
+            "message": "Conversa não encontrada."
+        }), 404
+
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        # Primeiro apaga as mensagens
+        cursor.execute("""
+        DELETE FROM chat_messages
+        WHERE conversation_id=?
+        """, (
+            conversation_id,
+        ))
+
+        # Depois apaga a conversa
+        cursor.execute("""
+        DELETE FROM conversations
+        WHERE id=? AND username=?
+        """, (
+            conversation_id,
+            session["user"]
+        ))
+
+        conn.commit()
+
+    # Se era a conversa atual, cria outra
+    if session.get("conversation_id") == conversation_id:
+
+        nova_conversa = criar_conversa(
+            session["user"],
+            "Nova conversa"
+        )
+
+        session["conversation_id"] = nova_conversa
+
+    return jsonify({
+        "success": True,
+        "conversation_id": session.get("conversation_id")
+    })
+
 
 # ==========================
 # START
 # ==========================
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+
+    port = int(
+        os.environ.get(
+            "PORT",
+            5000
+        )
+    )
+
+    app.run(
+        host="0.0.0.0",
+        port=port
+    )
