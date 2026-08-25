@@ -108,7 +108,7 @@ def init_db():
         conn.commit()
 
         # ==========================
-        # MIGRAÇÃO DO HISTÓRICO
+        # MIGRAÇÃO DO HISTÓRICO ANTIGO
         # ==========================
 
         cursor.execute("""
@@ -449,7 +449,7 @@ def chat():
                 })
 
         # ==========================
-        # SALVA MENSAGEM
+        # SALVA MENSAGEM DO USUÁRIO
         # ==========================
 
         cursor.execute("""
@@ -558,9 +558,13 @@ Seja educado, útil e direto.
             repr(e)
         )
 
+        # NÃO retorna HTTP 500.
+        # Isso permite que o frontend
+        # mostre o erro real.
+
         return jsonify({
             "reply": f"Erro IA: {str(e)}"
-        }), 500
+        })
 
     # ==========================
     # SALVA RESPOSTA
