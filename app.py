@@ -37,7 +37,6 @@ def get_db():
     )
 
     conn.row_factory = sqlite3.Row
-
     conn.execute("PRAGMA journal_mode=WAL")
 
     return conn
@@ -449,7 +448,7 @@ def chat():
                 })
 
         # ==========================
-        # SALVA MENSAGEM DO USUÁRIO
+        # SALVA MENSAGEM
         # ==========================
 
         cursor.execute("""
@@ -540,7 +539,7 @@ Seja educado, útil e direto.
 
         resposta = client.chat.completions.create(
 
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
 
             messages=mensagens_ia,
 
@@ -557,10 +556,6 @@ Seja educado, útil e direto.
             "ERRO GROQ:",
             repr(e)
         )
-
-        # NÃO retorna HTTP 500.
-        # Isso permite que o frontend
-        # mostre o erro real.
 
         return jsonify({
             "reply": f"Erro IA: {str(e)}"
