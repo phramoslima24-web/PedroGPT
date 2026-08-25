@@ -1,304 +1,1085 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>PedroGPT</title>
 
+
 <style>
+
+/* =========================
+   RESET
+========================= */
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: Arial;
+    font-family: Arial, sans-serif;
 }
+
+
+/* =========================
+   BODY
+========================= */
 
 body {
+
     display: flex;
+
     height: 100vh;
-    background: radial-gradient(circle at top, #111827, #0b0f19);
+
+    background:
+        radial-gradient(
+            circle at top,
+            #111827,
+            #0b0f19
+        );
+
     color: white;
 }
 
-/* SIDEBAR MODERNA */
+
+/* =========================
+   SIDEBAR
+========================= */
+
 .sidebar {
+
     width: 260px;
-    background: rgba(255,255,255,0.03);
+
+    background:
+        rgba(255,255,255,0.03);
+
     backdrop-filter: blur(12px);
-    border-right: 1px solid rgba(255,255,255,0.08);
+
+    border-right:
+        1px solid
+        rgba(255,255,255,0.08);
+
     padding: 20px;
+
     display: flex;
+
     flex-direction: column;
+
     gap: 15px;
+
 }
+
 
 .sidebar h2 {
+
     text-align: center;
+
 }
+
 
 .usuario {
-    background: rgba(255,255,255,0.05);
+
+    background:
+        rgba(255,255,255,0.05);
+
     padding: 12px;
+
     border-radius: 10px;
+
     text-align: center;
+
     font-size: 14px;
-    border: 1px solid rgba(255,255,255,0.06);
+
+    border:
+        1px solid
+        rgba(255,255,255,0.06);
+
 }
 
-/* BOTÕES */
+
+/* =========================
+   BOTÃO NOVA CONVERSA
+========================= */
+
 .nova-conversa {
+
     border: none;
-    background: linear-gradient(135deg, #10b981, #059669);
+
+    background:
+        linear-gradient(
+            135deg,
+            #10b981,
+            #059669
+        );
+
     color: white;
+
     padding: 12px;
+
     border-radius: 10px;
+
     cursor: pointer;
+
     font-weight: bold;
+
     transition: 0.2s;
+
 }
+
 
 .nova-conversa:hover {
+
     transform: scale(1.03);
+
 }
+
+
+/* =========================
+   LOGOUT
+========================= */
 
 .logout {
+
     text-decoration: none;
+
     color: white;
-    background: rgba(255,255,255,0.08);
+
+    background:
+        rgba(255,255,255,0.08);
+
     padding: 10px;
+
     border-radius: 10px;
+
     text-align: center;
+
 }
 
-/* MAIN */
+
+/* =========================
+   MAIN
+========================= */
+
 .main {
+
     flex: 1;
+
     display: flex;
+
     flex-direction: column;
+
     height: 100vh;
+
+    min-width: 0;
+
 }
 
-/* HEADER */
+
+/* =========================
+   HEADER
+========================= */
+
 .header {
+
     padding: 18px;
+
     text-align: center;
+
     font-weight: bold;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    background: rgba(255,255,255,0.02);
+
+    border-bottom:
+        1px solid
+        rgba(255,255,255,0.06);
+
+    background:
+        rgba(255,255,255,0.02);
+
 }
 
-/* OPTIONS */
+
+/* =========================
+   OPÇÕES
+========================= */
+
 .opcoes {
+
     padding: 10px 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+
+    border-bottom:
+        1px solid
+        rgba(255,255,255,0.06);
+
     font-size: 14px;
+
 }
 
-/* CHAT */
+
+/* =========================
+   CHAT
+========================= */
+
 .chat {
+
     flex: 1;
+
     overflow-y: auto;
+
     padding: 20px;
+
     display: flex;
+
     flex-direction: column;
+
     gap: 12px;
+
     scroll-behavior: smooth;
+
 }
 
-/* SCROLL */
+
+/* =========================
+   SCROLL
+========================= */
+
 .chat::-webkit-scrollbar {
+
     width: 6px;
+
 }
+
+
 .chat::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.15);
+
+    background:
+        rgba(255,255,255,0.15);
+
     border-radius: 10px;
+
 }
 
-/* USER MESSAGE */
+
+/* =========================
+   MENSAGEM DO USUÁRIO
+========================= */
+
 .msg-user {
+
     align-self: flex-end;
+
     max-width: 75%;
+
     padding: 12px 14px;
-    border-radius: 16px 16px 4px 16px;
-    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+
+    border-radius:
+        16px
+        16px
+        4px
+        16px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #4f46e5
+        );
+
     color: white;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
-    animation: pop 0.15s ease;
+
+    box-shadow:
+        0 8px 20px
+        rgba(0,0,0,0.25);
+
+    animation:
+        pop 0.15s ease;
+
 }
 
-/* BOT MESSAGE */
+
+/* =========================
+   MENSAGEM DO BOT
+========================= */
+
 .msg-bot {
+
     align-self: flex-start;
+
     max-width: 75%;
+
     padding: 12px 14px;
-    border-radius: 16px 16px 16px 4px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.08);
+
+    border-radius:
+        16px
+        16px
+        16px
+        4px;
+
+    background:
+        rgba(255,255,255,0.06);
+
+    border:
+        1px solid
+        rgba(255,255,255,0.08);
+
     backdrop-filter: blur(10px);
-    animation: pop 0.15s ease;
+
+    animation:
+        pop 0.15s ease;
+
 }
 
-/* INPUT */
-.entrada {
-    display: flex;
-    gap: 10px;
-    padding: 15px;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    background: rgba(0,0,0,0.25);
-    backdrop-filter: blur(10px);
+
+/* =========================
+   CONTEÚDO DAS MENSAGENS
+========================= */
+
+.conteudo-mensagem {
+
+    line-height: 1.6;
+
+    word-wrap: break-word;
+
+    overflow-wrap: break-word;
+
 }
+
+
+/* =========================
+   LINHAS DA RESPOSTA
+========================= */
+
+.linha-resposta {
+
+    margin-bottom: 6px;
+
+}
+
+
+.linha-resposta:last-child {
+
+    margin-bottom: 0;
+
+}
+
+
+/* =========================
+   NEGRITO
+========================= */
+
+.conteudo-mensagem strong {
+
+    font-weight: 700;
+
+    color: white;
+
+}
+
+
+/* =========================
+   ITÁLICO
+========================= */
+
+.conteudo-mensagem em {
+
+    font-style: italic;
+
+}
+
+
+/* =========================
+   TÍTULOS
+========================= */
+
+.conteudo-mensagem h2 {
+
+    font-size: 20px;
+
+    margin:
+        10px
+        0
+        8px
+        0;
+
+}
+
+
+.conteudo-mensagem h3 {
+
+    font-size: 18px;
+
+    margin:
+        10px
+        0
+        8px
+        0;
+
+}
+
+
+.conteudo-mensagem h4 {
+
+    font-size: 16px;
+
+    margin:
+        8px
+        0
+        6px
+        0;
+
+}
+
+
+/* =========================
+   LISTA COM TÓPICOS
+========================= */
+
+.conteudo-mensagem ul {
+
+    margin:
+        8px
+        0
+        10px
+        20px;
+
+    padding-left: 18px;
+
+}
+
+
+.conteudo-mensagem ul li {
+
+    margin-bottom: 7px;
+
+    padding-left: 4px;
+
+    line-height: 1.55;
+
+}
+
+
+/* =========================
+   LISTA NUMERADA
+========================= */
+
+.conteudo-mensagem ol {
+
+    margin:
+        8px
+        0
+        10px
+        20px;
+
+    padding-left: 18px;
+
+}
+
+
+.conteudo-mensagem ol li {
+
+    margin-bottom: 7px;
+
+    padding-left: 4px;
+
+    line-height: 1.55;
+
+}
+
+
+/* =========================
+   QUEBRA DE LINHA
+========================= */
+
+.quebra-linha {
+
+    height: 8px;
+
+}
+
+
+/* =========================
+   CÓDIGO
+========================= */
+
+.codigo-pedrogpt {
+
+    display: block;
+
+    margin:
+        10px
+        0;
+
+    padding: 14px;
+
+    border-radius: 10px;
+
+    background:
+        rgba(0,0,0,0.45);
+
+    border:
+        1px solid
+        rgba(255,255,255,0.10);
+
+    overflow-x: auto;
+
+    white-space: pre;
+
+    font-family:
+        Consolas,
+        Monaco,
+        monospace;
+
+    font-size: 13px;
+
+    line-height: 1.5;
+
+}
+
+
+.codigo-pedrogpt code {
+
+    font-family:
+        Consolas,
+        Monaco,
+        monospace;
+
+}
+
+
+/* =========================
+   INPUT
+========================= */
+
+.entrada {
+
+    display: flex;
+
+    gap: 10px;
+
+    padding: 15px;
+
+    border-top:
+        1px solid
+        rgba(255,255,255,0.06);
+
+    background:
+        rgba(0,0,0,0.25);
+
+    backdrop-filter: blur(10px);
+
+}
+
 
 .entrada input {
+
     flex: 1;
+
     padding: 14px;
+
     border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: rgba(255,255,255,0.05);
+
+    border:
+        1px solid
+        rgba(255,255,255,0.1);
+
+    background:
+        rgba(255,255,255,0.05);
+
     color: white;
+
     outline: none;
+
 }
+
+
+.entrada input::placeholder {
+
+    color:
+        rgba(255,255,255,0.5);
+
+}
+
 
 .entrada button {
-    padding: 14px 18px;
+
+    padding:
+        14px
+        18px;
+
     border-radius: 12px;
+
     border: none;
+
     cursor: pointer;
-    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #4f46e5
+        );
+
     color: white;
+
     font-weight: bold;
+
     transition: 0.2s;
+
 }
+
 
 .entrada button:hover {
+
     transform: scale(1.05);
+
 }
 
-/* WELCOME (CORRIGIDO) */
+
+/* =========================
+   WELCOME
+========================= */
+
 .welcome {
+
     position: absolute;
+
     inset: 0;
+
     display: flex;
+
     flex-direction: column;
+
     justify-content: center;
+
     align-items: center;
+
     gap: 15px;
-    background: radial-gradient(circle at top, #111827, #0b0f19);
+
+    background:
+        radial-gradient(
+            circle at top,
+            #111827,
+            #0b0f19
+        );
+
     text-align: center;
+
     z-index: 999;
+
     pointer-events: auto;
+
 }
 
-/* QUICK ACTIONS */
+
+/* =========================
+   QUICK ACTIONS
+========================= */
+
 .quick-actions {
+
     display: flex;
+
     gap: 10px;
+
     flex-wrap: wrap;
+
     justify-content: center;
+
 }
+
 
 .quick {
-    padding: 10px 14px;
+
+    padding:
+        10px
+        14px;
+
     border-radius: 10px;
-    background: rgba(255,255,255,0.08);
+
+    background:
+        rgba(255,255,255,0.08);
+
     cursor: pointer;
+
     transition: 0.2s;
+
 }
+
 
 .quick:hover {
+
     transform: scale(1.05);
-    background: rgba(255,255,255,0.15);
+
+    background:
+        rgba(255,255,255,0.15);
+
 }
 
-/* ESCONDER */
+
+/* =========================
+   ESCONDER
+========================= */
+
 .hidden {
+
     display: none !important;
+
 }
 
-/* MOBILE */
-@media(max-width: 768px) {
-    body {
-        flex-direction: column;
+
+/* =========================
+   ANIMAÇÃO
+========================= */
+
+@keyframes pop {
+
+    from {
+
+        opacity: 0;
+
+        transform:
+            translateY(5px)
+            scale(0.98);
+
     }
+
+    to {
+
+        opacity: 1;
+
+        transform:
+            translateY(0)
+            scale(1);
+
+    }
+
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media(max-width: 768px) {
+
+    body {
+
+        flex-direction: column;
+
+    }
+
 
     .sidebar {
+
         width: 100%;
+
         flex-direction: row;
+
         flex-wrap: wrap;
+
         justify-content: space-between;
+
+        padding: 10px;
+
     }
 
-    .main {
-        height: 100%;
+
+    .sidebar h2 {
+
+        width: 100%;
+
     }
+
+
+    .usuario {
+
+        flex: 1;
+
+    }
+
+
+    .nova-conversa {
+
+        flex: 1;
+
+    }
+
+
+    .logout {
+
+        flex: 1;
+
+    }
+
+
+    .main {
+
+        height: 100%;
+
+    }
+
+
+    .msg-user,
+    .msg-bot {
+
+        max-width: 90%;
+
+    }
+
+
+    .chat {
+
+        padding: 12px;
+
+    }
+
+
+    .entrada {
+
+        padding: 10px;
+
+    }
+
+
+    .entrada input {
+
+        min-width: 0;
+
+    }
+
 }
+
 </style>
 
 </head>
+
+
 <body>
+
+
+<!-- =========================
+     SIDEBAR
+========================= -->
 
 <div class="sidebar">
 
     <h2>🤖 PedroGPT</h2>
 
     <div class="usuario">
+
         Olá, {{ username }}
+
     </div>
 
-    <button class="nova-conversa" onclick="novaConversa()">
+
+    <button
+        class="nova-conversa"
+        onclick="novaConversa()"
+    >
+
         🆕 Nova Conversa
+
     </button>
 
-    <a href="/logout" class="logout">
+
+    <a
+        href="/logout"
+        class="logout"
+    >
+
         Sair
+
     </a>
 
 </div>
 
+
+
+<!-- =========================
+     MAIN
+========================= -->
+
 <div class="main">
 
-    <div class="header">PedroGPT</div>
+
+    <div class="header">
+
+        PedroGPT
+
+    </div>
+
+
+    <!-- =====================
+         OPÇÕES
+    ====================== -->
 
     <div class="opcoes">
+
         <label>
-            <input type="checkbox" id="voz" checked>
+
+            <input
+                type="checkbox"
+                id="voz"
+                checked
+            >
+
             🔊 Ouvir respostas
+
         </label>
+
     </div>
 
-    <div id="chat" class="chat"></div>
 
-    <!-- WELCOME -->
-    <div id="welcome" class="welcome">
-        <h2>🤖 PedroGPT</h2>
-        <p>Como posso ajudar hoje?</p>
+    <!-- =====================
+         CHAT
+    ====================== -->
+
+    <div
+        id="chat"
+        class="chat"
+    ></div>
+
+
+
+    <!-- =====================
+         WELCOME
+    ====================== -->
+
+    <div
+        id="welcome"
+        class="welcome"
+    >
+
+        <h2>
+            🤖 PedroGPT
+        </h2>
+
+
+        <p>
+            Como posso ajudar hoje?
+        </p>
+
 
         <div class="quick-actions">
-            <div class="msg-bot quick" onclick="atalho('Criar código 💻')">💻 Criar código</div>
-            <div class="msg-bot quick" onclick="atalho('Estudar 📚')">📚 Estudar</div>
-            <div class="msg-bot quick" onclick="atalho('Fazer resumo 📝')">📝 Fazer resumo</div>
-            <div class="msg-bot quick" onclick="atalho('Tirar dúvidas ❓')">❓ Tirar dúvidas</div>
+
+            <div
+                class="msg-bot quick"
+                onclick="atalho('Criar código 💻')"
+            >
+
+                💻 Criar código
+
+            </div>
+
+
+            <div
+                class="msg-bot quick"
+                onclick="atalho('Estudar 📚')"
+            >
+
+                📚 Estudar
+
+            </div>
+
+
+            <div
+                class="msg-bot quick"
+                onclick="atalho('Fazer resumo 📝')"
+            >
+
+                📝 Fazer resumo
+
+            </div>
+
+
+            <div
+                class="msg-bot quick"
+                onclick="atalho('Tirar dúvidas ❓')"
+            >
+
+                ❓ Tirar dúvidas
+
+            </div>
+
         </div>
+
     </div>
 
-    <!-- INPUT -->
+
+
+    <!-- =====================
+         INPUT
+    ====================== -->
+
     <div class="entrada">
-        <input type="text" id="mensagem" placeholder="Digite sua mensagem..." autocomplete="off">
-        <button onclick="enviar()">Enviar</button>
+
+        <input
+            type="text"
+            id="mensagem"
+            placeholder="Digite sua mensagem..."
+            autocomplete="off"
+        >
+
+
+        <button
+            onclick="enviar()"
+        >
+
+            Enviar
+
+        </button>
+
     </div>
 
 </div>
 
-<script>
-function atalho(texto) {
-    document.getElementById("welcome").classList.add("hidden");
-    document.getElementById("chat").style.display = "flex";
 
-    document.getElementById("mensagem").value = texto;
+
+<!-- =========================
+     QUICK ACTION SCRIPT
+========================= -->
+
+<script>
+
+function atalho(texto) {
+
+    document
+        .getElementById("welcome")
+        .classList
+        .add("hidden");
+
+
+    document
+        .getElementById("chat")
+        .style
+        .display = "flex";
+
+
+    document
+        .getElementById("mensagem")
+        .value = texto;
+
 }
+
 </script>
 
+
+
+<!-- =========================
+     MARKED
+========================= -->
+
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+
+<!-- =========================
+     PEDROGPT SCRIPT
+========================= -->
+
 <script src="/static/script.js"></script>
 
+
 </body>
+
 </html>
