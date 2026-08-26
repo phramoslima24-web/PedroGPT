@@ -1,5 +1,7 @@
+```python
 import os
 import sqlite3
+import base64
 from datetime import datetime
 
 from flask import (
@@ -37,6 +39,13 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 client = Groq(
     api_key=GROQ_API_KEY
 ) if GROQ_API_KEY else None
+
+# Limite máximo para imagens
+MAX_IMAGE_SIZE = 20 * 1024 * 1024
+
+# Modelos
+TEXT_MODEL = "openai/gpt-oss-120b"
+VISION_MODEL = "qwen/qwen3.6-27b"
 
 
 # ============================================================
@@ -339,8 +348,6 @@ def atualizar_titulo_se_necessario(
             or ""
         )
 
-        # Só gera título automaticamente
-        # quando a conversa ainda é nova.
         if titulo_atual != "Nova conversa":
             return
 
@@ -387,6 +394,184 @@ def obter_plan_usuario(username):
 
 
 # ============================================================
+# PROCESSAMENTO DE IMAGEM
+# ============================================================
+
+def obter_imagem_request():
+
+    """
+    Aceita imagem de duas formas:
+
+    1. JSON:
+       {
+           "message": "...",
+           "image": "data:image/jpeg;base64,..."
+       }
+
+    2. multipart/form-data:
+       message=...
+       image=<arquivo>
+    """
+
+    image_data = None
+    image_mime = None
+
+    # --------------------------------------------------------
+    # MULTIPART / ARQUIVO
+    # --------------------------------------------------------
+
+    if request.files:
+
+        arquivo = request.files.get("image")
+
+        if arquivo and arquivo.filename:
+
+            conteudo = arquivo.read()
+
+            if len(conteudo) > MAX_IMAGE_SIZE:
+
+                return None, None, (
+                    "A imagem é muito grande. "
+                    "O limite máximo é de 20 MB."
+                )
+
+            mime = (
+                arquivo.mimetype
+                or ""
+            ).lower()
+
+            if not mime.startswith("image/"):
+
+                return None, None, (
+                    "O arquivo enviado não é uma imagem válida."
+                )
+
+            image_mime = mime
+
+            image_data = (
+                "data:"
+                + image_mime
+                + ";base64,"
+                + base64.b64encode(
+                    conteudo
+                ).decode("utf-8")
+            )
+
+            return image_data, image_mime, None
+
+    # --------------------------------------------------------
+    # JSON / BASE64
+    # --------------------------------------------------------
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    imagem = data.get("image")
+
+    if not imagem:
+        return None, None, None
+
+    if not isinstance(imagem, str):
+
+        return None, None, (
+            "Formato de imagem inválido."
+        )
+
+    # --------------------------------------------------------
+    # DATA URL
+    # --------------------------------------------------------
+
+    if imagem.startswith("data:image/"):
+
+        try:
+
+            cabecalho, dados = imagem.split(
+                ",",
+                1
+            )
+
+            image_mime = (
+                cabecalho
+                .split(";")[0]
+                .replace("data:", "")
+                .lower()
+            )
+
+            if not image_mime.startswith("image/"):
+
+                return None, None, (
+                    "O arquivo enviado não é uma imagem válida."
+                )
+
+            tamanho_aproximado = (
+                len(dados) * 3 // 4
+            )
+
+            if tamanho_aproximado > MAX_IMAGE_SIZE:
+
+                return None, None, (
+                    "A imagem é muito grande. "
+                    "O limite máximo é de 20 MB."
+                )
+
+            # Valida o Base64
+            base64.b64decode(
+                dados,
+                validate=True
+            )
+
+            return imagem, image_mime, None
+
+        except Exception:
+
+            return None, None, (
+                "A imagem enviada está em um formato inválido."
+            )
+
+    # --------------------------------------------------------
+    # BASE64 PURO
+    # --------------------------------------------------------
+
+    try:
+
+        dados = imagem
+
+        tamanho_aproximado = (
+            len(dados) * 3 // 4
+        )
+
+        if tamanho_aproximado > MAX_IMAGE_SIZE:
+
+            return None, None, (
+                "A imagem é muito grande. "
+                "O limite máximo é de 20 MB."
+            )
+
+        base64.b64decode(
+            dados,
+            validate=True
+        )
+
+        image_mime = "image/jpeg"
+
+        image_data = (
+            "data:"
+            + image_mime
+            + ";base64,"
+            + dados
+        )
+
+        return image_data, image_mime, None
+
+    except Exception:
+
+        return None, None, (
+            "A imagem enviada está em um formato inválido."
+        )
+
+
+# ============================================================
 # PÁGINAS
 # ============================================================
 
@@ -401,8 +586,6 @@ def home():
 
     conversa_atual()
 
-    # Garante que o plano da sessão
-    # continue atualizado.
     session["plan"] = obter_plan_usuario(
         session["user"]
     )
@@ -475,10 +658,6 @@ def api_register():
         data.get("password") or ""
     ).strip()
 
-    # --------------------------------------------------------
-    # VALIDAÇÕES
-    # --------------------------------------------------------
-
     if not username or not password:
 
         return jsonify({
@@ -517,10 +696,6 @@ def api_register():
             "message":
                 "A senha é muito longa."
         }), 400
-
-    # --------------------------------------------------------
-    # HASH DA SENHA
-    # --------------------------------------------------------
 
     password_hash = generate_password_hash(
         password
@@ -630,10 +805,6 @@ def api_login():
 
         senha_correta = False
 
-        # ----------------------------------------------------
-        # SENHA COM HASH
-        # ----------------------------------------------------
-
         try:
 
             senha_correta = check_password_hash(
@@ -644,10 +815,6 @@ def api_login():
         except Exception:
 
             senha_correta = False
-
-        # ----------------------------------------------------
-        # MIGRAÇÃO DE SENHAS ANTIGAS
-        # ----------------------------------------------------
 
         if not senha_correta:
 
@@ -684,10 +851,6 @@ def api_login():
                     "Usuário ou senha incorretos."
             }), 401
 
-        # ----------------------------------------------------
-        # LOGIN OK
-        # ----------------------------------------------------
-
         session.clear()
 
         session["user"] = user["username"]
@@ -697,9 +860,6 @@ def api_login():
             or "free"
         )
 
-        # CORREÇÃO IMPORTANTE:
-        # antes estava usando uma variável
-        # "username" que não existia aqui.
         conversation_id = criar_conversa(
             user["username"],
             "Nova conversa"
@@ -740,13 +900,61 @@ def chat():
             "success": False
         }), 401
 
-    data = request.get_json(
-        silent=True
-    ) or {}
+    # ========================================================
+    # O BACKEND AGORA ACEITA:
+    #
+    # JSON:
+    # {
+    #   "message": "O que é isso?",
+    #   "image": "data:image/jpeg;base64,..."
+    # }
+    #
+    # OU:
+    #
+    # multipart/form-data:
+    # message=O que é isso?
+    # image=<arquivo>
+    # ========================================================
 
-    mensagem = (
-        data.get("message") or ""
-    ).strip()
+    if request.files:
+
+        mensagem = (
+            request.form.get("message")
+            or ""
+        ).strip()
+
+    else:
+
+        data = request.get_json(
+            silent=True
+        ) or {}
+
+        mensagem = (
+            data.get("message") or ""
+        ).strip()
+
+    # ========================================================
+    # IMAGEM
+    # ========================================================
+
+    imagem, image_mime, erro_imagem = (
+        obter_imagem_request()
+    )
+
+    if erro_imagem:
+
+        return jsonify({
+            "reply": erro_imagem,
+            "success": False
+        }), 400
+
+    # Permite enviar somente uma imagem.
+    if not mensagem and imagem:
+
+        mensagem = (
+            "Analise esta imagem e "
+            "explique o que você consegue identificar."
+        )
 
     if not mensagem:
 
@@ -756,7 +964,6 @@ def chat():
             "success": False
         }), 400
 
-    # Proteção contra mensagens gigantes.
     if len(mensagem) > 12000:
 
         return jsonify({
@@ -767,8 +974,6 @@ def chat():
 
     username = session["user"]
 
-    # Atualiza o plano diretamente
-    # do banco.
     plan = obter_plan_usuario(
         username
     )
@@ -827,6 +1032,15 @@ def chat():
         # SALVA MENSAGEM
         # ====================================================
 
+        mensagem_salva = mensagem
+
+        if imagem:
+
+            mensagem_salva = (
+                "🖼️ [Imagem enviada]\n"
+                + mensagem
+            )
+
         cursor.execute("""
         INSERT INTO chat_messages
         (conversation_id, sender, message)
@@ -834,7 +1048,7 @@ def chat():
         """, (
             conversation_id,
             "user",
-            mensagem
+            mensagem_salva
         ))
 
         cursor.execute("""
@@ -960,6 +1174,23 @@ mesmo quando ele:
 - misturar idiomas.
 
 Não critique erros de escrita.
+
+==================================================
+IMAGENS
+==================================================
+
+Quando uma imagem for enviada:
+
+- analise visualmente a imagem;
+- descreva o que for relevante;
+- responda à pergunta do usuário
+  sobre a imagem;
+- se houver texto legível na imagem,
+  tente interpretá-lo;
+- não invente detalhes que não estejam
+  visíveis;
+- deixe claro quando algo não puder
+  ser identificado com segurança.
 
 ==================================================
 CONTEXTO
@@ -1120,9 +1351,11 @@ Antes de responder:
 1. Entenda a pergunta.
 2. Analise o contexto.
 3. Verifique se a data é relevante.
-4. Escolha a melhor forma de responder.
-5. Organize a resposta.
-6. Evite informações inventadas.
+4. Verifique se existe uma imagem.
+5. Se houver imagem, analise-a.
+6. Escolha a melhor forma de responder.
+7. Organize a resposta.
+8. Evite informações inventadas.
 """
         }
     ]
@@ -1147,7 +1380,17 @@ Antes de responder:
 
         historico = cursor.fetchall()
 
-    for item in reversed(historico):
+    historico_reverso = list(
+        reversed(historico)
+    )
+
+    # ========================================================
+    # ADICIONA HISTÓRICO
+    # ========================================================
+
+    ultimo_usuario_adicionado = False
+
+    for item in historico_reverso:
 
         role = (
             "assistant"
@@ -1155,12 +1398,42 @@ Antes de responder:
             else "user"
         )
 
+        conteudo = item["message"]
+
+        # A imagem só é anexada à mensagem
+        # atual. Não armazenamos Base64 no banco.
+        if (
+            imagem
+            and role == "user"
+            and not ultimo_usuario_adicionado
+            and item["message"] == mensagem_salva
+        ):
+
+            conteudo = [
+
+                {
+                    "type": "text",
+                    "text": mensagem
+                },
+
+                {
+                    "type": "image_url",
+
+                    "image_url": {
+                        "url": imagem
+                    }
+                }
+
+            ]
+
+            ultimo_usuario_adicionado = True
+
         mensagens_ia.append({
 
             "role": role,
 
             "content":
-                item["message"]
+                conteudo
 
         })
 
@@ -1182,9 +1455,15 @@ Antes de responder:
 
     try:
 
+        modelo = (
+            VISION_MODEL
+            if imagem
+            else TEXT_MODEL
+        )
+
         resposta = client.chat.completions.create(
 
-            model="openai/gpt-oss-120b",
+            model=modelo,
 
             messages=mensagens_ia,
 
@@ -1213,10 +1492,6 @@ Antes de responder:
             repr(e)
         )
 
-        # Remove a mensagem do usuário
-        # somente quando a IA falha,
-        # evitando deixar uma conversa
-        # incompleta no histórico.
         try:
 
             with get_db() as conn:
@@ -1661,8 +1936,6 @@ def delete_conversation(
 
         cursor = conn.cursor()
 
-        # As mensagens são removidas
-        # pelo ON DELETE CASCADE.
         cursor.execute("""
         DELETE FROM conversations
         WHERE id=? AND username=?
@@ -1672,11 +1945,6 @@ def delete_conversation(
         ))
 
         conn.commit()
-
-    # --------------------------------------------------------
-    # Se era a conversa atual,
-    # cria uma nova automaticamente.
-    # --------------------------------------------------------
 
     if (
         session.get("conversation_id")
@@ -1785,3 +2053,4 @@ if __name__ == "__main__":
         port=port,
         debug=False
     )
+```
