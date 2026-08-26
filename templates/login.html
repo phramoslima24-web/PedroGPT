@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -7,7 +8,6 @@
 <title>Login - PedroGPT</title>
 
 <style>
-
 * {
     margin: 0;
     padding: 0;
@@ -22,8 +22,7 @@ body {
     align-items: center;
 
     background:
-        radial-gradient(circle at top, #1e1b4b, transparent 45%),
-        linear-gradient(135deg, #070711, #11111f, #09090f);
+        radial-gradient(circle at top, #111827, #0b0f19);
 
     color: white;
     padding: 20px;
@@ -31,32 +30,29 @@ body {
 
 .card {
     width: 100%;
-    max-width: 390px;
-
-    padding: 38px;
+    max-width: 380px;
+    padding: 35px;
 
     border-radius: 24px;
 
     background: rgba(255,255,255,0.06);
-
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(18px);
 
     border: 1px solid rgba(255,255,255,0.10);
 
     box-shadow:
-        0 25px 80px rgba(0,0,0,0.55);
+        0 20px 60px rgba(0,0,0,0.45);
 
     text-align: center;
 
-    animation: aparecer .4s ease;
+    animation: aparecer 0.4s ease;
 }
 
 .logo {
     width: 70px;
     height: 70px;
 
-    margin: 0 auto 18px;
+    margin: 0 auto 15px;
 
     display: flex;
     align-items: center;
@@ -70,18 +66,18 @@ body {
     font-size: 34px;
 
     box-shadow:
-        0 10px 30px rgba(124,58,237,.35);
+        0 10px 30px rgba(124,58,237,0.35);
 }
 
 h1 {
-    font-size: 27px;
+    font-size: 25px;
     margin-bottom: 7px;
 }
 
 .subtitulo {
-    color: rgba(255,255,255,.55);
+    color: rgba(255,255,255,0.55);
     font-size: 14px;
-    margin-bottom: 28px;
+    margin-bottom: 25px;
 }
 
 .campo {
@@ -91,62 +87,34 @@ h1 {
 
 input {
     width: 100%;
-
-    padding: 15px 16px;
-
-    border: 1px solid rgba(255,255,255,.10);
+    padding: 15px;
 
     border-radius: 13px;
 
-    outline: none;
+    border: 1px solid rgba(255,255,255,0.10);
 
-    background: rgba(255,255,255,.07);
+    background: rgba(255,255,255,0.08);
 
     color: white;
 
+    outline: none;
+
     font-size: 14px;
 
-    transition: .2s;
-}
-
-input:focus {
-    border-color: #7c3aed;
-
-    background: rgba(255,255,255,.09);
-
-    box-shadow:
-        0 0 0 3px rgba(124,58,237,.12);
+    transition: 0.2s;
 }
 
 input::placeholder {
-    color: rgba(255,255,255,.45);
+    color: rgba(255,255,255,0.45);
 }
 
-.senha-input {
-    padding-right: 48px;
-}
+input:focus {
+    border-color: rgba(124,58,237,0.8);
 
-.olho {
-    position: absolute;
+    background: rgba(255,255,255,0.10);
 
-    right: 15px;
-    top: 50%;
-
-    transform: translateY(-50%);
-
-    cursor: pointer;
-
-    opacity: .65;
-
-    font-size: 17px;
-
-    user-select: none;
-
-    transition: .2s;
-}
-
-.olho:hover {
-    opacity: 1;
+    box-shadow:
+        0 0 0 3px rgba(124,58,237,0.12);
 }
 
 button {
@@ -161,101 +129,74 @@ button {
     border-radius: 13px;
 
     background:
-        linear-gradient(
-            135deg,
-            #7c3aed,
-            #4f46e5
-        );
+        linear-gradient(135deg, #7c3aed, #4f46e5);
 
     color: white;
 
-    font-size: 15px;
-
     font-weight: bold;
+
+    font-size: 15px;
 
     cursor: pointer;
 
-    transition: .2s;
+    transition: 0.2s;
 
     box-shadow:
-        0 10px 25px rgba(79,70,229,.25);
+        0 10px 25px rgba(79,70,229,0.25);
 }
 
 button:hover {
     transform: translateY(-2px);
-
-    box-shadow:
-        0 14px 30px rgba(79,70,229,.35);
 }
 
 button:active {
-    transform: scale(.98);
+    transform: scale(0.98);
 }
 
 button:disabled {
-    opacity: .6;
+    opacity: 0.6;
     cursor: not-allowed;
     transform: none;
 }
 
-.mensagem {
-    min-height: 20px;
-
-    margin-top: 15px;
-
-    font-size: 13px;
-
-    color: #fca5a5;
-}
-
-.link {
+a {
     display: block;
 
-    margin-top: 22px;
+    margin-top: 18px;
 
     color: #c4b5fd;
 
     text-decoration: none;
 
     font-size: 14px;
-
-    transition: .2s;
 }
 
-.link:hover {
-    color: white;
+a:hover {
+    text-decoration: underline;
 }
 
-.carregando {
-    display: inline-flex;
+.erro {
+    display: none;
 
-    align-items: center;
+    margin-top: 15px;
 
-    gap: 8px;
-}
+    padding: 11px;
 
-.spinner {
-    width: 15px;
-    height: 15px;
+    border-radius: 10px;
 
-    border: 2px solid rgba(255,255,255,.35);
-    border-top-color: white;
+    background: rgba(239,68,68,0.12);
 
-    border-radius: 50%;
+    border: 1px solid rgba(239,68,68,0.25);
 
-    animation: girar .7s linear infinite;
-}
+    color: #fca5a5;
 
-@keyframes girar {
-    to {
-        transform: rotate(360deg);
-    }
+    font-size: 13px;
 }
 
 @keyframes aparecer {
     from {
         opacity: 0;
-        transform: translateY(15px) scale(.98);
+        transform: translateY(15px) scale(0.98);
     }
 
     to {
@@ -267,17 +208,15 @@ button:disabled {
 @media(max-width: 450px) {
 
     .card {
-        padding: 30px 22px;
-        border-radius: 20px;
+        padding: 28px 22px;
     }
 
     h1 {
-        font-size: 24px;
+        font-size: 23px;
     }
-
 }
-
 </style>
+
 </head>
 
 <body>
@@ -288,140 +227,83 @@ button:disabled {
         🤖
     </div>
 
-    <h1>Bem-vindo ao PedroGPT</h1>
+    <h1>PedroGPT</h1>
 
     <div class="subtitulo">
-        Entre na sua conta para continuar
+        Entre na sua conta
     </div>
 
-
     <div class="campo">
-
         <input
             type="text"
             id="username"
             placeholder="Usuário"
             autocomplete="username"
         >
-
     </div>
 
-
     <div class="campo">
-
         <input
             type="password"
             id="password"
-            class="senha-input"
             placeholder="Senha"
             autocomplete="current-password"
         >
-
-        <span
-            class="olho"
-            id="olho"
-            onclick="alternarSenha()"
-        >
-            👁️
-        </span>
-
     </div>
 
+    <div
+        id="erro"
+        class="erro"
+    ></div>
 
     <button
-        id="botaoLogin"
+        id="btnLogin"
         onclick="login()"
     >
         Entrar
     </button>
 
-
-    <div
-        id="mensagem"
-        class="mensagem"
-    ></div>
-
-
-    <a
-        href="/register"
-        class="link"
-    >
-        Ainda não tenho uma conta
+    <a href="/register">
+        Criar uma conta
     </a>
 
 </div>
 
-
 <script>
-
-function alternarSenha() {
-
-    const senha =
-        document.getElementById("password");
-
-    const olho =
-        document.getElementById("olho");
-
-    if (senha.type === "password") {
-
-        senha.type = "text";
-
-        olho.textContent = "🙈";
-
-    } else {
-
-        senha.type = "password";
-
-        olho.textContent = "👁️";
-
-    }
-}
-
-
-function mostrarMensagem(texto) {
-
-    document.getElementById("mensagem").textContent =
-        texto;
-
-}
-
 
 async function login() {
 
     const username =
-        document.getElementById("username")
+        document
+        .getElementById("username")
         .value
         .trim();
 
     const password =
-        document.getElementById("password")
-        .value;
+        document
+        .getElementById("password")
+        .value
+        .trim();
+
+    const erro =
+        document.getElementById("erro");
 
     const botao =
-        document.getElementById("botaoLogin");
+        document.getElementById("btnLogin");
 
+    erro.style.display = "none";
 
     if (!username || !password) {
 
-        mostrarMensagem(
-            "Preencha usuário e senha."
+        mostrarErro(
+            "Preencha o usuário e a senha."
         );
 
         return;
     }
 
-
     botao.disabled = true;
-
-    botao.innerHTML = `
-        <span class="carregando">
-            <span class="spinner"></span>
-            Entrando...
-        </span>
-    `;
-
-    mostrarMensagem("");
-
+    botao.innerText = "Entrando...";
 
     try {
 
@@ -436,18 +318,15 @@ async function login() {
                             "application/json"
                     },
 
-                    body:
-                        JSON.stringify({
-                            username,
-                            password
-                        })
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
                 }
             );
 
-
         const data =
             await resposta.json();
-
 
         if (data.success) {
 
@@ -456,69 +335,85 @@ async function login() {
             return;
         }
 
-
-        mostrarMensagem(
+        mostrarErro(
             data.message ||
-            "Usuário ou senha incorretos."
+            "Usuário ou senha inválidos."
         );
 
-
-    } catch (erro) {
+    } catch (error) {
 
         console.error(
             "Erro no login:",
-            erro
+            error
         );
 
-        mostrarMensagem(
-            "Erro de conexão com o servidor."
+        mostrarErro(
+            "Não foi possível conectar ao servidor."
         );
 
+    } finally {
+
+        botao.disabled = false;
+        botao.innerText = "Entrar";
     }
-
-
-    botao.disabled = false;
-
-    botao.textContent = "Entrar";
 }
 
 
-document
-    .getElementById("password")
-    .addEventListener(
-        "keydown",
-        function(event) {
+function mostrarErro(mensagem) {
 
-            if (event.key === "Enter") {
+    const erro =
+        document.getElementById("erro");
 
-                event.preventDefault();
+    erro.innerText = mensagem;
 
-                login();
-
-            }
-
-        }
-    );
+    erro.style.display = "block";
+}
 
 
-document
-    .getElementById("username")
-    .addEventListener(
-        "keydown",
-        function(event) {
+// ENTER PARA ENTRAR
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
 
-            if (event.key === "Enter") {
+        document
+        .getElementById("username")
+        .addEventListener(
+            "keydown",
+            function(event) {
 
-                event.preventDefault();
-
-                login();
+                if (event.key === "Enter") {
+                    login();
+                }
 
             }
+        );
 
-        }
-    );
+        document
+        .getElementById("password")
+        .addEventListener(
+            "keydown",
+            function(event) {
+
+                if (event.key === "Enter") {
+                    login();
+                }
+
+            }
+        );
+
+    }
+);
 
 </script>
 
 </body>
 </html>
+```
+
+**Git:**
+
+```bash
+git add .
+git commit -m "Atualiza login da Fase 4"
+git push
+```
