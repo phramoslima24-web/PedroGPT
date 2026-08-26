@@ -1,237 +1,779 @@
-```html
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Registro - PedroGPT</title>
+
+<title>Criar conta - PedroGPT</title>
 
 <style>
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: Arial;
+    font-family: Arial, sans-serif;
 }
 
 body {
-    height: 100vh;
+
+    min-height: 100vh;
+
     display: flex;
     justify-content: center;
     align-items: center;
-    background: linear-gradient(135deg, #0f0f1a, #1f1f2e, #2c2f3a);
+
+    padding: 20px;
+
+    background:
+        radial-gradient(
+            circle at top,
+            #312e81,
+            #111827 55%,
+            #05070d
+        );
+
     color: white;
 }
 
 .card {
-    width: 360px;
+
+    width: 390px;
+    max-width: 100%;
+
     padding: 35px;
-    border-radius: 20px;
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    border-radius: 24px;
+
+    background:
+        rgba(255,255,255,0.07);
+
+    backdrop-filter: blur(18px);
+
+    border:
+        1px solid
+        rgba(255,255,255,0.12);
+
+    box-shadow:
+        0 25px 70px
+        rgba(0,0,0,0.5);
+}
+
+.logo {
+
     text-align: center;
-    box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+
+    margin-bottom: 28px;
 }
 
-h2 {
-    margin-bottom: 20px;
-    font-size: 24px;
+.logo h1 {
+
+    font-size: 30px;
+
+    margin-bottom: 7px;
 }
 
-input {
-    width: 100%;
-    padding: 14px;
-    margin-top: 12px;
-    border: none;
-    border-radius: 12px;
-    outline: none;
-    background: rgba(255,255,255,0.9);
+.logo p {
+
+    color:
+        rgba(255,255,255,0.65);
+
     font-size: 14px;
 }
 
-.senha-box {
-    position: relative;
-    width: 100%;
+.campo {
+
+    margin-bottom: 17px;
 }
 
-.senha-box input {
-    padding-right: 45px;
+.campo label {
+
+    display: block;
+
+    margin-bottom: 7px;
+
+    font-size: 14px;
+
+    color:
+        rgba(255,255,255,0.85);
+}
+
+.input-box {
+
+    position: relative;
+}
+
+.input-box input {
+
+    width: 100%;
+
+    padding: 14px;
+
+    border-radius: 12px;
+
+    border:
+        1px solid
+        rgba(255,255,255,0.1);
+
+    outline: none;
+
+    background:
+        rgba(255,255,255,0.08);
+
+    color: white;
+
+    font-size: 14px;
+
+    transition: 0.2s;
+}
+
+.input-box input:focus {
+
+    border-color: #8b5cf6;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(139,92,246,0.15);
+}
+
+.input-box input::placeholder {
+
+    color:
+        rgba(255,255,255,0.4);
+}
+
+.password-box input {
+
+    padding-right: 50px;
 }
 
 .eye {
+
     position: absolute;
-    right: 12px;
+
+    right: 13px;
     top: 50%;
+
     transform: translateY(-50%);
-    width: 18px;
-    height: 18px;
-    border: 2px solid #888;
-    border-radius: 5px;
-    cursor: pointer;
-}
 
-.eye.active {
-    background: #7c3aed;
-    border-color: #7c3aed;
-}
-
-button {
-    width: 100%;
-    padding: 14px;
-    margin-top: 18px;
     border: none;
-    border-radius: 12px;
-    background: linear-gradient(90deg, #7c3aed, #4f46e5);
+
+    background: transparent;
+
     color: white;
-    font-weight: bold;
+
     cursor: pointer;
+
+    font-size: 18px;
+
+    opacity: 0.75;
 }
 
-button:hover {
-    opacity: 0.9;
+.eye:hover {
+
+    opacity: 1;
 }
 
-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+.forca {
+
+    height: 5px;
+
+    width: 100%;
+
+    background:
+        rgba(255,255,255,0.1);
+
+    border-radius: 10px;
+
+    margin-top: 8px;
+
+    overflow: hidden;
 }
 
-a {
+.forca-bar {
+
+    height: 100%;
+
+    width: 0%;
+
+    border-radius: 10px;
+
+    transition: 0.25s;
+}
+
+.requisitos {
+
+    margin-top: 8px;
+
+    font-size: 12px;
+
+    color:
+        rgba(255,255,255,0.55);
+}
+
+.requisitos span {
+
     display: block;
-    margin-top: 15px;
-    color: #c4b5fd;
-    text-decoration: none;
-    font-size: 13px;
+
+    margin-top: 3px;
 }
+
+.requisito-ok {
+
+    color: #4ade80 !important;
+}
+
+.requisito-erro {
+
+    color: #f87171 !important;
+}
+
+.btn {
+
+    width: 100%;
+
+    padding: 14px;
+
+    margin-top: 8px;
+
+    border: none;
+
+    border-radius: 12px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #7c3aed,
+            #4f46e5
+        );
+
+    color: white;
+
+    font-size: 15px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+}
+
+.btn:hover {
+
+    transform:
+        translateY(-2px);
+
+    box-shadow:
+        0 8px 25px
+        rgba(79,70,229,0.35);
+}
+
+.btn:disabled {
+
+    opacity: 0.55;
+
+    cursor: not-allowed;
+
+    transform: none;
+}
+
+.msg {
+
+    min-height: 20px;
+
+    margin-top: 15px;
+
+    text-align: center;
+
+    font-size: 14px;
+}
+
+.erro {
+
+    color: #f87171;
+}
+
+.sucesso {
+
+    color: #4ade80;
+}
+
+.login {
+
+    text-align: center;
+
+    margin-top: 20px;
+
+    font-size: 14px;
+
+    color:
+        rgba(255,255,255,0.65);
+}
+
+.login a {
+
+    color: #a78bfa;
+
+    text-decoration: none;
+
+    font-weight: bold;
+}
+
+.login a:hover {
+
+    text-decoration: underline;
+}
+
 </style>
+
 </head>
 
 <body>
 
 <div class="card">
 
-    <h2>🤖 Criar conta</h2>
+    <div class="logo">
 
-    <input
-        type="text"
-        id="username"
-        placeholder="Usuário"
-        autocomplete="username"
-    >
+        <h1>🤖 PedroGPT</h1>
 
-    <div class="senha-box">
-
-        <input
-            type="password"
-            id="password"
-            placeholder="Senha"
-            autocomplete="new-password"
-        >
-
-        <span
-            class="eye"
-            id="eye"
-            onclick="toggleSenha()"
-        ></span>
+        <p>Crie sua conta gratuitamente</p>
 
     </div>
 
+
+    <!-- USUÁRIO -->
+
+    <div class="campo">
+
+        <label for="username">
+            Usuário
+        </label>
+
+        <div class="input-box">
+
+            <input
+                type="text"
+                id="username"
+                placeholder="Escolha seu usuário"
+                autocomplete="username"
+                maxlength="30"
+            >
+
+        </div>
+
+    </div>
+
+
+    <!-- SENHA -->
+
+    <div class="campo">
+
+        <label for="password">
+            Senha
+        </label>
+
+        <div class="input-box password-box">
+
+            <input
+                type="password"
+                id="password"
+                placeholder="Crie uma senha"
+                autocomplete="new-password"
+            >
+
+            <button
+                type="button"
+                class="eye"
+                id="eye"
+                onclick="toggleSenha()"
+            >
+                👁️
+            </button>
+
+        </div>
+
+
+        <div class="forca">
+
+            <div
+                id="forcaBar"
+                class="forca-bar"
+            ></div>
+
+        </div>
+
+
+        <div class="requisitos">
+
+            <span id="reqTamanho">
+                ○ Pelo menos 6 caracteres
+            </span>
+
+            <span id="reqNumero">
+                ○ Pelo menos 1 número
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- CONFIRMAR SENHA -->
+
+    <div class="campo">
+
+        <label for="confirmPassword">
+            Confirmar senha
+        </label>
+
+        <div class="input-box password-box">
+
+            <input
+                type="password"
+                id="confirmPassword"
+                placeholder="Digite a senha novamente"
+                autocomplete="new-password"
+            >
+
+            <button
+                type="button"
+                class="eye"
+                onclick="toggleConfirmacao()"
+            >
+                👁️
+            </button>
+
+        </div>
+
+    </div>
+
+
     <button
-        id="registerButton"
+        class="btn"
+        id="btnRegister"
         onclick="register()"
     >
         Criar conta
     </button>
 
-    <a href="/login">
-        Já tenho conta
-    </a>
+
+    <div
+        id="msg"
+        class="msg"
+    ></div>
+
+
+    <div class="login">
+
+        Já possui uma conta?
+
+        <a href="/login">
+            Entrar
+        </a>
+
+    </div>
 
 </div>
 
+
 <script>
 
-// =========================
-// TOGGLE SENHA
-// =========================
+/* =========================
+   ELEMENTOS
+========================= */
 
-function toggleSenha() {
+const username =
+    document.getElementById("username");
 
-    const senha =
-        document.getElementById("password");
+const password =
+    document.getElementById("password");
 
-    const eye =
-        document.getElementById("eye");
+const confirmPassword =
+    document.getElementById("confirmPassword");
 
-    if (senha.type === "password") {
+const btn =
+    document.getElementById("btnRegister");
 
-        senha.type = "text";
+const msg =
+    document.getElementById("msg");
 
-        eye.classList.add("active");
 
-    } else {
+/* =========================
+   MENSAGEM
+========================= */
 
-        senha.type = "password";
+function mostrarMensagem(
+    texto,
+    tipo = "erro"
+) {
 
-        eye.classList.remove("active");
+    msg.textContent = texto;
 
-    }
+    msg.className =
+        "msg " + tipo;
 }
 
 
-// =========================
-// REGISTER
-// =========================
+/* =========================
+   MOSTRAR SENHA
+========================= */
+
+function toggleSenha() {
+
+    if (
+        password.type ===
+        "password"
+    ) {
+
+        password.type = "text";
+
+    } else {
+
+        password.type = "password";
+
+    }
+
+}
+
+
+/* =========================
+   MOSTRAR CONFIRMAÇÃO
+========================= */
+
+function toggleConfirmacao() {
+
+    if (
+        confirmPassword.type ===
+        "password"
+    ) {
+
+        confirmPassword.type = "text";
+
+    } else {
+
+        confirmPassword.type = "password";
+
+    }
+
+}
+
+
+/* =========================
+   FORÇA DA SENHA
+========================= */
+
+password.addEventListener(
+    "input",
+    atualizarForca
+);
+
+function atualizarForca() {
+
+    const senha =
+        password.value;
+
+    const barra =
+        document.getElementById(
+            "forcaBar"
+        );
+
+    const reqTamanho =
+        document.getElementById(
+            "reqTamanho"
+        );
+
+    const reqNumero =
+        document.getElementById(
+            "reqNumero"
+        );
+
+
+    let pontos = 0;
+
+
+    /* TAMANHO */
+
+    if (senha.length >= 6) {
+
+        pontos++;
+
+        reqTamanho.textContent =
+            "✓ Pelo menos 6 caracteres";
+
+        reqTamanho.className =
+            "requisito-ok";
+
+    } else {
+
+        reqTamanho.textContent =
+            "○ Pelo menos 6 caracteres";
+
+        reqTamanho.className =
+            "requisito-erro";
+
+    }
+
+
+    /* NÚMERO */
+
+    if (/\d/.test(senha)) {
+
+        pontos++;
+
+        reqNumero.textContent =
+            "✓ Pelo menos 1 número";
+
+        reqNumero.className =
+            "requisito-ok";
+
+    } else {
+
+        reqNumero.textContent =
+            "○ Pelo menos 1 número";
+
+        reqNumero.className =
+            "requisito-erro";
+
+    }
+
+
+    /* TAMANHO EXTRA */
+
+    if (senha.length >= 10) {
+
+        pontos++;
+
+    }
+
+
+    /* MAIÚSCULA */
+
+    if (/[A-Z]/.test(senha)) {
+
+        pontos++;
+
+    }
+
+
+    /* SÍMBOLO */
+
+    if (/[^A-Za-z0-9]/.test(senha)) {
+
+        pontos++;
+
+    }
+
+
+    const porcentagem =
+        Math.min(
+            pontos * 20,
+            100
+        );
+
+
+    barra.style.width =
+        porcentagem + "%";
+
+}
+
+
+/* =========================
+   REGISTRO
+========================= */
 
 async function register() {
 
-    const username =
-        document.getElementById("username")
-        .value
-        .trim();
+    const nome =
+        username.value.trim();
 
-    const password =
-        document.getElementById("password")
-        .value
-        .trim();
+    const senha =
+        password.value;
 
-    const button =
-        document.getElementById("registerButton");
+    const confirmacao =
+        confirmPassword.value;
 
 
-    if (!username || !password) {
+    /* =========================
+       VALIDAÇÕES
+    ========================= */
 
-        alert("Preencha todos os campos.");
+    if (!nome) {
 
-        return;
-    }
+        mostrarMensagem(
+            "Digite um nome de usuário."
+        );
 
-
-    if (username.length < 3) {
-
-        alert("O usuário precisa ter pelo menos 3 caracteres.");
+        username.focus();
 
         return;
     }
 
 
-    if (password.length < 4) {
+    if (nome.length < 3) {
 
-        alert("A senha precisa ter pelo menos 4 caracteres.");
+        mostrarMensagem(
+            "O usuário precisa ter pelo menos 3 caracteres."
+        );
+
+        username.focus();
 
         return;
     }
 
 
-    button.disabled = true;
+    if (senha.length < 6) {
 
-    button.innerText = "Criando...";
+        mostrarMensagem(
+            "A senha precisa ter pelo menos 6 caracteres."
+        );
+
+        password.focus();
+
+        return;
+    }
+
+
+    if (!/\d/.test(senha)) {
+
+        mostrarMensagem(
+            "A senha precisa ter pelo menos 1 número."
+        );
+
+        password.focus();
+
+        return;
+    }
+
+
+    if (senha !== confirmacao) {
+
+        mostrarMensagem(
+            "As senhas não são iguais."
+        );
+
+        confirmPassword.focus();
+
+        return;
+    }
+
+
+    /* =========================
+       CARREGANDO
+    ========================= */
+
+    btn.disabled = true;
+
+    btn.textContent =
+        "Criando conta...";
+
+    mostrarMensagem("");
 
 
     try {
 
-        const response =
+        const resposta =
             await fetch(
                 "/api/register",
                 {
@@ -243,58 +785,110 @@ async function register() {
                     },
 
                     body: JSON.stringify({
-                        username: username,
-                        password: password
+                        username: nome,
+                        password: senha
                     })
                 }
             );
 
 
         const data =
-            await response.json();
+            await resposta.json();
 
+
+        /* =========================
+           SUCESSO
+        ========================= */
 
         if (data.success) {
 
-            alert("Conta criada com sucesso!");
+            mostrarMensagem(
+                "Conta criada com sucesso!",
+                "sucesso"
+            );
 
-            window.location.href =
-                "/login";
+
+            btn.textContent =
+                "Conta criada ✓";
+
+
+            setTimeout(
+                () => {
+                    window.location.href =
+                        "/login";
+                },
+                900
+            );
+
 
             return;
         }
 
 
-        alert(
+        /* =========================
+           ERRO
+        ========================= */
+
+        mostrarMensagem(
             data.message ||
-            "Erro ao criar conta."
+            "Não foi possível criar a conta."
         );
 
 
-    } catch (error) {
+    } catch (erro) {
 
         console.error(
             "Erro no registro:",
-            error
+            erro
         );
 
-        alert(
-            "Erro de conexão com o servidor."
+        mostrarMensagem(
+            "Erro ao conectar com o servidor."
         );
-
-    } finally {
-
-        button.disabled = false;
-
-        button.innerText =
-            "Criar conta";
 
     }
 
+
+    btn.disabled = false;
+
+    btn.textContent =
+        "Criar conta";
+
 }
+
+
+/* =========================
+   ENTER
+========================= */
+
+[
+    username,
+    password,
+    confirmPassword
+].forEach(
+    campo => {
+
+        campo.addEventListener(
+            "keydown",
+            event => {
+
+                if (
+                    event.key === "Enter"
+                ) {
+
+                    event.preventDefault();
+
+                    register();
+
+                }
+
+            }
+        );
+
+    }
+);
 
 </script>
 
 </body>
 </html>
-```
