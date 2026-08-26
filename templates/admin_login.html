@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>PedroGPT - Admin</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background:
+                radial-gradient(circle at top, #172554, #020617 60%);
+            color: white;
+        }
+
+        .container {
+            width: 380px;
+            padding: 35px;
+            border-radius: 22px;
+
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(255,255,255,0.12);
+
+            box-shadow:
+                0 25px 80px rgba(0,0,0,0.45);
+
+            backdrop-filter: blur(18px);
+        }
+
+        .logo {
+            width: 65px;
+            height: 65px;
+            margin: 0 auto 20px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 18px;
+
+            background: linear-gradient(
+                135deg,
+                #2563eb,
+                #7c3aed
+            );
+
+            font-size: 30px;
+            font-weight: bold;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            margin-bottom: 28px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+
+            margin-bottom: 14px;
+
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+
+            background: rgba(255,255,255,0.06);
+            color: white;
+
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #6366f1;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+
+            border: none;
+            border-radius: 12px;
+
+            background: linear-gradient(
+                135deg,
+                #2563eb,
+                #7c3aed
+            );
+
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        #mensagem {
+            margin-top: 15px;
+            text-align: center;
+            color: #f87171;
+            min-height: 20px;
+        }
+
+        .admin-label {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #60a5fa;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="logo">
+            P
+        </div>
+
+        <div class="admin-label">
+            PAINEL ADMINISTRATIVO
+        </div>
+
+        <h1>PedroGPT</h1>
+
+        <div class="subtitle">
+            Acesso restrito ao administrador
+        </div>
+
+        <input
+            type="text"
+            id="username"
+            placeholder="Usuário"
+            autocomplete="username"
+        >
+
+        <input
+            type="password"
+            id="password"
+            placeholder="Senha"
+            autocomplete="current-password"
+        >
+
+        <button onclick="entrar()">
+            Entrar no painel
+        </button>
+
+        <div id="mensagem"></div>
+
+    </div>
+
+<script>
+
+async function entrar() {
+
+    const username =
+        document.getElementById("username").value.trim();
+
+    const password =
+        document.getElementById("password").value;
+
+    const mensagem =
+        document.getElementById("mensagem");
+
+    mensagem.textContent = "";
+
+    if (!username || !password) {
+
+        mensagem.textContent =
+            "Preencha usuário e senha.";
+
+        return;
+    }
+
+    try {
+
+        const resposta = await fetch(
+            "/admin/login",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            }
+        );
+
+        const dados =
+            await resposta.json();
+
+        if (dados.success) {
+
+            window.location.href =
+                "/admin/dashboard";
+
+        } else {
+
+            mensagem.textContent =
+                dados.message ||
+                "Login inválido.";
+
+        }
+
+    } catch (erro) {
+
+        console.error(erro);
+
+        mensagem.textContent =
+            "Erro ao conectar com o servidor.";
+
+    }
+}
+
+document
+    .getElementById("password")
+    .addEventListener(
+        "keydown",
+        function(event) {
+
+            if (event.key === "Enter") {
+                entrar();
+            }
+
+        }
+    );
+
+</script>
+
+</body>
+</html>
