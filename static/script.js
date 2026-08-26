@@ -1,60 +1,33 @@
-// ============================================================
-// PedroGPT - SCRIPT.JS
-// FASE 4
-// ============================================================
-
-
-// ============================================================
-// CONFIGURAÇÃO
-// ============================================================
-
+// =====================
+// BASE URL
+// =====================
 const API = "https://pedrogpt.onrender.com";
 
-let enviando = false;
+
+// =====================
+// ARQUIVOS SELECIONADOS
+// =====================
+let arquivosSelecionados = [];
 
 
-// ============================================================
-// ELEMENTOS
-// ============================================================
+// =====================
+// FORMATAR RESPOSTA
+// =====================
+function formatarResposta(texto) {
 
-function elemento(id) {
-    return document.getElementById(id);
-}
+    if (!texto) return "";
 
-
-// ============================================================
-// ESCAPAR HTML
-// ============================================================
-
-function escaparHTML(texto) {
-
-    return String(texto ?? "")
+    let html = String(texto)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
-}
-
-
-// ============================================================
-// FORMATAR RESPOSTA
-// ============================================================
-
-function formatarResposta(texto) {
-
-    if (!texto) return "";
-
-    let protegido = escaparHTML(texto);
 
     const blocosCodigo = [];
 
-    // ========================================================
-    // PROTEGER CÓDIGO
-    // ========================================================
-
-    protegido = protegido.replace(
-        /```(?:[a-zA-Z0-9_+-]+)?\s*\n?([\s\S]*?)```/g,
+    html = html.replace(
+        /```([\s\S]*?)```/g,
         function (_, codigo) {
 
             const id = blocosCodigo.length;
@@ -67,369 +40,751 @@ function formatarResposta(texto) {
         }
     );
 
-
-    // ========================================================
-    // NEGRITO
-    // ========================================================
-
-    protegido = protegido.replace(
+    html = html.replace(
         /\*\*(.+?)\*\*/g,
         "<strong>$1</strong>"
     );
 
-
-    // ========================================================
-    // ITÁLICO
-    // ========================================================
-
-    protegido = protegido.replace(
+    html = html.replace(
         /(?<!\*)\*([^*\n]+)\*(?!\*)/g,
         "<em>$1</em>"
     );
 
-
-    // ========================================================
-    // TÍTULOS
-    // ========================================================
-
-    protegido = protegido.replace(
+    html = html.replace(
         /^### (.+)$/gm,
         "<h4>$1</h4>"
     );
 
-    protegido = protegido.replace(
+    html = html.replace(
         /^## (.+)$/gm,
         "<h3>$1</h3>"
     );
 
-    protegido = protegido.replace(
+    html = html.replace(
         /^# (.+)$/gm,
         "<h2>$1</h2>"
     );
 
-
-    // ========================================================
-    // LISTAS
-    // ========================================================
-
-    const linhas = protegido.split("\n");
+    const linhas = html.split("\n");
 
     let resultado = "";
-
     let listaAberta = false;
-
     let listaNumeradaAberta = false;
-
 
     linhas.forEach(linha => {
 
-        const trim = linha.trim();
+        const linhaTrim = linha.trim();
 
-
-        // ====================================================
-        // LISTA NORMAL
-        // ====================================================
-
-        if (/^[-•*]\s+/.test(trim)) {
+        if (/^[-•]\s+/.test(linhaTrim)) {
 
             if (listaNumeradaAberta) {
-
                 resultado += "</ol>";
-
                 listaNumeradaAberta = false;
             }
 
-
             if (!listaAberta) {
-
                 resultado += "<ul>";
-
                 listaAberta = true;
             }
 
-
             const item =
-                trim.replace(
-                    /^[-•*]\s+/,
-                    ""
-                );
-
+                linhaTrim.replace(/^[-•]\s+/, "");
 
             resultado += `<li>${item}</li>`;
 
             return;
         }
 
-
-        // ====================================================
-        // LISTA NUMERADA
-        // ====================================================
-
-        if (/^\d+[.)]\s+/.test(trim)) {
+        if (/^\d+[.)]\s+/.test(linhaTrim)) {
 
             if (listaAberta) {
-
                 resultado += "</ul>";
-
                 listaAberta = false;
             }
 
-
             if (!listaNumeradaAberta) {
-
                 resultado += "<ol>";
-
                 listaNumeradaAberta = true;
             }
 
-
             const item =
-                trim.replace(
-                    /^\d+[.)]\s+/,
-                    ""
-                );
-
+                linhaTrim.replace(/^\d+[.)]\s+/, "");
 
             resultado += `<li>${item}</li>`;
 
             return;
         }
 
-
-        // ====================================================
-        // FECHAR LISTAS
-        // ====================================================
-
         if (listaAberta) {
-
             resultado += "</ul>";
-
             listaAberta = false;
         }
 
-
         if (listaNumeradaAberta) {
-
             resultado += "</ol>";
-
             listaNumeradaAberta = false;
         }
 
-
-        // ====================================================
-        // LINHA VAZIA
-        // ====================================================
-
-        if (!trim) {
+        if (!linhaTrim) {
 
             resultado +=
-                `<div class="quebra-linha"></div>`;
+                "<div class='quebra-linha'></div>";
 
             return;
         }
 
-
-        // ====================================================
-        // TEXTO
-        // ====================================================
-
         resultado +=
             `<div class="linha-resposta">${linha}</div>`;
-
     });
 
-
-    // ========================================================
-    // FECHAR LISTAS
-    // ========================================================
-
     if (listaAberta) {
-
         resultado += "</ul>";
     }
 
-
     if (listaNumeradaAberta) {
-
         resultado += "</ol>";
     }
 
+    blocosCodigo.forEach((codigo, index) => {
 
-    // ========================================================
-    // RESTAURAR CÓDIGOS
-    // ========================================================
+        resultado = resultado.replace(
+            `___CODIGO_${index}___`,
+            codigo
+        );
 
-    blocosCodigo.forEach(
-        (codigo, index) => {
-
-            resultado =
-                resultado.replace(
-                    `___CODIGO_${index}___`,
-                    codigo
-                );
-
-        }
-    );
-
+    });
 
     return resultado;
 }
 
 
-// ============================================================
-// ESCONDER WELCOME
-// ============================================================
+// =====================
+// HISTÓRICO
+// =====================
+async function carregarHistorico() {
 
+    try {
+
+        const resposta =
+            await fetch(`${API}/history`);
+
+        if (!resposta.ok) {
+
+            console.warn(
+                "Erro ao carregar histórico:",
+                resposta.status
+            );
+
+            return;
+        }
+
+        const historico =
+            await resposta.json();
+
+        const chat =
+            document.getElementById("chat");
+
+        if (!chat) return;
+
+        chat.innerHTML = "";
+
+        historico.forEach(item => {
+
+            let sender;
+            let message;
+
+            if (Array.isArray(item)) {
+
+                sender = item[0];
+                message = item[1];
+
+            } else {
+
+                sender =
+                    item?.sender ?? "bot";
+
+                message =
+                    item?.message ?? "";
+
+            }
+
+            addMensagem(
+                message,
+                sender === "user"
+                    ? "user"
+                    : "bot"
+            );
+
+        });
+
+        if (historico.length > 0) {
+
+            esconderWelcome();
+
+        }
+
+        scrollBottom();
+
+    } catch (erro) {
+
+        console.error(
+            "Erro no histórico:",
+            erro
+        );
+
+    }
+}
+
+
+// =====================
+// ESCONDER WELCOME
+// =====================
 function esconderWelcome() {
 
     const welcome =
-        elemento("welcome");
+        document.getElementById("welcome");
 
     if (welcome) {
 
-        welcome.classList.add(
-            "hidden"
-        );
+        welcome.classList.add("hidden");
+
     }
 }
 
 
-// ============================================================
-// MOSTRAR WELCOME
-// ============================================================
+// =====================
+// MOSTRAR ARQUIVOS
+// =====================
+function mostrarArquivos() {
 
-function mostrarWelcome() {
+    const container =
+        document.getElementById("anexos");
 
-    const welcome =
-        elemento("welcome");
+    if (!container) return;
 
-    if (welcome) {
+    container.innerHTML = "";
 
-        welcome.classList.remove(
-            "hidden"
-        );
+    arquivosSelecionados.forEach(
+        function(file, index) {
+
+            const div =
+                document.createElement("div");
+
+            div.className = "anexo";
+
+            let icone = "📄";
+
+            if (
+                file.type &&
+                file.type.startsWith("image/")
+            ) {
+
+                icone = "🖼️";
+
+            }
+
+            div.innerHTML = `
+
+                <span>${icone}</span>
+
+                <span class="anexo-nome">
+                    ${escapeHtml(file.name)}
+                </span>
+
+                <button
+                    class="remover-anexo"
+                    onclick="removerArquivo(${index})"
+                    title="Remover"
+                >
+                    ×
+                </button>
+
+            `;
+
+            container.appendChild(div);
+
+        }
+    );
+}
+
+
+// =====================
+// REMOVER ARQUIVO
+// =====================
+function removerArquivo(index) {
+
+    arquivosSelecionados.splice(
+        index,
+        1
+    );
+
+    mostrarArquivos();
+
+    const input =
+        document.getElementById("arquivo");
+
+    if (input) {
+
+        input.value = "";
+
     }
 }
 
 
-// ============================================================
-// SCROLL
-// ============================================================
+// =====================
+// ESCOLHER ARQUIVOS
+// =====================
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
 
-function scrollBottom() {
+        const input =
+            document.getElementById("arquivo");
 
-    const chat =
-        elemento("chat");
+        if (!input) return;
 
-    if (!chat) return;
+        input.addEventListener(
+            "change",
+            function() {
 
-    requestAnimationFrame(() => {
+                const novosArquivos =
+                    Array.from(this.files);
 
-        chat.scrollTop =
-            chat.scrollHeight;
+                arquivosSelecionados =
+                    arquivosSelecionados.concat(
+                        novosArquivos
+                    );
 
-    });
+                mostrarArquivos();
+
+                esconderWelcome();
+
+            }
+        );
+
+    }
+);
+
+
+// =====================
+// ENVIAR
+// =====================
+async function enviar() {
+
+    const campo =
+        document.getElementById("mensagem");
+
+    if (!campo) return;
+
+    const texto =
+        campo.value.trim();
+
+
+    // =====================
+    // VERIFICA SE TEM ALGO
+    // =====================
+
+    if (
+        !texto &&
+        arquivosSelecionados.length === 0
+    ) {
+
+        return;
+
+    }
+
+
+    esconderWelcome();
+
+
+    // =====================
+    // MOSTRA MENSAGEM
+    // =====================
+
+    addMensagemComArquivos(
+        texto,
+        arquivosSelecionados
+    );
+
+
+    campo.value = "";
+
+
+    // =====================
+    // TYPING
+    // =====================
+
+    const typing =
+        addMensagem(
+            "",
+            "bot typing"
+        );
+
+
+    try {
+
+        /*
+         * Nesta fase enviamos:
+         *
+         * message
+         * files
+         *
+         * O backend será preparado
+         * para receber esses dados.
+         */
+
+        const formData =
+            new FormData();
+
+        formData.append(
+            "message",
+            texto
+        );
+
+
+        arquivosSelecionados.forEach(
+            function(file) {
+
+                formData.append(
+                    "files",
+                    file
+                );
+
+            }
+        );
+
+
+        const resposta =
+            await fetch(
+                `${API}/chat`,
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
+
+
+        if (!resposta.ok) {
+
+            console.warn(
+                "Erro HTTP:",
+                resposta.status
+            );
+
+            if (typing) {
+
+                typing.remove();
+
+            }
+
+            addMensagem(
+                "Erro ao conectar com o servidor.",
+                "bot"
+            );
+
+            return;
+        }
+
+
+        const data =
+            await resposta.json();
+
+
+        if (typing) {
+
+            typing.remove();
+
+        }
+
+
+        addMensagem(
+            data.reply ||
+            "Não recebi uma resposta da IA.",
+            "bot"
+        );
+
+
+        // =====================
+        // VOZ
+        // =====================
+
+        const opcaoVoz =
+            document.getElementById("voz");
+
+        if (
+            opcaoVoz &&
+            opcaoVoz.checked &&
+            data.reply
+        ) {
+
+            speechSynthesis.cancel();
+
+            const voz =
+                new SpeechSynthesisUtterance(
+                    data.reply
+                );
+
+            voz.lang = "pt-BR";
+
+            speechSynthesis.speak(voz);
+
+        }
+
+
+    } catch (erro) {
+
+        console.error(
+            "Erro no chat:",
+            erro
+        );
+
+        if (typing) {
+
+            typing.remove();
+
+        }
+
+        addMensagem(
+            "Erro ao conectar com o servidor.",
+            "bot"
+        );
+
+    }
+
+
+    // =====================
+    // LIMPA ANEXOS
+    // =====================
+
+    arquivosSelecionados = [];
+
+    mostrarArquivos();
+
+    const input =
+        document.getElementById("arquivo");
+
+    if (input) {
+
+        input.value = "";
+
+    }
+
 }
 
 
-// ============================================================
-// MENSAGEM
-// ============================================================
-
-function addMensagem(
+// =====================
+// MENSAGEM COM ARQUIVOS
+// =====================
+function addMensagemComArquivos(
     texto,
-    tipo
+    arquivos
 ) {
-
-    const chat =
-        elemento("chat");
-
-    if (!chat) return null;
-
 
     const div =
         document.createElement("div");
 
-
-    const ehUsuario =
-        tipo === "user";
-
-
-    const ehTyping =
-        tipo.includes("typing");
-
-
     div.classList.add(
-        ehUsuario
-            ? "msg-user"
-            : "msg-bot"
+        "msg-user"
     );
 
 
-    // ========================================================
-    // TYPING
-    // ========================================================
-
-    if (ehTyping) {
-
-        div.classList.add(
-            "typing-message"
-        );
+    let conteudo = "";
 
 
-        div.innerHTML = `
+    // =====================
+    // TEXTO
+    // =====================
+
+    if (texto) {
+
+        conteudo += `
             <div class="conteudo-mensagem">
-                <span>🤖 PedroGPT está digitando</span>
-
-                <span class="typing-dots">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </span>
+                ${escapeHtml(texto)
+                    .replace(/\n/g, "<br>")}
             </div>
         `;
 
+    }
+
+
+    // =====================
+    // ARQUIVOS
+    // =====================
+
+    arquivos.forEach(
+        function(file) {
+
+            if (
+                file.type &&
+                file.type.startsWith("image/")
+            ) {
+
+                const url =
+                    URL.createObjectURL(file);
+
+                conteudo += `
+
+                    <img
+                        src="${url}"
+                        class="imagem-anexada"
+                        alt="${escapeHtml(file.name)}"
+                    >
+
+                `;
+
+            } else {
+
+                conteudo += `
+
+                    <div class="anexo">
+
+                        📄
+
+                        <span class="anexo-nome">
+                            ${escapeHtml(file.name)}
+                        </span>
+
+                    </div>
+
+                `;
+
+            }
+
+        }
+    );
+
+
+    const now =
+        new Date();
+
+    const hora =
+        now.getHours()
+            .toString()
+            .padStart(2, "0")
+        + ":" +
+        now.getMinutes()
+            .toString()
+            .padStart(2, "0");
+
+
+    div.innerHTML = `
+
+        ${conteudo}
+
+        <div style="
+            font-size:10px;
+            opacity:0.5;
+            margin-top:5px;
+            text-align:right;
+        ">
+            ${hora}
+        </div>
+
+    `;
+
+
+    const chat =
+        document.getElementById("chat");
+
+    if (chat) {
 
         chat.appendChild(div);
 
         scrollBottom();
 
+    }
+
+    return div;
+}
+
+
+// =====================
+// MENSAGEM NORMAL
+// =====================
+function addMensagem(
+    texto,
+    tipo
+) {
+
+    const div =
+        document.createElement("div");
+
+    div.classList.add(
+        tipo === "user"
+            ? "msg-user"
+            : "msg-bot"
+    );
+
+
+    // =====================
+    // TYPING
+    // =====================
+
+    if (tipo.includes("typing")) {
+
+        div.innerHTML = `
+
+            <div>
+
+                🤖 PedroGPT está digitando...
+
+                <div class="typing-dots">
+
+                    <span></span>
+                    <span></span>
+                    <span></span>
+
+                </div>
+
+            </div>
+
+        `;
+
+
+        const chat =
+            document.getElementById("chat");
+
+        if (chat) {
+
+            chat.appendChild(div);
+
+            requestAnimationFrame(() => {
+
+                chat.scrollTop =
+                    chat.scrollHeight;
+
+            });
+
+        }
+
         return div;
     }
 
 
-    // ========================================================
+    // =====================
     // HORA
-    // ========================================================
+    // =====================
 
-    const agora =
+    const now =
         new Date();
 
-
     const hora =
-        agora
-            .getHours()
+        now.getHours()
             .toString()
             .padStart(2, "0")
-        +
-        ":" +
-        agora
-            .getMinutes()
+        + ":" +
+        now.getMinutes()
             .toString()
             .padStart(2, "0");
 
 
-    // ========================================================
-    // CONTEÚDO
-    // ========================================================
-
     let conteudo;
 
 
-    if (ehUsuario) {
+    if (tipo === "user") {
 
         conteudo =
-            escaparHTML(texto)
+            escapeHtml(texto)
                 .replace(
                     /\n/g,
                     "<br>"
@@ -443,445 +798,63 @@ function addMensagem(
     }
 
 
-    // ========================================================
-    // HTML
-    // ========================================================
-
     div.innerHTML = `
 
         <div class="conteudo-mensagem">
+
             ${conteudo}
+
         </div>
 
-        <div
-            class="hora-mensagem"
-            style="
-                font-size:10px;
-                opacity:0.5;
-                margin-top:5px;
-                text-align:right;
-            "
-        >
+        <div style="
+            font-size:10px;
+            opacity:0.5;
+            margin-top:5px;
+            text-align:right;
+        ">
+
             ${hora}
+
         </div>
 
     `;
 
 
-    chat.appendChild(div);
+    const chat =
+        document.getElementById("chat");
 
-    scrollBottom();
+    if (chat) {
+
+        chat.appendChild(div);
+
+        requestAnimationFrame(() => {
+
+            chat.scrollTop =
+                chat.scrollHeight;
+
+        });
+
+    }
 
 
     return div;
 }
 
 
-// ============================================================
-// CARREGAR HISTÓRICO
-// ============================================================
-
-async function carregarHistorico() {
-
-    try {
-
-        const resposta =
-            await fetch(
-                `${API}/history`,
-                {
-                    method: "GET",
-                    credentials: "include"
-                }
-            );
-
-
-        if (!resposta.ok) {
-
-            console.warn(
-                "Erro ao carregar histórico:",
-                resposta.status
-            );
-
-            return;
-        }
-
-
-        const historico =
-            await resposta.json();
-
-
-        const chat =
-            elemento("chat");
-
-
-        if (!chat) return;
-
-
-        chat.innerHTML = "";
-
-
-        if (
-            !historico ||
-            historico.length === 0
-        ) {
-
-            mostrarWelcome();
-
-            return;
-        }
-
-
-        esconderWelcome();
-
-
-        historico.forEach(
-            item => {
-
-                let sender;
-                let message;
-
-
-                if (
-                    Array.isArray(item)
-                ) {
-
-                    sender =
-                        item[0];
-
-                    message =
-                        item[1];
-
-                } else {
-
-                    sender =
-                        item?.sender ??
-                        "bot";
-
-                    message =
-                        item?.message ??
-                        "";
-
-                }
-
-
-                addMensagem(
-                    message,
-                    sender === "user"
-                        ? "user"
-                        : "bot"
-                );
-
-            }
-        );
-
-
-        scrollBottom();
-
-
-    } catch (erro) {
-
-        console.error(
-            "Erro no histórico:",
-            erro
-        );
-
-    }
-}
-
-
-// ============================================================
-// ENVIAR
-// ============================================================
-
-async function enviar() {
-
-    if (enviando) return;
-
-
-    const campo =
-        elemento("mensagem");
-
-
-    if (!campo) return;
-
-
-    const texto =
-        campo.value.trim();
-
-
-    if (!texto) return;
-
-
-    enviando = true;
-
-
-    esconderWelcome();
-
-
-    // ========================================================
-    // MENSAGEM USUÁRIO
-    // ========================================================
-
-    addMensagem(
-        texto,
-        "user"
-    );
-
-
-    campo.value = "";
-
-    campo.focus();
-
-
-    // ========================================================
-    // TYPING
-    // ========================================================
-
-    const typing =
-        addMensagem(
-            "",
-            "bot typing"
-        );
-
-
-    try {
-
-        const resposta =
-            await fetch(
-                `${API}/chat`,
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    credentials:
-                        "include",
-
-                    body:
-                        JSON.stringify({
-                            message: texto
-                        })
-                }
-            );
-
-
-        // ====================================================
-        // ERRO HTTP
-        // ====================================================
-
-        if (!resposta.ok) {
-
-            if (typing) {
-                typing.remove();
-            }
-
-
-            let mensagemErro =
-                "Erro ao conectar com o servidor.";
-
-
-            try {
-
-                const erro =
-                    await resposta.json();
-
-
-                if (erro.reply) {
-
-                    mensagemErro =
-                        erro.reply;
-
-                }
-
-                else if (erro.message) {
-
-                    mensagemErro =
-                        erro.message;
-
-                }
-
-            } catch (_) {}
-
-
-            addMensagem(
-                mensagemErro,
-                "bot"
-            );
-
-
-            enviando = false;
-
-            return;
-        }
-
-
-        const data =
-            await resposta.json();
-
-
-        if (typing) {
-            typing.remove();
-        }
-
-
-        // ====================================================
-        // RESPOSTA
-        // ====================================================
-
-        const textoResposta =
-            data.reply ||
-            "Não recebi uma resposta da IA.";
-
-
-        addMensagem(
-            textoResposta,
-            "bot"
-        );
-
-
-        // ====================================================
-        // VOZ
-        // ====================================================
-
-        falarResposta(
-            textoResposta
-        );
-
-
-    } catch (erro) {
-
-        console.error(
-            "Erro no chat:",
-            erro
-        );
-
-
-        if (typing) {
-            typing.remove();
-        }
-
-
-        addMensagem(
-            "Erro ao conectar com o servidor.",
-            "bot"
-        );
-
-    }
-
-
-    enviando = false;
-
-    campo.focus();
-}
-
-
-// ============================================================
-// VOZ
-// ============================================================
-
-function falarResposta(texto) {
-
-    const opcaoVoz =
-        elemento("voz");
-
-
-    if (
-        !opcaoVoz ||
-        !opcaoVoz.checked
-    ) {
-
-        return;
-    }
-
-
-    if (
-        !("speechSynthesis" in window)
-    ) {
-
-        return;
-    }
-
-
-    speechSynthesis.cancel();
-
-
-    const voz =
-        new SpeechSynthesisUtterance(
-            texto
-        );
-
-
-    voz.lang =
-        "pt-BR";
-
-
-    voz.rate =
-        1;
-
-
-    voz.pitch =
-        1;
-
-
-    speechSynthesis.speak(
-        voz
-    );
-}
-
-
-// ============================================================
-// ATALHO
-// ============================================================
-
-function atalho(texto) {
-
-    esconderWelcome();
-
-
-    const campo =
-        elemento("mensagem");
-
-
-    if (!campo) return;
-
-
-    campo.value =
-        texto;
-
-
-    campo.focus();
-
-
-    // Não envia automaticamente.
-}
-
-
-// ============================================================
+// =====================
 // NOVA CONVERSA
-// ============================================================
-
+// =====================
 async function novaConversa() {
 
-    if (enviando) {
-
-        alert(
-            "Aguarde a resposta atual terminar."
-        );
+    if (
+        !confirm(
+            "Deseja criar uma nova conversa?"
+        )
+    ) {
 
         return;
+
     }
-
-
-    const confirmar =
-        confirm(
-            "Criar uma nova conversa?"
-        );
-
-
-    if (!confirmar) return;
 
 
     try {
@@ -890,10 +863,7 @@ async function novaConversa() {
             await fetch(
                 `${API}/new_chat`,
                 {
-                    method: "POST",
-
-                    credentials:
-                        "include"
+                    method: "POST"
                 }
             );
 
@@ -902,163 +872,162 @@ async function novaConversa() {
             await resposta.json();
 
 
-        if (!data.success) {
+        if (data.success) {
 
-            alert(
-                data.message ||
-                "Erro ao criar nova conversa."
-            );
+            const chat =
+                document.getElementById("chat");
 
-            return;
-        }
+            if (chat) {
 
+                chat.innerHTML = "";
 
-        const chat =
-            elemento("chat");
+            }
 
 
-        if (chat) {
+            arquivosSelecionados = [];
 
-            chat.innerHTML = "";
-
-        }
-
-
-        mostrarWelcome();
-
-
-        if (
-            "speechSynthesis" in window
-        ) {
+            mostrarArquivos();
 
             speechSynthesis.cancel();
 
+
+            const welcome =
+                document.getElementById("welcome");
+
+            if (welcome) {
+
+                welcome.classList.remove(
+                    "hidden"
+                );
+
+            }
+
+        } else {
+
+            alert(
+                "Erro ao criar nova conversa."
+            );
+
         }
-
-
-        carregarHistorico();
 
 
     } catch (erro) {
 
-        console.error(
-            "Erro ao criar conversa:",
-            erro
-        );
-
+        console.error(erro);
 
         alert(
             "Erro ao conectar com o servidor."
         );
 
     }
+
 }
 
 
-// ============================================================
-// ENTER
-// ============================================================
+// =====================
+// SCROLL
+// =====================
+function scrollBottom() {
 
-function configurarEnter() {
+    const chat =
+        document.getElementById("chat");
 
-    const campo =
-        elemento("mensagem");
+    if (chat) {
 
+        chat.scrollTop =
+            chat.scrollHeight;
 
-    if (!campo) return;
+    }
 
-
-    campo.addEventListener(
-        "keydown",
-        function(event) {
-
-            if (
-                event.key === "Enter" &&
-                !event.shiftKey
-            ) {
-
-                event.preventDefault();
-
-                enviar();
-
-            }
-
-        }
-    );
 }
 
 
-// ============================================================
-// CONTROLE DA VOZ
-// ============================================================
+// =====================
+// ESCAPE HTML
+// =====================
+function escapeHtml(texto) {
 
-function configurarVoz() {
+    return String(texto || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 
-    const opcaoVoz =
-        elemento("voz");
-
-
-    if (!opcaoVoz) return;
-
-
-    opcaoVoz.addEventListener(
-        "change",
-        function() {
-
-            if (
-                !opcaoVoz.checked &&
-                "speechSynthesis" in window
-            ) {
-
-                speechSynthesis.cancel();
-
-            }
-
-        }
-    );
 }
 
 
-// ============================================================
-// BOTÃO ENTER / LOADING
-// ============================================================
-
-function configurarFormulario() {
-
-    const campo =
-        elemento("mensagem");
-
-
-    if (!campo) return;
-
-
-    campo.addEventListener(
-        "input",
-        function() {
-
-            campo.style.height =
-                "auto";
-
-        }
-    );
-}
-
-
-// ============================================================
-// INICIALIZAÇÃO
-// ============================================================
-
+// =====================
+// INIT
+// =====================
 document.addEventListener(
     "DOMContentLoaded",
-    function() {
+    () => {
 
         carregarHistorico();
 
-        configurarEnter();
 
-        configurarVoz();
+        const campo =
+            document.getElementById(
+                "mensagem"
+            );
 
-        configurarFormulario();
+
+        // =====================
+        // ENTER
+        // =====================
+
+        if (campo) {
+
+            campo.addEventListener(
+                "keydown",
+                function(event) {
+
+                    if (
+                        event.key === "Enter" &&
+                        !event.shiftKey
+                    ) {
+
+                        event.preventDefault();
+
+                        enviar();
+
+                    }
+
+                }
+            );
+
+        }
+
+
+        // =====================
+        // VOZ
+        // =====================
+
+        const opcaoVoz =
+            document.getElementById(
+                "voz"
+            );
+
+
+        if (opcaoVoz) {
+
+            opcaoVoz.addEventListener(
+                "change",
+                () => {
+
+                    if (
+                        !opcaoVoz.checked
+                    ) {
+
+                        speechSynthesis.cancel();
+
+                    }
+
+                }
+            );
+
+        }
 
     }
 );
