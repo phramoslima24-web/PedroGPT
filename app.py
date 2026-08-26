@@ -12,6 +12,8 @@ from flask import (
     url_for
 )
 
+from werkzeug.security import generate_password_hash, check_password_hash
+
 from groq import Groq
 
 
@@ -77,8 +79,8 @@ def init_db():
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE,
-            password TEXT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
             plan TEXT DEFAULT 'free'
         )
         """)
@@ -149,7 +151,9 @@ def init_db():
             FROM conversations
             WHERE username=?
             LIMIT 1
-            """, (username,))
+            """, (
+                username,
+            ))
 
             conversa = cursor.fetchone()
 
@@ -161,7 +165,9 @@ def init_db():
             FROM messages
             WHERE username=?
             ORDER BY id ASC
-            """, (username,))
+            """, (
+                username,
+            ))
 
             mensagens_antigas = cursor.fetchall()
 
@@ -352,6 +358,14 @@ def api_register():
             "message": "Campos vazios"
         })
 
+    # ==========================
+    # HASH DA SENHA
+    # ==========================
+
+    password_hash = generate_password_hash(
+        password
+    )
+
     try:
 
         with get_db() as conn:
@@ -364,7 +378,7 @@ def api_register():
             VALUES (?, ?, ?)
             """, (
                 username,
-                password,
+                password_hash,
                 "free"
             ))
 
@@ -383,9 +397,14 @@ def api_register():
 
     except Exception as e:
 
+        print(
+            "ERRO REGISTER:",
+            repr(e)
+        )
+
         return jsonify({
             "success": False,
-            "message": f"Erro: {str(e)}"
+            "message": "Erro interno ao criar conta."
         })
 
 
@@ -409,22 +428,96 @@ def api_login():
         data.get("password") or ""
     ).strip()
 
+    if not username or not password:
+
+        return jsonify({
+            "success": False,
+            "message": "Preencha usuário e senha."
+        })
+
     with get_db() as conn:
 
         cursor = conn.cursor()
 
         cursor.execute("""
-        SELECT username, plan
+        SELECT
+            id,
+            username,
+            password,
+            plan
         FROM users
-        WHERE username=? AND password=?
+        WHERE username=?
         """, (
             username,
-            password
         ))
 
         user = cursor.fetchone()
 
-    if user:
+        if not user:
+
+            return jsonify({
+                "success": False,
+                "message": "Login inválido"
+            })
+
+        senha_correta = False
+
+        # ==========================
+        # NOVO SISTEMA
+        # ==========================
+
+        try:
+
+            senha_correta = check_password_hash(
+                user["password"],
+                password
+            )
+
+        except Exception:
+
+            senha_correta = False
+
+
+        # ==========================
+        # MIGRAÇÃO DE SENHAS ANTIGAS
+        # ==========================
+
+        if not senha_correta:
+
+            # Caso a senha antiga esteja
+            # salva em texto puro.
+
+            if user["password"] == password:
+
+                senha_correta = True
+
+                nova_hash = generate_password_hash(
+                    password
+                )
+
+                cursor.execute("""
+                UPDATE users
+                SET password=?
+                WHERE id=?
+                """, (
+                    nova_hash,
+                    user["id"]
+                ))
+
+                conn.commit()
+
+
+        if not senha_correta:
+
+            return jsonify({
+                "success": False,
+                "message": "Login inválido"
+            })
+
+
+        # ==========================
+        # LOGIN OK
+        # ==========================
 
         session["user"] = user["username"]
 
@@ -443,15 +536,16 @@ def api_login():
         )
 
         return jsonify({
-            "success": True,
-            "plan": session["plan"],
-            "conversation_id": conversation_id
-        })
 
-    return jsonify({
-        "success": False,
-        "message": "Login inválido"
-    })
+            "success": True,
+
+            "plan":
+                session["plan"],
+
+            "conversation_id":
+                conversation_id
+
+        })
 
 
 # ==========================
