@@ -1,732 +1,237 @@
 ```html
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Criar conta - PedroGPT</title>
+<title>Registro - PedroGPT</title>
 
 <style>
-
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: Arial, sans-serif;
+    font-family: Arial;
 }
 
 body {
-
-    min-height: 100vh;
-
+    height: 100vh;
     display: flex;
-
     justify-content: center;
-
     align-items: center;
-
-    padding: 20px;
-
-    background:
-        radial-gradient(
-            circle at top,
-            #111827,
-            #0b0f19
-        );
-
+    background: linear-gradient(135deg, #0f0f1a, #1f1f2e, #2c2f3a);
     color: white;
-
 }
 
 .card {
-
-    width: 100%;
-
-    max-width: 380px;
-
+    width: 360px;
     padding: 35px;
-
-    border-radius: 24px;
-
-    background:
-        rgba(255,255,255,0.06);
-
-    backdrop-filter: blur(18px);
-
-    border:
-        1px solid
-        rgba(255,255,255,0.10);
-
-    box-shadow:
-        0 20px 60px
-        rgba(0,0,0,0.45);
-
-    text-align: center;
-
-    animation:
-        aparecer 0.4s ease;
-
-}
-
-.logo {
-
-    width: 70px;
-
-    height: 70px;
-
-    margin:
-        0 auto 15px;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
     border-radius: 20px;
-
-    background:
-        linear-gradient(
-            135deg,
-            #7c3aed,
-            #4f46e5
-        );
-
-    font-size: 34px;
-
-    box-shadow:
-        0 10px 30px
-        rgba(124,58,237,0.35);
-
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.5);
 }
 
-h1 {
-
-    font-size: 25px;
-
-    margin-bottom: 7px;
-
-}
-
-.subtitulo {
-
-    color:
-        rgba(255,255,255,0.55);
-
-    font-size: 14px;
-
-    margin-bottom: 25px;
-
-}
-
-.campo {
-
-    position: relative;
-
-    margin-top: 13px;
-
+h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
 }
 
 input {
-
     width: 100%;
-
-    padding: 15px;
-
-    border-radius: 13px;
-
-    border:
-        1px solid
-        rgba(255,255,255,0.10);
-
-    background:
-        rgba(255,255,255,0.08);
-
-    color: white;
-
+    padding: 14px;
+    margin-top: 12px;
+    border: none;
+    border-radius: 12px;
     outline: none;
-
+    background: rgba(255,255,255,0.9);
     font-size: 14px;
-
-    transition: 0.2s;
-
 }
 
-input::placeholder {
-
-    color:
-        rgba(255,255,255,0.45);
-
-}
-
-input:focus {
-
-    border-color:
-        rgba(124,58,237,0.8);
-
-    background:
-        rgba(255,255,255,0.10);
-
-    box-shadow:
-        0 0 0 3px
-        rgba(124,58,237,0.12);
-
-}
-
-.senha-container {
-
+.senha-box {
     position: relative;
-
-}
-
-.senha-container input {
-
-    padding-right: 50px;
-
-}
-
-.olho {
-
-    position: absolute;
-
-    right: 15px;
-
-    top: 50%;
-
-    transform:
-        translateY(-50%);
-
-    border: none;
-
-    background: transparent;
-
-    color:
-        rgba(255,255,255,0.6);
-
-    cursor: pointer;
-
-    font-size: 18px;
-
-    padding: 0;
-
-    margin: 0;
-
-    width: auto;
-
-    box-shadow: none;
-
-}
-
-.olho:hover {
-
-    transform:
-        translateY(-50%);
-
-    opacity: 1;
-
-}
-
-button.criar {
-
     width: 100%;
+}
 
-    padding: 15px;
+.senha-box input {
+    padding-right: 45px;
+}
 
-    margin-top: 20px;
-
-    border: none;
-
-    border-radius: 13px;
-
-    background:
-        linear-gradient(
-            135deg,
-            #7c3aed,
-            #4f46e5
-        );
-
-    color: white;
-
-    font-weight: bold;
-
-    font-size: 15px;
-
+.eye {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    border: 2px solid #888;
+    border-radius: 5px;
     cursor: pointer;
-
-    transition: 0.2s;
-
-    box-shadow:
-        0 10px 25px
-        rgba(79,70,229,0.25);
-
 }
 
-button.criar:hover {
-
-    transform:
-        translateY(-2px);
-
+.eye.active {
+    background: #7c3aed;
+    border-color: #7c3aed;
 }
 
-button.criar:active {
-
-    transform:
-        scale(0.98);
-
+button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 18px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #7c3aed, #4f46e5);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
 }
 
-button.criar:disabled {
+button:hover {
+    opacity: 0.9;
+}
 
+button:disabled {
     opacity: 0.6;
-
     cursor: not-allowed;
-
-    transform: none;
-
-}
-
-.erro {
-
-    display: none;
-
-    margin-top: 15px;
-
-    padding: 11px;
-
-    border-radius: 10px;
-
-    background:
-        rgba(239,68,68,0.12);
-
-    border:
-        1px solid
-        rgba(239,68,68,0.25);
-
-    color:
-        #fca5a5;
-
-    font-size: 13px;
-
-}
-
-.sucesso {
-
-    display: none;
-
-    margin-top: 15px;
-
-    padding: 11px;
-
-    border-radius: 10px;
-
-    background:
-        rgba(16,185,129,0.12);
-
-    border:
-        1px solid
-        rgba(16,185,129,0.25);
-
-    color:
-        #6ee7b7;
-
-    font-size: 13px;
-
 }
 
 a {
-
     display: block;
-
-    margin-top: 18px;
-
-    color:
-        #c4b5fd;
-
+    margin-top: 15px;
+    color: #c4b5fd;
     text-decoration: none;
-
-    font-size: 14px;
-
+    font-size: 13px;
 }
-
-a:hover {
-
-    text-decoration: underline;
-
-}
-
-@keyframes aparecer {
-
-    from {
-
-        opacity: 0;
-
-        transform:
-            translateY(15px)
-            scale(0.98);
-
-    }
-
-    to {
-
-        opacity: 1;
-
-        transform:
-            translateY(0)
-            scale(1);
-
-    }
-
-}
-
-@media(max-width:450px) {
-
-    .card {
-
-        padding:
-            28px 22px;
-
-    }
-
-    h1 {
-
-        font-size: 23px;
-
-    }
-
-}
-
 </style>
-
 </head>
-
 
 <body>
 
-
 <div class="card">
 
+    <h2>🤖 Criar conta</h2>
 
-    <div class="logo">
-        🤖
-    </div>
+    <input
+        type="text"
+        id="username"
+        placeholder="Usuário"
+        autocomplete="username"
+    >
 
-
-    <h1>
-        Criar conta
-    </h1>
-
-
-    <div class="subtitulo">
-        Comece a usar o PedroGPT
-    </div>
-
-
-    <!-- USUÁRIO -->
-
-    <div class="campo">
-
-        <input
-            type="text"
-            id="username"
-            placeholder="Usuário"
-            autocomplete="username"
-            maxlength="30"
-        >
-
-    </div>
-
-
-    <!-- SENHA -->
-
-    <div class="campo senha-container">
+    <div class="senha-box">
 
         <input
             type="password"
             id="password"
             placeholder="Senha"
             autocomplete="new-password"
-            maxlength="100"
         >
 
-        <button
-            type="button"
-            class="olho"
-            id="botaoOlho"
+        <span
+            class="eye"
+            id="eye"
             onclick="toggleSenha()"
-        >
-            👁️
-        </button>
+        ></span>
 
     </div>
-
-
-    <!-- CONFIRMAR SENHA -->
-
-    <div class="campo senha-container">
-
-        <input
-            type="password"
-            id="confirmPassword"
-            placeholder="Confirmar senha"
-            autocomplete="new-password"
-            maxlength="100"
-        >
-
-        <button
-            type="button"
-            class="olho"
-            id="botaoOlhoConfirmar"
-            onclick="toggleConfirmarSenha()"
-        >
-            👁️
-        </button>
-
-    </div>
-
-
-    <!-- ERRO -->
-
-    <div
-        id="erro"
-        class="erro"
-    ></div>
-
-
-    <!-- SUCESSO -->
-
-    <div
-        id="sucesso"
-        class="sucesso"
-    ></div>
-
-
-    <!-- BOTÃO -->
 
     <button
-        class="criar"
-        id="btnCriar"
+        id="registerButton"
         onclick="register()"
     >
         Criar conta
     </button>
 
-
     <a href="/login">
-        Já tenho uma conta
+        Já tenho conta
     </a>
-
 
 </div>
 
-
 <script>
 
-
 // =========================
-// MOSTRAR/OCULTAR SENHA
+// TOGGLE SENHA
 // =========================
 
 function toggleSenha() {
 
-    const campo =
+    const senha =
         document.getElementById("password");
 
-    const botao =
-        document.getElementById("botaoOlho");
+    const eye =
+        document.getElementById("eye");
 
+    if (senha.type === "password") {
 
-    if (campo.type === "password") {
+        senha.type = "text";
 
-        campo.type = "text";
-
-        botao.innerText = "🙈";
-
-    } else {
-
-        campo.type = "password";
-
-        botao.innerText = "👁️";
-
-    }
-
-}
-
-
-// =========================
-// MOSTRAR/OCULTAR CONFIRMAÇÃO
-// =========================
-
-function toggleConfirmarSenha() {
-
-    const campo =
-        document.getElementById(
-            "confirmPassword"
-        );
-
-    const botao =
-        document.getElementById(
-            "botaoOlhoConfirmar"
-        );
-
-
-    if (campo.type === "password") {
-
-        campo.type = "text";
-
-        botao.innerText = "🙈";
+        eye.classList.add("active");
 
     } else {
 
-        campo.type = "password";
+        senha.type = "password";
 
-        botao.innerText = "👁️";
+        eye.classList.remove("active");
 
     }
-
 }
 
 
 // =========================
-// MENSAGENS
-// =========================
-
-function mostrarErro(mensagem) {
-
-    const erro =
-        document.getElementById("erro");
-
-    const sucesso =
-        document.getElementById("sucesso");
-
-
-    sucesso.style.display = "none";
-
-    erro.innerText = mensagem;
-
-    erro.style.display = "block";
-
-}
-
-
-function mostrarSucesso(mensagem) {
-
-    const erro =
-        document.getElementById("erro");
-
-    const sucesso =
-        document.getElementById("sucesso");
-
-
-    erro.style.display = "none";
-
-    sucesso.innerText = mensagem;
-
-    sucesso.style.display = "block";
-
-}
-
-
-// =========================
-// REGISTRO
+// REGISTER
 // =========================
 
 async function register() {
 
     const username =
-        document
-        .getElementById("username")
+        document.getElementById("username")
         .value
         .trim();
 
     const password =
-        document
-        .getElementById("password")
-        .value;
+        document.getElementById("password")
+        .value
+        .trim();
 
-    const confirmPassword =
-        document
-        .getElementById("confirmPassword")
-        .value;
+    const button =
+        document.getElementById("registerButton");
 
 
-    const botao =
-        document.getElementById("btnCriar");
+    if (!username || !password) {
 
-
-    document
-        .getElementById("erro")
-        .style.display = "none";
-
-
-    document
-        .getElementById("sucesso")
-        .style.display = "none";
-
-
-    // =========================
-    // VALIDAÇÕES
-    // =========================
-
-    if (!username) {
-
-        mostrarErro(
-            "Digite um nome de usuário."
-        );
+        alert("Preencha todos os campos.");
 
         return;
-
     }
 
 
     if (username.length < 3) {
 
-        mostrarErro(
-            "O usuário precisa ter pelo menos 3 caracteres."
-        );
+        alert("O usuário precisa ter pelo menos 3 caracteres.");
 
         return;
-
     }
 
 
     if (password.length < 4) {
 
-        mostrarErro(
-            "A senha precisa ter pelo menos 4 caracteres."
-        );
+        alert("A senha precisa ter pelo menos 4 caracteres.");
 
         return;
-
     }
 
 
-    if (password !== confirmPassword) {
+    button.disabled = true;
 
-        mostrarErro(
-            "As senhas não são iguais."
-        );
-
-        return;
-
-    }
-
-
-    // =========================
-    // ENVIANDO
-    // =========================
-
-    botao.disabled = true;
-
-    botao.innerText =
-        "Criando conta...";
+    button.innerText = "Criando...";
 
 
     try {
 
-        const resposta =
+        const response =
             await fetch(
                 "/api/register",
                 {
@@ -738,57 +243,31 @@ async function register() {
                     },
 
                     body: JSON.stringify({
-
-                        username:
-                            username,
-
-                        password:
-                            password
-
+                        username: username,
+                        password: password
                     })
-
                 }
             );
 
 
         const data =
-            await resposta.json();
+            await response.json();
 
-
-        // =========================
-        // SUCESSO
-        // =========================
 
         if (data.success) {
 
-            mostrarSucesso(
-                "Conta criada com sucesso! Redirecionando..."
-            );
+            alert("Conta criada com sucesso!");
 
-
-            setTimeout(
-                function() {
-
-                    window.location.href =
-                        "/login";
-
-                },
-                1200
-            );
-
+            window.location.href =
+                "/login";
 
             return;
-
         }
 
 
-        // =========================
-        // ERRO
-        // =========================
-
-        mostrarErro(
+        alert(
             data.message ||
-            "Não foi possível criar a conta."
+            "Erro ao criar conta."
         );
 
 
@@ -799,75 +278,23 @@ async function register() {
             error
         );
 
-
-        mostrarErro(
-            "Não foi possível conectar ao servidor."
+        alert(
+            "Erro de conexão com o servidor."
         );
-
 
     } finally {
 
-        botao.disabled = false;
+        button.disabled = false;
 
-        botao.innerText =
+        button.innerText =
             "Criar conta";
 
     }
 
 }
 
-
-// =========================
-// ENTER
-// =========================
-
-document.addEventListener(
-    "DOMContentLoaded",
-    function() {
-
-        const campos = [
-            "username",
-            "password",
-            "confirmPassword"
-        ];
-
-
-        campos.forEach(
-            function(id) {
-
-                document
-                    .getElementById(id)
-                    .addEventListener(
-                        "keydown",
-                        function(event) {
-
-                            if (
-                                event.key === "Enter"
-                            ) {
-
-                                register();
-
-                            }
-
-                        }
-                    );
-
-            }
-        );
-
-    }
-);
-
 </script>
 
 </body>
 </html>
-```
-
-**Git:**
-
-```bash
-git add .
-git commit -m "Atualiza tela de registro da Fase 4"
-git push
 ```
