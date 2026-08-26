@@ -34,24 +34,13 @@ app.secret_key = os.getenv(
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
+ADMIN_USERNAME = os.getenv(
+    "ADMIN_USERNAME"
+)
+
 client = Groq(
     api_key=GROQ_API_KEY
 ) if GROQ_API_KEY else None
-
-
-# ============================================================
-# ADMIN
-# ============================================================
-
-ADMIN_USERNAME = os.getenv(
-    "ADMIN_USERNAME",
-    "admin"
-)
-
-ADMIN_PASSWORD = os.getenv(
-    "ADMIN_PASSWORD",
-    "123456"
-)
 
 
 # ============================================================
@@ -178,7 +167,9 @@ def init_db():
                 FROM conversations
                 WHERE username = ?
                 LIMIT 1
-            """, (username,))
+            """, (
+                username,
+            ))
 
             conversa = cursor.fetchone()
 
@@ -190,7 +181,9 @@ def init_db():
                 FROM messages
                 WHERE username = ?
                 ORDER BY id ASC
-            """, (username,))
+            """, (
+                username,
+            ))
 
             mensagens_antigas = cursor.fetchall()
 
@@ -230,7 +223,10 @@ init_db()
 # FUNÇÕES AUXILIARES
 # ============================================================
 
-def criar_conversa(username, titulo="Nova conversa"):
+def criar_conversa(
+    username,
+    titulo="Nova conversa"
+):
 
     with get_db() as conn:
 
@@ -252,7 +248,10 @@ def criar_conversa(username, titulo="Nova conversa"):
         return conversation_id
 
 
-def verificar_conversa(username, conversation_id):
+def verificar_conversa(
+    username,
+    conversation_id
+):
 
     if not conversation_id:
         return False
@@ -389,15 +388,18 @@ def obter_plan_usuario(username):
 
 
 # ============================================================
-# VERIFICAÇÃO DO ADMIN
+# VERIFICAR ADMIN
 # ============================================================
 
-def admin_logado():
+def verificar_admin():
 
-    return session.get(
-        "admin_logged",
-        False
-    )
+    if "user" not in session:
+        return False
+
+    if not ADMIN_USERNAME:
+        return False
+
+    return session["user"] == ADMIN_USERNAME
 
 
 # ============================================================
@@ -419,7 +421,10 @@ def home():
     return render_template(
         "index.html",
         username=session["user"],
-        plan=session.get("plan", "free")
+        plan=session.get(
+            "plan",
+            "free"
+        )
     )
 
 
@@ -429,7 +434,9 @@ def login():
     if "user" in session:
         return redirect(url_for("home"))
 
-    return render_template("login.html")
+    return render_template(
+        "login.html"
+    )
 
 
 @app.route("/register")
@@ -438,216 +445,60 @@ def register():
     if "user" in session:
         return redirect(url_for("home"))
 
-    return render_template("register.html")
+    return render_template(
+        "register.html"
+    )
 
 
 @app.route("/logout")
 def logout():
 
-    session.pop("user", None)
-    session.pop("plan", None)
-    session.pop("conversation_id", None)
+    session.clear()
 
-    return redirect(url_for("login"))
+    return redirect(
+        url_for("login")
+    )
 
 
 # ============================================================
-# ADMIN LOGIN
+# PAINEL ADMINISTRADOR
 # ============================================================
 
 @app.route("/admin")
 def admin():
 
-    if admin_logado():
+    if "user" not in session:
 
         return redirect(
-            url_for("admin_dashboard")
+            url_for("login")
         )
 
-    return render_template(
-        "admin_login.html"
-    )
-
-
-@app.route(
-    "/admin/login",
-    methods=["POST"]
-)
-def admin_login():
-
-    data = request.get_json(
-        silent=True
-    ) or {}
-
-    username = (
-        data.get("username") or ""
-    ).strip()
-
-    password = (
-        data.get("password") or ""
-    )
-
-    if not username or not password:
+    if not verificar_admin():
 
         return jsonify({
             "success": False,
-            "message":
-                "Preencha usuário e senha."
-        }), 400
-
-    if (
-        username != ADMIN_USERNAME
-        or password != ADMIN_PASSWORD
-    ):
-
-        return jsonify({
-            "success": False,
-            "message":
-                "Usuário ou senha de administrador incorretos."
-        }), 401
-
-    session["admin_logged"] = True
-    session["admin_username"] = username
-
-    return jsonify({
-        "success": True,
-        "message":
-            "Login administrativo realizado."
-    })
-
-
-# ============================================================
-# ADMIN DASHBOARD
-# ============================================================
-
-@app.route("/admin/dashboard")
-def admin_dashboard():
-
-    if not admin_logado():
-
-        return redirect(
-            url_for("admin")
-        )
+            "message": "Acesso negado."
+        }), 403
 
     return render_template(
-        "admin.html"
+        "admin.html",
+        username=session["user"]
     )
 
 
 # ============================================================
-# ADMIN LOGOUT
-# ============================================================
-
-@app.route("/admin/logout")
-def admin_logout():
-
-    session.pop(
-        "admin_logged",
-        None
-    )
-
-    session.pop(
-        "admin_username",
-        None
-    )
-
-    return redirect(
-        url_for("admin")
-    )
-
-
-# ============================================================
-# ADMIN - ESTATÍSTICAS
-# ============================================================
-
-@app.route("/api/admin/stats")
-def admin_stats():
-
-    if not admin_logado():
-
-        return jsonify({
-            "success": False,
-            "message":
-                "Não autorizado."
-        }), 401
-
-    with get_db() as conn:
-
-        cursor = conn.cursor()
-
-        # Total de usuários
-        cursor.execute("""
-            SELECT COUNT(*)
-            FROM users
-        """)
-
-        total_usuarios = cursor.fetchone()[0]
-
-        # Free
-        cursor.execute("""
-            SELECT COUNT(*)
-            FROM users
-            WHERE plan = 'free'
-        """)
-
-        total_free = cursor.fetchone()[0]
-
-        # Premium
-        cursor.execute("""
-            SELECT COUNT(*)
-            FROM users
-            WHERE plan = 'premium'
-        """)
-
-        total_premium = cursor.fetchone()[0]
-
-        # Conversas
-        cursor.execute("""
-            SELECT COUNT(*)
-            FROM conversations
-        """)
-
-        total_conversas = cursor.fetchone()[0]
-
-        # Mensagens
-        cursor.execute("""
-            SELECT COUNT(*)
-            FROM chat_messages
-        """)
-
-        total_mensagens = cursor.fetchone()[0]
-
-    return jsonify({
-
-        "success": True,
-
-        "users": total_usuarios,
-
-        "free": total_free,
-
-        "premium": total_premium,
-
-        "conversations": total_conversas,
-
-        "messages": total_mensagens
-
-    })
-
-
-# ============================================================
-# ADMIN - LISTAR USUÁRIOS
+# API ADMIN - USUÁRIOS
 # ============================================================
 
 @app.route("/api/admin/users")
 def admin_users():
 
-    if not admin_logado():
+    if not verificar_admin():
 
         return jsonify({
             "success": False,
-            "message":
-                "Não autorizado."
-        }), 401
+            "message": "Acesso negado."
+        }), 403
 
     with get_db() as conn:
 
@@ -664,32 +515,39 @@ def admin_users():
 
         usuarios = cursor.fetchall()
 
+    total = len(usuarios)
+
+    premium = sum(
+        1
+        for usuario in usuarios
+        if (usuario["plan"] or "free") == "premium"
+    )
+
+    free = total - premium
+
     return jsonify({
 
         "success": True,
 
+        "stats": {
+            "total": total,
+            "free": free,
+            "premium": premium
+        },
+
         "users": [
-
             {
-                "id":
-                    usuario["id"],
-
-                "username":
-                    usuario["username"],
-
-                "plan":
-                    usuario["plan"] or "free"
+                "id": usuario["id"],
+                "username": usuario["username"],
+                "plan": usuario["plan"] or "free"
             }
-
             for usuario in usuarios
-
         ]
-
     })
 
 
 # ============================================================
-# ADMIN - ALTERAR PLANO
+# ALTERAR PLANO
 # ============================================================
 
 @app.route(
@@ -698,13 +556,12 @@ def admin_users():
 )
 def admin_change_plan(user_id):
 
-    if not admin_logado():
+    if not verificar_admin():
 
         return jsonify({
             "success": False,
-            "message":
-                "Não autorizado."
-        }), 401
+            "message": "Acesso negado."
+        }), 403
 
     data = request.get_json(
         silent=True
@@ -714,15 +571,14 @@ def admin_change_plan(user_id):
         data.get("plan") or ""
     ).strip().lower()
 
-    if plan not in (
+    if plan not in [
         "free",
         "premium"
-    ):
+    ]:
 
         return jsonify({
             "success": False,
-            "message":
-                "Plano inválido."
+            "message": "Plano inválido."
         }), 400
 
     with get_db() as conn:
@@ -730,7 +586,9 @@ def admin_change_plan(user_id):
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT id, username
+            SELECT
+                id,
+                username
             FROM users
             WHERE id = ?
         """, (
@@ -746,6 +604,15 @@ def admin_change_plan(user_id):
                 "message":
                     "Usuário não encontrado."
             }), 404
+
+        # Nunca altera o próprio administrador.
+        if usuario["username"] == ADMIN_USERNAME:
+
+            return jsonify({
+                "success": False,
+                "message":
+                    "O administrador não pode ter o plano alterado."
+            }), 400
 
         cursor.execute("""
             UPDATE users
@@ -763,31 +630,29 @@ def admin_change_plan(user_id):
         "success": True,
 
         "message":
-            f"Usuário {usuario['username']} agora é {plan}.",
+            "Plano atualizado com sucesso.",
 
         "plan":
             plan
-
     })
 
 
 # ============================================================
-# ADMIN - EXCLUIR USUÁRIO
+# EXCLUIR USUÁRIO
 # ============================================================
 
 @app.route(
-    "/api/admin/user/<int:user_id>",
+    "/api/admin/user/<int:user_id>/delete",
     methods=["DELETE"]
 )
 def admin_delete_user(user_id):
 
-    if not admin_logado():
+    if not verificar_admin():
 
         return jsonify({
             "success": False,
-            "message":
-                "Não autorizado."
-        }), 401
+            "message": "Acesso negado."
+        }), 403
 
     with get_db() as conn:
 
@@ -811,17 +676,30 @@ def admin_delete_user(user_id):
                     "Usuário não encontrado."
             }), 404
 
+        # Nunca permite excluir o administrador.
+        if usuario["username"] == ADMIN_USERNAME:
+
+            return jsonify({
+                "success": False,
+                "message":
+                    "Você não pode excluir o administrador."
+            }), 400
+
         username = usuario["username"]
 
-        # Exclui mensagens antigas
+        # Remove mensagens das conversas.
         cursor.execute("""
-            DELETE FROM messages
-            WHERE username = ?
+            DELETE FROM chat_messages
+            WHERE conversation_id IN (
+                SELECT id
+                FROM conversations
+                WHERE username = ?
+            )
         """, (
             username,
         ))
 
-        # Exclui conversas
+        # Remove conversas.
         cursor.execute("""
             DELETE FROM conversations
             WHERE username = ?
@@ -829,7 +707,15 @@ def admin_delete_user(user_id):
             username,
         ))
 
-        # Exclui usuário
+        # Remove histórico antigo.
+        cursor.execute("""
+            DELETE FROM messages
+            WHERE username = ?
+        """, (
+            username,
+        ))
+
+        # Remove usuário.
         cursor.execute("""
             DELETE FROM users
             WHERE id = ?
@@ -844,8 +730,7 @@ def admin_delete_user(user_id):
         "success": True,
 
         "message":
-            f"Usuário {username} excluído."
-
+            "Usuário excluído com sucesso."
     })
 
 
@@ -1030,9 +915,9 @@ def api_login():
 
             senha_correta = False
 
-        # ----------------------------------------------------
+        # ====================================================
         # MIGRAÇÃO DE SENHAS ANTIGAS
-        # ----------------------------------------------------
+        # ====================================================
 
         if not senha_correta:
 
@@ -1065,9 +950,9 @@ def api_login():
                     "Usuário ou senha incorretos."
             }), 401
 
-        # ----------------------------------------------------
+        # ====================================================
         # LOGIN OK
-        # ----------------------------------------------------
+        # ====================================================
 
         session.clear()
 
@@ -1095,7 +980,6 @@ def api_login():
 
             "conversation_id":
                 conversation_id
-
         })
 
 
@@ -1191,16 +1075,10 @@ def chat():
             if total >= 20:
 
                 return jsonify({
-
                     "reply":
                         "❌ Limite diário do plano FREE atingido (20 mensagens).",
-
-                    "limit_reached":
-                        True,
-
-                    "plan":
-                        plan
-
+                    "limit_reached": True,
+                    "plan": plan
                 }), 429
 
         # ====================================================
@@ -1537,12 +1415,10 @@ Antes de responder:
 
         mensagens_ia.append({
 
-            "role":
-                role,
+            "role": role,
 
             "content":
                 item["message"]
-
         })
 
     # ========================================================
@@ -1622,13 +1498,9 @@ Antes de responder:
             )
 
         return jsonify({
-
             "reply":
                 "❌ Ocorreu um erro ao conectar com a IA. Tente novamente.",
-
-            "success":
-                False
-
+            "success": False
         }), 500
 
     # ========================================================
@@ -1665,8 +1537,7 @@ Antes de responder:
 
     return jsonify({
 
-        "success":
-            True,
+        "success": True,
 
         "reply":
             texto,
@@ -1676,7 +1547,6 @@ Antes de responder:
 
         "plan":
             plan
-
     })
 
 
@@ -1726,7 +1596,6 @@ def conversations():
         }
 
         for item in lista
-
     ])
 
 
@@ -1737,7 +1606,9 @@ def conversations():
 @app.route(
     "/conversation/<int:conversation_id>"
 )
-def open_conversation(conversation_id):
+def open_conversation(
+    conversation_id
+):
 
     if "user" not in session:
 
@@ -1797,8 +1668,7 @@ def open_conversation(conversation_id):
 
     return jsonify({
 
-        "success":
-            True,
+        "success": True,
 
         "conversation_id":
             conversation_id,
@@ -1835,7 +1705,6 @@ def open_conversation(conversation_id):
             }
 
             for item in mensagens
-
         ]
     })
 
@@ -1848,6 +1717,7 @@ def open_conversation(conversation_id):
 def history():
 
     if "user" not in session:
+
         return jsonify([]), 401
 
     conversation_id = conversa_atual()
@@ -1884,7 +1754,6 @@ def history():
         }
 
         for item in mensagens
-
     ])
 
 
@@ -1917,15 +1786,13 @@ def new_chat():
 
     return jsonify({
 
-        "success":
-            True,
+        "success": True,
 
         "conversation_id":
             conversation_id,
 
         "title":
             "Nova conversa"
-
     })
 
 
@@ -1937,7 +1804,9 @@ def new_chat():
     "/conversation/<int:conversation_id>/rename",
     methods=["POST"]
 )
-def rename_conversation(conversation_id):
+def rename_conversation(
+    conversation_id
+):
 
     if "user" not in session:
 
@@ -1975,6 +1844,7 @@ def rename_conversation(conversation_id):
         }), 400
 
     if len(title) > 100:
+
         title = title[:100].rstrip()
 
     with get_db() as conn:
@@ -1997,12 +1867,10 @@ def rename_conversation(conversation_id):
 
     return jsonify({
 
-        "success":
-            True,
+        "success": True,
 
         "title":
             title
-
     })
 
 
@@ -2014,7 +1882,9 @@ def rename_conversation(conversation_id):
     "/conversation/<int:conversation_id>",
     methods=["DELETE"]
 )
-def delete_conversation(conversation_id):
+def delete_conversation(
+    conversation_id
+):
 
     if "user" not in session:
 
@@ -2065,14 +1935,12 @@ def delete_conversation(conversation_id):
 
     return jsonify({
 
-        "success":
-            True,
+        "success": True,
 
         "conversation_id":
             session.get(
                 "conversation_id"
             )
-
     })
 
 
@@ -2099,12 +1967,10 @@ def api_plan():
 
     return jsonify({
 
-        "success":
-            True,
+        "success": True,
 
         "plan":
             plan
-
     })
 
 
@@ -2118,14 +1984,12 @@ def api_status():
     if "user" not in session:
 
         return jsonify({
-            "logged":
-                False
+            "logged": False
         })
 
     return jsonify({
 
-        "logged":
-            True,
+        "logged": True,
 
         "username":
             session["user"],
@@ -2139,7 +2003,6 @@ def api_status():
             session.get(
                 "conversation_id"
             )
-
     })
 
 
