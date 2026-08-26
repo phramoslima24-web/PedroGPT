@@ -1,18 +1,38 @@
+````javascript
 // =====================
 // BASE URL
 // =====================
+
 const API = "https://pedrogpt.onrender.com";
 
 
 // =====================
-// ARQUIVOS SELECIONADOS
+// ELEMENTOS
 // =====================
-let arquivosSelecionados = [];
+
+function elemento(id) {
+    return document.getElementById(id);
+}
+
+
+// =====================
+// ESCONDER WELCOME
+// =====================
+
+function esconderWelcome() {
+
+    const welcome = elemento("welcome");
+
+    if (welcome) {
+        welcome.classList.add("hidden");
+    }
+}
 
 
 // =====================
 // FORMATAR RESPOSTA
 // =====================
+
 function formatarResposta(texto) {
 
     if (!texto) return "";
@@ -24,11 +44,16 @@ function formatarResposta(texto) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 
+
+    // =====================
+    // CÓDIGO
+    // =====================
+
     const blocosCodigo = [];
 
     html = html.replace(
         /```([\s\S]*?)```/g,
-        function (_, codigo) {
+        function(_, codigo) {
 
             const id = blocosCodigo.length;
 
@@ -40,15 +65,30 @@ function formatarResposta(texto) {
         }
     );
 
+
+    // =====================
+    // NEGRITO
+    // =====================
+
     html = html.replace(
         /\*\*(.+?)\*\*/g,
         "<strong>$1</strong>"
     );
 
+
+    // =====================
+    // ITÁLICO
+    // =====================
+
     html = html.replace(
         /(?<!\*)\*([^*\n]+)\*(?!\*)/g,
         "<em>$1</em>"
     );
+
+
+    // =====================
+    // TÍTULOS
+    // =====================
 
     html = html.replace(
         /^### (.+)$/gm,
@@ -65,65 +105,125 @@ function formatarResposta(texto) {
         "<h2>$1</h2>"
     );
 
+
+    // =====================
+    // LISTAS
+    // =====================
+
     const linhas = html.split("\n");
 
     let resultado = "";
+
     let listaAberta = false;
     let listaNumeradaAberta = false;
+
 
     linhas.forEach(linha => {
 
         const linhaTrim = linha.trim();
 
+
+        // =====================
+        // LISTA NORMAL
+        // =====================
+
         if (/^[-•]\s+/.test(linhaTrim)) {
 
             if (listaNumeradaAberta) {
+
                 resultado += "</ol>";
+
                 listaNumeradaAberta = false;
+
             }
+
 
             if (!listaAberta) {
+
                 resultado += "<ul>";
+
                 listaAberta = true;
+
             }
 
+
             const item =
-                linhaTrim.replace(/^[-•]\s+/, "");
+                linhaTrim.replace(
+                    /^[-•]\s+/,
+                    ""
+                );
+
 
             resultado += `<li>${item}</li>`;
 
             return;
+
         }
+
+
+        // =====================
+        // LISTA NUMERADA
+        // =====================
 
         if (/^\d+[.)]\s+/.test(linhaTrim)) {
 
             if (listaAberta) {
+
                 resultado += "</ul>";
+
                 listaAberta = false;
+
             }
+
 
             if (!listaNumeradaAberta) {
+
                 resultado += "<ol>";
+
                 listaNumeradaAberta = true;
+
             }
 
+
             const item =
-                linhaTrim.replace(/^\d+[.)]\s+/, "");
+                linhaTrim.replace(
+                    /^\d+[.)]\s+/,
+                    ""
+                );
+
 
             resultado += `<li>${item}</li>`;
 
             return;
+
         }
+
+
+        // =====================
+        // FECHAR LISTAS
+        // =====================
 
         if (listaAberta) {
+
             resultado += "</ul>";
+
             listaAberta = false;
+
         }
 
+
         if (listaNumeradaAberta) {
+
             resultado += "</ol>";
+
             listaNumeradaAberta = false;
+
         }
+
+
+        // =====================
+        // LINHA VAZIA
+        // =====================
 
         if (!linhaTrim) {
 
@@ -131,11 +231,23 @@ function formatarResposta(texto) {
                 "<div class='quebra-linha'></div>";
 
             return;
+
         }
+
+
+        // =====================
+        // TEXTO
+        // =====================
 
         resultado +=
             `<div class="linha-resposta">${linha}</div>`;
+
     });
+
+
+    // =====================
+    // FECHAR LISTAS
+    // =====================
 
     if (listaAberta) {
         resultado += "</ul>";
@@ -145,14 +257,23 @@ function formatarResposta(texto) {
         resultado += "</ol>";
     }
 
-    blocosCodigo.forEach((codigo, index) => {
 
-        resultado = resultado.replace(
-            `___CODIGO_${index}___`,
-            codigo
-        );
+    // =====================
+    // RESTAURAR CÓDIGO
+    // =====================
 
-    });
+    blocosCodigo.forEach(
+        (codigo, index) => {
+
+            resultado =
+                resultado.replace(
+                    `___CODIGO_${index}___`,
+                    codigo
+                );
+
+        }
+    );
+
 
     return resultado;
 }
@@ -161,12 +282,19 @@ function formatarResposta(texto) {
 // =====================
 // HISTÓRICO
 // =====================
+
 async function carregarHistorico() {
 
     try {
 
         const resposta =
-            await fetch(`${API}/history`);
+            await fetch(
+                `${API}/history`,
+                {
+                    credentials: "include"
+                }
+            );
+
 
         if (!resposta.ok) {
 
@@ -176,26 +304,50 @@ async function carregarHistorico() {
             );
 
             return;
+
         }
+
 
         const historico =
             await resposta.json();
 
+
         const chat =
-            document.getElementById("chat");
+            elemento("chat");
+
 
         if (!chat) return;
 
+
         chat.innerHTML = "";
+
+
+        if (!historico.length) {
+
+            const welcome =
+                elemento("welcome");
+
+            if (welcome) {
+                welcome.classList.remove("hidden");
+            }
+
+        } else {
+
+            esconderWelcome();
+
+        }
+
 
         historico.forEach(item => {
 
             let sender;
             let message;
 
+
             if (Array.isArray(item)) {
 
                 sender = item[0];
+
                 message = item[1];
 
             } else {
@@ -208,6 +360,7 @@ async function carregarHistorico() {
 
             }
 
+
             addMensagem(
                 message,
                 sender === "user"
@@ -217,13 +370,9 @@ async function carregarHistorico() {
 
         });
 
-        if (historico.length > 0) {
-
-            esconderWelcome();
-
-        }
 
         scrollBottom();
+
 
     } catch (erro) {
 
@@ -237,160 +386,117 @@ async function carregarHistorico() {
 
 
 // =====================
-// ESCONDER WELCOME
+// ARQUIVO
 // =====================
-function esconderWelcome() {
 
-    const welcome =
-        document.getElementById("welcome");
-
-    if (welcome) {
-
-        welcome.classList.add("hidden");
-
-    }
-}
-
-
-// =====================
-// MOSTRAR ARQUIVOS
-// =====================
-function mostrarArquivos() {
-
-    const container =
-        document.getElementById("anexos");
-
-    if (!container) return;
-
-    container.innerHTML = "";
-
-    arquivosSelecionados.forEach(
-        function(file, index) {
-
-            const div =
-                document.createElement("div");
-
-            div.className = "anexo";
-
-            let icone = "📄";
-
-            if (
-                file.type &&
-                file.type.startsWith("image/")
-            ) {
-
-                icone = "🖼️";
-
-            }
-
-            div.innerHTML = `
-
-                <span>${icone}</span>
-
-                <span class="anexo-nome">
-                    ${escapeHtml(file.name)}
-                </span>
-
-                <button
-                    class="remover-anexo"
-                    onclick="removerArquivo(${index})"
-                    title="Remover"
-                >
-                    ×
-                </button>
-
-            `;
-
-            container.appendChild(div);
-
-        }
-    );
-}
-
-
-// =====================
-// REMOVER ARQUIVO
-// =====================
-function removerArquivo(index) {
-
-    arquivosSelecionados.splice(
-        index,
-        1
-    );
-
-    mostrarArquivos();
+function obterArquivo() {
 
     const input =
-        document.getElementById("arquivo");
+        elemento("arquivo");
 
-    if (input) {
+    if (!input) return null;
 
-        input.value = "";
-
+    if (!input.files.length) {
+        return null;
     }
+
+    return input.files[0];
 }
 
 
 // =====================
-// ESCOLHER ARQUIVOS
+// PREVIEW DO ARQUIVO
 // =====================
-document.addEventListener(
-    "DOMContentLoaded",
-    function() {
 
-        const input =
-            document.getElementById("arquivo");
+function arquivoSelecionado() {
 
-        if (!input) return;
+    const input =
+        elemento("arquivo");
 
-        input.addEventListener(
-            "change",
-            function() {
+    const display =
+        elemento("arquivoSelecionado");
 
-                const novosArquivos =
-                    Array.from(this.files);
 
-                arquivosSelecionados =
-                    arquivosSelecionados.concat(
-                        novosArquivos
-                    );
+    if (!input || !display) return;
 
-                mostrarArquivos();
 
-                esconderWelcome();
+    if (!input.files.length) {
 
-            }
-        );
+        display.style.display = "none";
+
+        display.innerText = "";
+
+        return;
 
     }
-);
+
+
+    const arquivo =
+        input.files[0];
+
+
+    display.innerText =
+        "📎 " + arquivo.name;
+
+
+    display.style.display =
+        "block";
+
+}
+
+
+// =====================
+// LIMPAR ARQUIVO
+// =====================
+
+function limparArquivo() {
+
+    const input =
+        elemento("arquivo");
+
+    const display =
+        elemento("arquivoSelecionado");
+
+
+    if (input) {
+        input.value = "";
+    }
+
+
+    if (display) {
+
+        display.innerText = "";
+
+        display.style.display = "none";
+
+    }
+
+}
 
 
 // =====================
 // ENVIAR
 // =====================
+
 async function enviar() {
 
     const campo =
-        document.getElementById("mensagem");
+        elemento("mensagem");
+
 
     if (!campo) return;
+
 
     const texto =
         campo.value.trim();
 
 
-    // =====================
-    // VERIFICA SE TEM ALGO
-    // =====================
+    const arquivo =
+        obterArquivo();
 
-    if (
-        !texto &&
-        arquivosSelecionados.length === 0
-    ) {
 
+    if (!texto && !arquivo) {
         return;
-
     }
 
 
@@ -398,13 +504,30 @@ async function enviar() {
 
 
     // =====================
-    // MOSTRA MENSAGEM
+    // MENSAGEM DO USUÁRIO
     // =====================
 
-    addMensagemComArquivos(
-        texto,
-        arquivosSelecionados
-    );
+    if (texto) {
+
+        addMensagem(
+            texto,
+            "user"
+        );
+
+    }
+
+
+    // =====================
+    // ARQUIVO
+    // =====================
+
+    if (arquivo) {
+
+        adicionarMensagemArquivo(
+            arquivo
+        );
+
+    }
 
 
     campo.value = "";
@@ -424,17 +547,14 @@ async function enviar() {
     try {
 
         /*
-         * Nesta fase enviamos:
-         *
-         * message
-         * files
-         *
-         * O backend será preparado
-         * para receber esses dados.
+         * IMPORTANTE:
+         * Usamos FormData para permitir
+         * texto + arquivo.
          */
 
         const formData =
             new FormData();
+
 
         formData.append(
             "message",
@@ -442,16 +562,14 @@ async function enviar() {
         );
 
 
-        arquivosSelecionados.forEach(
-            function(file) {
+        if (arquivo) {
 
-                formData.append(
-                    "files",
-                    file
-                );
+            formData.append(
+                "file",
+                arquivo
+            );
 
-            }
-        );
+        }
 
 
         const resposta =
@@ -459,7 +577,10 @@ async function enviar() {
                 `${API}/chat`,
                 {
                     method: "POST",
-                    body: formData
+
+                    body: formData,
+
+                    credentials: "include"
                 }
             );
 
@@ -471,18 +592,20 @@ async function enviar() {
                 resposta.status
             );
 
+
             if (typing) {
-
                 typing.remove();
-
             }
+
 
             addMensagem(
                 "Erro ao conectar com o servidor.",
                 "bot"
             );
 
+
             return;
+
         }
 
 
@@ -491,11 +614,13 @@ async function enviar() {
 
 
         if (typing) {
-
             typing.remove();
-
         }
 
+
+        // =====================
+        // RESPOSTA
+        // =====================
 
         addMensagem(
             data.reply ||
@@ -509,7 +634,8 @@ async function enviar() {
         // =====================
 
         const opcaoVoz =
-            document.getElementById("voz");
+            elemento("voz");
+
 
         if (
             opcaoVoz &&
@@ -519,14 +645,19 @@ async function enviar() {
 
             speechSynthesis.cancel();
 
+
             const voz =
                 new SpeechSynthesisUtterance(
                     data.reply
                 );
 
+
             voz.lang = "pt-BR";
 
-            speechSynthesis.speak(voz);
+
+            speechSynthesis.speak(
+                voz
+            );
 
         }
 
@@ -538,169 +669,155 @@ async function enviar() {
             erro
         );
 
+
         if (typing) {
-
             typing.remove();
-
         }
+
 
         addMensagem(
             "Erro ao conectar com o servidor.",
             "bot"
         );
 
-    }
+    } finally {
 
-
-    // =====================
-    // LIMPA ANEXOS
-    // =====================
-
-    arquivosSelecionados = [];
-
-    mostrarArquivos();
-
-    const input =
-        document.getElementById("arquivo");
-
-    if (input) {
-
-        input.value = "";
+        limparArquivo();
 
     }
-
 }
 
 
 // =====================
-// MENSAGEM COM ARQUIVOS
+// MENSAGEM COM ARQUIVO
 // =====================
-function addMensagemComArquivos(
-    texto,
-    arquivos
+
+function adicionarMensagemArquivo(
+    arquivo
 ) {
 
     const div =
         document.createElement("div");
+
 
     div.classList.add(
         "msg-user"
     );
 
 
-    let conteudo = "";
+    const conteudo =
+        document.createElement(
+            "div"
+        );
+
+
+    conteudo.classList.add(
+        "conteudo-mensagem"
+    );
 
 
     // =====================
-    // TEXTO
+    // IMAGEM
     // =====================
 
-    if (texto) {
+    if (
+        arquivo.type &&
+        arquivo.type.startsWith("image/")
+    ) {
 
-        conteudo += `
-            <div class="conteudo-mensagem">
-                ${escapeHtml(texto)
-                    .replace(/\n/g, "<br>")}
-            </div>
-        `;
+        const imagem =
+            document.createElement("img");
+
+
+        imagem.classList.add(
+            "preview-imagem"
+        );
+
+
+        imagem.alt =
+            arquivo.name;
+
+
+        imagem.src =
+            URL.createObjectURL(
+                arquivo
+            );
+
+
+        conteudo.appendChild(
+            imagem
+        );
 
     }
 
 
     // =====================
-    // ARQUIVOS
+    // ARQUIVO NORMAL
     // =====================
 
-    arquivos.forEach(
-        function(file) {
+    const arquivoBox =
+        document.createElement("div");
 
-            if (
-                file.type &&
-                file.type.startsWith("image/")
-            ) {
 
-                const url =
-                    URL.createObjectURL(file);
-
-                conteudo += `
-
-                    <img
-                        src="${url}"
-                        class="imagem-anexada"
-                        alt="${escapeHtml(file.name)}"
-                    >
-
-                `;
-
-            } else {
-
-                conteudo += `
-
-                    <div class="anexo">
-
-                        📄
-
-                        <span class="anexo-nome">
-                            ${escapeHtml(file.name)}
-                        </span>
-
-                    </div>
-
-                `;
-
-            }
-
-        }
+    arquivoBox.classList.add(
+        "anexo-mensagem"
     );
 
 
-    const now =
-        new Date();
-
-    const hora =
-        now.getHours()
-            .toString()
-            .padStart(2, "0")
-        + ":" +
-        now.getMinutes()
-            .toString()
-            .padStart(2, "0");
+    arquivoBox.innerHTML =
+        "📎 " +
+        escaparHTML(
+            arquivo.name
+        );
 
 
-    div.innerHTML = `
+    conteudo.appendChild(
+        arquivoBox
+    );
 
-        ${conteudo}
 
-        <div style="
-            font-size:10px;
-            opacity:0.5;
-            margin-top:5px;
-            text-align:right;
-        ">
-            ${hora}
-        </div>
-
-    `;
+    div.appendChild(
+        conteudo
+    );
 
 
     const chat =
-        document.getElementById("chat");
+        elemento("chat");
+
 
     if (chat) {
 
-        chat.appendChild(div);
+        chat.appendChild(
+            div
+        );
+
 
         scrollBottom();
 
     }
 
-    return div;
 }
 
 
 // =====================
-// MENSAGEM NORMAL
+// ESCAPAR HTML
 // =====================
+
+function escaparHTML(texto) {
+
+    return String(texto || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+// =====================
+// MENSAGEM
+// =====================
+
 function addMensagem(
     texto,
     tipo
@@ -708,6 +825,7 @@ function addMensagem(
 
     const div =
         document.createElement("div");
+
 
     div.classList.add(
         tipo === "user"
@@ -723,39 +841,32 @@ function addMensagem(
     if (tipo.includes("typing")) {
 
         div.innerHTML = `
-
             <div>
-
                 🤖 PedroGPT está digitando...
 
                 <div class="typing-dots">
-
                     <span></span>
                     <span></span>
                     <span></span>
-
                 </div>
-
             </div>
-
         `;
 
 
         const chat =
-            document.getElementById("chat");
+            elemento("chat");
+
 
         if (chat) {
 
-            chat.appendChild(div);
+            chat.appendChild(
+                div
+            );
 
-            requestAnimationFrame(() => {
-
-                chat.scrollTop =
-                    chat.scrollHeight;
-
-            });
+            scrollBottom();
 
         }
+
 
         return div;
     }
@@ -768,6 +879,7 @@ function addMensagem(
     const now =
         new Date();
 
+
     const hora =
         now.getHours()
             .toString()
@@ -778,32 +890,41 @@ function addMensagem(
             .padStart(2, "0");
 
 
+    // =====================
+    // CONTEÚDO
+    // =====================
+
     let conteudo;
 
 
     if (tipo === "user") {
 
         conteudo =
-            escapeHtml(texto)
-                .replace(
-                    /\n/g,
-                    "<br>"
-                );
+            escaparHTML(
+                texto
+            )
+            .replace(
+                /\n/g,
+                "<br>"
+            );
 
     } else {
 
         conteudo =
-            formatarResposta(texto);
+            formatarResposta(
+                texto
+            );
 
     }
 
 
+    // =====================
+    // HTML
+    // =====================
+
     div.innerHTML = `
-
         <div class="conteudo-mensagem">
-
             ${conteudo}
-
         </div>
 
         <div style="
@@ -812,27 +933,22 @@ function addMensagem(
             margin-top:5px;
             text-align:right;
         ">
-
             ${hora}
-
         </div>
-
     `;
 
 
     const chat =
-        document.getElementById("chat");
+        elemento("chat");
+
 
     if (chat) {
 
-        chat.appendChild(div);
+        chat.appendChild(
+            div
+        );
 
-        requestAnimationFrame(() => {
-
-            chat.scrollTop =
-                chat.scrollHeight;
-
-        });
+        scrollBottom();
 
     }
 
@@ -844,6 +960,7 @@ function addMensagem(
 // =====================
 // NOVA CONVERSA
 // =====================
+
 async function novaConversa() {
 
     if (
@@ -863,7 +980,9 @@ async function novaConversa() {
             await fetch(
                 `${API}/new_chat`,
                 {
-                    method: "POST"
+                    method: "POST",
+
+                    credentials: "include"
                 }
             );
 
@@ -875,7 +994,8 @@ async function novaConversa() {
         if (data.success) {
 
             const chat =
-                document.getElementById("chat");
+                elemento("chat");
+
 
             if (chat) {
 
@@ -884,15 +1004,15 @@ async function novaConversa() {
             }
 
 
-            arquivosSelecionados = [];
+            limparArquivo();
 
-            mostrarArquivos();
 
             speechSynthesis.cancel();
 
 
             const welcome =
-                document.getElementById("welcome");
+                elemento("welcome");
+
 
             if (welcome) {
 
@@ -902,9 +1022,11 @@ async function novaConversa() {
 
             }
 
+
         } else {
 
             alert(
+                data.message ||
                 "Erro ao criar nova conversa."
             );
 
@@ -913,24 +1035,28 @@ async function novaConversa() {
 
     } catch (erro) {
 
-        console.error(erro);
+        console.error(
+            erro
+        );
+
 
         alert(
             "Erro ao conectar com o servidor."
         );
 
     }
-
 }
 
 
 // =====================
 // SCROLL
 // =====================
+
 function scrollBottom() {
 
     const chat =
-        document.getElementById("chat");
+        elemento("chat");
+
 
     if (chat) {
 
@@ -938,21 +1064,30 @@ function scrollBottom() {
             chat.scrollHeight;
 
     }
-
 }
 
 
 // =====================
-// ESCAPE HTML
+// ATALHOS
 // =====================
-function escapeHtml(texto) {
 
-    return String(texto || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+function atalho(texto) {
+
+    esconderWelcome();
+
+
+    const campo =
+        elemento("mensagem");
+
+
+    if (!campo) return;
+
+
+    campo.value =
+        texto;
+
+
+    campo.focus();
 
 }
 
@@ -960,6 +1095,7 @@ function escapeHtml(texto) {
 // =====================
 // INIT
 // =====================
+
 document.addEventListener(
     "DOMContentLoaded",
     () => {
@@ -967,15 +1103,13 @@ document.addEventListener(
         carregarHistorico();
 
 
-        const campo =
-            document.getElementById(
-                "mensagem"
-            );
-
-
         // =====================
         // ENTER
         // =====================
+
+        const campo =
+            elemento("mensagem");
+
 
         if (campo) {
 
@@ -1005,9 +1139,7 @@ document.addEventListener(
         // =====================
 
         const opcaoVoz =
-            document.getElementById(
-                "voz"
-            );
+            elemento("voz");
 
 
         if (opcaoVoz) {
@@ -1029,5 +1161,24 @@ document.addEventListener(
 
         }
 
+
+        // =====================
+        // ARQUIVO
+        // =====================
+
+        const arquivo =
+            elemento("arquivo");
+
+
+        if (arquivo) {
+
+            arquivo.addEventListener(
+                "change",
+                arquivoSelecionado
+            );
+
+        }
+
     }
 );
+````
