@@ -1,7 +1,5 @@
-
 import os
 import sqlite3
-import base64
 from datetime import datetime
 
 from flask import (
@@ -40,13 +38,6 @@ client = Groq(
     api_key=GROQ_API_KEY
 ) if GROQ_API_KEY else None
 
-# Limite máximo para imagens
-MAX_IMAGE_SIZE = 20 * 1024 * 1024
-
-# Modelos
-TEXT_MODEL = "openai/gpt-oss-120b"
-VISION_MODEL = "qwen/qwen3.6-27b"
-
 
 # ============================================================
 # VERSION
@@ -54,7 +45,6 @@ VISION_MODEL = "qwen/qwen3.6-27b"
 
 @app.route("/version")
 def version():
-
     return jsonify({
         "version": "1.2",
         "apk_url": "https://drive.google.com/file/d/1mdpeCrIJNcU2DlHLabjgh17zvM2ha703/view?usp=drive_link"
@@ -65,10 +55,12 @@ def version():
 # BANCO DE DADOS
 # ============================================================
 
-def get_db():
+DATABASE = "database.db"
 
+
+def get_db():
     conn = sqlite3.connect(
-        "database.db",
+        DATABASE,
         timeout=10,
         check_same_thread=False
     )
@@ -92,12 +84,12 @@ def init_db():
         # ====================================================
 
         cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            plan TEXT DEFAULT 'free'
-        )
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                plan TEXT DEFAULT 'free'
+            )
         """)
 
         # ====================================================
@@ -105,12 +97,12 @@ def init_db():
         # ====================================================
 
         cursor.execute("""
-        CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
-            sender TEXT,
-            message TEXT
-        )
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT,
+                sender TEXT,
+                message TEXT
+            )
         """)
 
         # ====================================================
@@ -118,13 +110,13 @@ def init_db():
         # ====================================================
 
         cursor.execute("""
-        CREATE TABLE IF NOT EXISTS conversations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            title TEXT DEFAULT 'Nova conversa',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
+            CREATE TABLE IF NOT EXISTS conversations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                title TEXT DEFAULT 'Nova conversa',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
         """)
 
         # ====================================================
@@ -132,17 +124,17 @@ def init_db():
         # ====================================================
 
         cursor.execute("""
-        CREATE TABLE IF NOT EXISTS chat_messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            conversation_id INTEGER NOT NULL,
-            sender TEXT NOT NULL,
-            message TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            CREATE TABLE IF NOT EXISTS chat_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                conversation_id INTEGER NOT NULL,
+                sender TEXT NOT NULL,
+                message TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-            FOREIGN KEY (conversation_id)
-            REFERENCES conversations(id)
-            ON DELETE CASCADE
-        )
+                FOREIGN KEY (conversation_id)
+                REFERENCES conversations(id)
+                ON DELETE CASCADE
+            )
         """)
 
         conn.commit()
@@ -152,10 +144,10 @@ def init_db():
         # ====================================================
 
         cursor.execute("""
-        SELECT username
-        FROM messages
-        WHERE username IS NOT NULL
-        GROUP BY username
+            SELECT username
+            FROM messages
+            WHERE username IS NOT NULL
+            GROUP BY username
         """)
 
         usuarios_antigos = cursor.fetchall()
@@ -165,13 +157,11 @@ def init_db():
             username = usuario["username"]
 
             cursor.execute("""
-            SELECT id
-            FROM conversations
-            WHERE username=?
-            LIMIT 1
-            """, (
-                username,
-            ))
+                SELECT id
+                FROM conversations
+                WHERE username = ?
+                LIMIT 1
+            """, (username,))
 
             conversa = cursor.fetchone()
 
@@ -179,13 +169,11 @@ def init_db():
                 continue
 
             cursor.execute("""
-            SELECT sender, message
-            FROM messages
-            WHERE username=?
-            ORDER BY id ASC
-            """, (
-                username,
-            ))
+                SELECT sender, message
+                FROM messages
+                WHERE username = ?
+                ORDER BY id ASC
+            """, (username,))
 
             mensagens_antigas = cursor.fetchall()
 
@@ -193,9 +181,9 @@ def init_db():
                 continue
 
             cursor.execute("""
-            INSERT INTO conversations
-            (username, title)
-            VALUES (?, ?)
+                INSERT INTO conversations
+                (username, title)
+                VALUES (?, ?)
             """, (
                 username,
                 "Conversa antiga"
@@ -206,9 +194,9 @@ def init_db():
             for mensagem in mensagens_antigas:
 
                 cursor.execute("""
-                INSERT INTO chat_messages
-                (conversation_id, sender, message)
-                VALUES (?, ?, ?)
+                    INSERT INTO chat_messages
+                    (conversation_id, sender, message)
+                    VALUES (?, ?, ?)
                 """, (
                     conversation_id,
                     mensagem["sender"],
@@ -225,19 +213,16 @@ init_db()
 # FUNÇÕES AUXILIARES
 # ============================================================
 
-def criar_conversa(
-    username,
-    titulo="Nova conversa"
-):
+def criar_conversa(username, titulo="Nova conversa"):
 
     with get_db() as conn:
 
         cursor = conn.cursor()
 
         cursor.execute("""
-        INSERT INTO conversations
-        (username, title)
-        VALUES (?, ?)
+            INSERT INTO conversations
+            (username, title)
+            VALUES (?, ?)
         """, (
             username,
             titulo
@@ -250,10 +235,7 @@ def criar_conversa(
         return conversation_id
 
 
-def verificar_conversa(
-    username,
-    conversation_id
-):
+def verificar_conversa(username, conversation_id):
 
     if not conversation_id:
         return False
@@ -263,9 +245,10 @@ def verificar_conversa(
         cursor = conn.cursor()
 
         cursor.execute("""
-        SELECT id
-        FROM conversations
-        WHERE id=? AND username=?
+            SELECT id
+            FROM conversations
+            WHERE id = ?
+            AND username = ?
         """, (
             conversation_id,
             username
@@ -291,7 +274,6 @@ def conversa_atual():
             username,
             conversation_id
         ):
-
             return conversation_id
 
     conversation_id = criar_conversa(
@@ -331,9 +313,9 @@ def atualizar_titulo_se_necessario(
         cursor = conn.cursor()
 
         cursor.execute("""
-        SELECT title
-        FROM conversations
-        WHERE id=?
+            SELECT title
+            FROM conversations
+            WHERE id = ?
         """, (
             conversation_id,
         ))
@@ -344,8 +326,7 @@ def atualizar_titulo_se_necessario(
             return
 
         titulo_atual = (
-            conversa["title"]
-            or ""
+            conversa["title"] or ""
         )
 
         if titulo_atual != "Nova conversa":
@@ -356,10 +337,10 @@ def atualizar_titulo_se_necessario(
         )
 
         cursor.execute("""
-        UPDATE conversations
-        SET title=?,
-            updated_at=CURRENT_TIMESTAMP
-        WHERE id=?
+            UPDATE conversations
+            SET title = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
         """, (
             novo_titulo,
             conversation_id
@@ -375,9 +356,9 @@ def obter_plan_usuario(username):
         cursor = conn.cursor()
 
         cursor.execute("""
-        SELECT plan
-        FROM users
-        WHERE username=?
+            SELECT plan
+            FROM users
+            WHERE username = ?
         """, (
             username,
         ))
@@ -387,188 +368,7 @@ def obter_plan_usuario(username):
         if not usuario:
             return "free"
 
-        return (
-            usuario["plan"]
-            or "free"
-        )
-
-
-# ============================================================
-# PROCESSAMENTO DE IMAGEM
-# ============================================================
-
-def obter_imagem_request():
-
-    """
-    Aceita imagem de duas formas:
-
-    1. JSON:
-       {
-           "message": "...",
-           "image": "data:image/jpeg;base64,..."
-       }
-
-    2. multipart/form-data:
-       message=...
-       image=<arquivo>
-    """
-
-    image_data = None
-    image_mime = None
-
-    # --------------------------------------------------------
-    # MULTIPART / ARQUIVO
-    # --------------------------------------------------------
-
-    if request.files:
-
-        arquivo = request.files.get("image")
-
-        if arquivo and arquivo.filename:
-
-            conteudo = arquivo.read()
-
-            if len(conteudo) > MAX_IMAGE_SIZE:
-
-                return None, None, (
-                    "A imagem é muito grande. "
-                    "O limite máximo é de 20 MB."
-                )
-
-            mime = (
-                arquivo.mimetype
-                or ""
-            ).lower()
-
-            if not mime.startswith("image/"):
-
-                return None, None, (
-                    "O arquivo enviado não é uma imagem válida."
-                )
-
-            image_mime = mime
-
-            image_data = (
-                "data:"
-                + image_mime
-                + ";base64,"
-                + base64.b64encode(
-                    conteudo
-                ).decode("utf-8")
-            )
-
-            return image_data, image_mime, None
-
-    # --------------------------------------------------------
-    # JSON / BASE64
-    # --------------------------------------------------------
-
-    data = request.get_json(
-        silent=True
-    ) or {}
-
-    imagem = data.get("image")
-
-    if not imagem:
-        return None, None, None
-
-    if not isinstance(imagem, str):
-
-        return None, None, (
-            "Formato de imagem inválido."
-        )
-
-    # --------------------------------------------------------
-    # DATA URL
-    # --------------------------------------------------------
-
-    if imagem.startswith("data:image/"):
-
-        try:
-
-            cabecalho, dados = imagem.split(
-                ",",
-                1
-            )
-
-            image_mime = (
-                cabecalho
-                .split(";")[0]
-                .replace("data:", "")
-                .lower()
-            )
-
-            if not image_mime.startswith("image/"):
-
-                return None, None, (
-                    "O arquivo enviado não é uma imagem válida."
-                )
-
-            tamanho_aproximado = (
-                len(dados) * 3 // 4
-            )
-
-            if tamanho_aproximado > MAX_IMAGE_SIZE:
-
-                return None, None, (
-                    "A imagem é muito grande. "
-                    "O limite máximo é de 20 MB."
-                )
-
-            # Valida o Base64
-            base64.b64decode(
-                dados,
-                validate=True
-            )
-
-            return imagem, image_mime, None
-
-        except Exception:
-
-            return None, None, (
-                "A imagem enviada está em um formato inválido."
-            )
-
-    # --------------------------------------------------------
-    # BASE64 PURO
-    # --------------------------------------------------------
-
-    try:
-
-        dados = imagem
-
-        tamanho_aproximado = (
-            len(dados) * 3 // 4
-        )
-
-        if tamanho_aproximado > MAX_IMAGE_SIZE:
-
-            return None, None, (
-                "A imagem é muito grande. "
-                "O limite máximo é de 20 MB."
-            )
-
-        base64.b64decode(
-            dados,
-            validate=True
-        )
-
-        image_mime = "image/jpeg"
-
-        image_data = (
-            "data:"
-            + image_mime
-            + ";base64,"
-            + dados
-        )
-
-        return image_data, image_mime, None
-
-    except Exception:
-
-        return None, None, (
-            "A imagem enviada está em um formato inválido."
-        )
+        return usuario["plan"] or "free"
 
 
 # ============================================================
@@ -579,10 +379,7 @@ def obter_imagem_request():
 def home():
 
     if "user" not in session:
-
-        return redirect(
-            url_for("login")
-        )
+        return redirect(url_for("login"))
 
     conversa_atual()
 
@@ -593,10 +390,7 @@ def home():
     return render_template(
         "index.html",
         username=session["user"],
-        plan=session.get(
-            "plan",
-            "free"
-        )
+        plan=session.get("plan", "free")
     )
 
 
@@ -604,26 +398,18 @@ def home():
 def login():
 
     if "user" in session:
-        return redirect(
-            url_for("home")
-        )
+        return redirect(url_for("home"))
 
-    return render_template(
-        "login.html"
-    )
+    return render_template("login.html")
 
 
 @app.route("/register")
 def register():
 
     if "user" in session:
-        return redirect(
-            url_for("home")
-        )
+        return redirect(url_for("home"))
 
-    return render_template(
-        "register.html"
-    )
+    return render_template("register.html")
 
 
 @app.route("/logout")
@@ -631,19 +417,14 @@ def logout():
 
     session.clear()
 
-    return redirect(
-        url_for("login")
-    )
+    return redirect(url_for("login"))
 
 
 # ============================================================
 # REGISTER
 # ============================================================
 
-@app.route(
-    "/api/register",
-    methods=["POST"]
-)
+@app.route("/api/register", methods=["POST"])
 def api_register():
 
     data = request.get_json(
@@ -708,9 +489,9 @@ def api_register():
             cursor = conn.cursor()
 
             cursor.execute("""
-            INSERT INTO users
-            (username, password, plan)
-            VALUES (?, ?, ?)
+                INSERT INTO users
+                (username, password, plan)
+                VALUES (?, ?, ?)
             """, (
                 username,
                 password_hash,
@@ -721,16 +502,14 @@ def api_register():
 
         return jsonify({
             "success": True,
-            "message":
-                "Conta criada com sucesso."
+            "message": "Conta criada com sucesso."
         })
 
     except sqlite3.IntegrityError:
 
         return jsonify({
             "success": False,
-            "message":
-                "Usuário já existe."
+            "message": "Usuário já existe."
         }), 409
 
     except Exception as e:
@@ -751,10 +530,7 @@ def api_register():
 # LOGIN
 # ============================================================
 
-@app.route(
-    "/api/login",
-    methods=["POST"]
-)
+@app.route("/api/login", methods=["POST"])
 def api_login():
 
     data = request.get_json(
@@ -782,13 +558,13 @@ def api_login():
         cursor = conn.cursor()
 
         cursor.execute("""
-        SELECT
-            id,
-            username,
-            password,
-            plan
-        FROM users
-        WHERE username=?
+            SELECT
+                id,
+                username,
+                password,
+                plan
+            FROM users
+            WHERE username = ?
         """, (
             username,
         ))
@@ -816,26 +592,26 @@ def api_login():
 
             senha_correta = False
 
+        # ----------------------------------------------------
+        # MIGRAÇÃO DE SENHAS ANTIGAS
+        # ----------------------------------------------------
+
         if not senha_correta:
 
-            senha_antiga = (
-                user["password"]
-            )
+            senha_antiga = user["password"]
 
             if senha_antiga == password:
 
                 senha_correta = True
 
-                nova_hash = (
-                    generate_password_hash(
-                        password
-                    )
+                nova_hash = generate_password_hash(
+                    password
                 )
 
                 cursor.execute("""
-                UPDATE users
-                SET password=?
-                WHERE id=?
+                    UPDATE users
+                    SET password = ?
+                    WHERE id = ?
                 """, (
                     nova_hash,
                     user["id"]
@@ -851,13 +627,16 @@ def api_login():
                     "Usuário ou senha incorretos."
             }), 401
 
+        # ----------------------------------------------------
+        # LOGIN OK
+        # ----------------------------------------------------
+
         session.clear()
 
         session["user"] = user["username"]
 
         session["plan"] = (
-            user["plan"]
-            or "free"
+            user["plan"] or "free"
         )
 
         conversation_id = criar_conversa(
@@ -865,20 +644,12 @@ def api_login():
             "Nova conversa"
         )
 
-        session["conversation_id"] = (
-            conversation_id
-        )
+        session["conversation_id"] = conversation_id
 
         return jsonify({
-
             "success": True,
-
-            "plan":
-                session["plan"],
-
-            "conversation_id":
-                conversation_id
-
+            "plan": session["plan"],
+            "conversation_id": conversation_id
         })
 
 
@@ -886,81 +657,28 @@ def api_login():
 # CHAT
 # ============================================================
 
-@app.route(
-    "/chat",
-    methods=["POST"]
-)
+@app.route("/chat", methods=["POST"])
 def chat():
 
     if "user" not in session:
 
         return jsonify({
-            "reply":
-                "Faça login primeiro.",
+            "reply": "Faça login primeiro.",
             "success": False
         }), 401
 
-    # ========================================================
-    # O BACKEND AGORA ACEITA:
-    #
-    # JSON:
-    # {
-    #   "message": "O que é isso?",
-    #   "image": "data:image/jpeg;base64,..."
-    # }
-    #
-    # OU:
-    #
-    # multipart/form-data:
-    # message=O que é isso?
-    # image=<arquivo>
-    # ========================================================
+    data = request.get_json(
+        silent=True
+    ) or {}
 
-    if request.files:
-
-        mensagem = (
-            request.form.get("message")
-            or ""
-        ).strip()
-
-    else:
-
-        data = request.get_json(
-            silent=True
-        ) or {}
-
-        mensagem = (
-            data.get("message") or ""
-        ).strip()
-
-    # ========================================================
-    # IMAGEM
-    # ========================================================
-
-    imagem, image_mime, erro_imagem = (
-        obter_imagem_request()
-    )
-
-    if erro_imagem:
-
-        return jsonify({
-            "reply": erro_imagem,
-            "success": False
-        }), 400
-
-    # Permite enviar somente uma imagem.
-    if not mensagem and imagem:
-
-        mensagem = (
-            "Analise esta imagem e "
-            "explique o que você consegue identificar."
-        )
+    mensagem = (
+        data.get("message") or ""
+    ).strip()
 
     if not mensagem:
 
         return jsonify({
-            "reply":
-                "Digite uma mensagem.",
+            "reply": "Digite uma mensagem.",
             "success": False
         }), 400
 
@@ -974,9 +692,7 @@ def chat():
 
     username = session["user"]
 
-    plan = obter_plan_usuario(
-        username
-    )
+    plan = obter_plan_usuario(username)
 
     session["plan"] = plan
 
@@ -1001,18 +717,18 @@ def chat():
         if plan == "free":
 
             cursor.execute("""
-            SELECT COUNT(*)
-            FROM chat_messages cm
+                SELECT COUNT(*)
+                FROM chat_messages cm
 
-            INNER JOIN conversations c
-            ON cm.conversation_id = c.id
+                INNER JOIN conversations c
+                ON cm.conversation_id = c.id
 
-            WHERE c.username=?
+                WHERE c.username = ?
 
-            AND cm.sender='user'
+                AND cm.sender = 'user'
 
-            AND date(cm.created_at)
-                = date('now')
+                AND date(cm.created_at)
+                    = date('now')
             """, (
                 username,
             ))
@@ -1032,29 +748,20 @@ def chat():
         # SALVA MENSAGEM
         # ====================================================
 
-        mensagem_salva = mensagem
-
-        if imagem:
-
-            mensagem_salva = (
-                "🖼️ [Imagem enviada]\n"
-                + mensagem
-            )
-
         cursor.execute("""
-        INSERT INTO chat_messages
-        (conversation_id, sender, message)
-        VALUES (?, ?, ?)
+            INSERT INTO chat_messages
+            (conversation_id, sender, message)
+            VALUES (?, ?, ?)
         """, (
             conversation_id,
             "user",
-            mensagem_salva
+            mensagem
         ))
 
         cursor.execute("""
-        UPDATE conversations
-        SET updated_at=CURRENT_TIMESTAMP
-        WHERE id=?
+            UPDATE conversations
+            SET updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
         """, (
             conversation_id,
         ))
@@ -1062,7 +769,7 @@ def chat():
         conn.commit()
 
     # ========================================================
-    # GERA TÍTULO AUTOMÁTICO
+    # TÍTULO
     # ========================================================
 
     atualizar_titulo_se_necessario(
@@ -1113,14 +820,13 @@ o usuário a entender.
 """
 
     # ========================================================
-    # PERSONALIDADE DO PEDROGPT
+    # PERSONALIDADE
     # ========================================================
 
     mensagens_ia = [
 
         {
             "role": "system",
-
             "content": f"""
 Você é o PedroGPT, um assistente
 virtual brasileiro inteligente, útil,
@@ -1174,23 +880,6 @@ mesmo quando ele:
 - misturar idiomas.
 
 Não critique erros de escrita.
-
-==================================================
-IMAGENS
-==================================================
-
-Quando uma imagem for enviada:
-
-- analise visualmente a imagem;
-- descreva o que for relevante;
-- responda à pergunta do usuário
-  sobre a imagem;
-- se houver texto legível na imagem,
-  tente interpretá-lo;
-- não invente detalhes que não estejam
-  visíveis;
-- deixe claro quando algo não puder
-  ser identificado com segurança.
 
 ==================================================
 CONTEXTO
@@ -1351,17 +1040,15 @@ Antes de responder:
 1. Entenda a pergunta.
 2. Analise o contexto.
 3. Verifique se a data é relevante.
-4. Verifique se existe uma imagem.
-5. Se houver imagem, analise-a.
-6. Escolha a melhor forma de responder.
-7. Organize a resposta.
-8. Evite informações inventadas.
+4. Escolha a melhor forma de responder.
+5. Organize a resposta.
+6. Evite informações inventadas.
 """
         }
     ]
 
     # ========================================================
-    # HISTÓRICO DA CONVERSA
+    # HISTÓRICO
     # ========================================================
 
     with get_db() as conn:
@@ -1369,28 +1056,18 @@ Antes de responder:
         cursor = conn.cursor()
 
         cursor.execute("""
-        SELECT sender, message
-        FROM chat_messages
-        WHERE conversation_id=?
-        ORDER BY id DESC
-        LIMIT 20
+            SELECT sender, message
+            FROM chat_messages
+            WHERE conversation_id = ?
+            ORDER BY id DESC
+            LIMIT 20
         """, (
             conversation_id,
         ))
 
         historico = cursor.fetchall()
 
-    historico_reverso = list(
-        reversed(historico)
-    )
-
-    # ========================================================
-    # ADICIONA HISTÓRICO
-    # ========================================================
-
-    ultimo_usuario_adicionado = False
-
-    for item in historico_reverso:
+    for item in reversed(historico):
 
         role = (
             "assistant"
@@ -1398,43 +1075,9 @@ Antes de responder:
             else "user"
         )
 
-        conteudo = item["message"]
-
-        # A imagem só é anexada à mensagem
-        # atual. Não armazenamos Base64 no banco.
-        if (
-            imagem
-            and role == "user"
-            and not ultimo_usuario_adicionado
-            and item["message"] == mensagem_salva
-        ):
-
-            conteudo = [
-
-                {
-                    "type": "text",
-                    "text": mensagem
-                },
-
-                {
-                    "type": "image_url",
-
-                    "image_url": {
-                        "url": imagem
-                    }
-                }
-
-            ]
-
-            ultimo_usuario_adicionado = True
-
         mensagens_ia.append({
-
             "role": role,
-
-            "content":
-                conteudo
-
+            "content": item["message"]
         })
 
     # ========================================================
@@ -1455,20 +1098,10 @@ Antes de responder:
 
     try:
 
-        modelo = (
-            VISION_MODEL
-            if imagem
-            else TEXT_MODEL
-        )
-
         resposta = client.chat.completions.create(
-
-            model=modelo,
-
+            model="openai/gpt-oss-120b",
             messages=mensagens_ia,
-
             temperature=0.7,
-
             max_completion_tokens=2048
         )
 
@@ -1499,13 +1132,13 @@ Antes de responder:
                 cursor = conn.cursor()
 
                 cursor.execute("""
-                DELETE FROM chat_messages
-                WHERE id = (
-                    SELECT MAX(id)
-                    FROM chat_messages
-                    WHERE conversation_id=?
-                    AND sender='user'
-                )
+                    DELETE FROM chat_messages
+                    WHERE id = (
+                        SELECT MAX(id)
+                        FROM chat_messages
+                        WHERE conversation_id = ?
+                        AND sender = 'user'
+                    )
                 """, (
                     conversation_id,
                 ))
@@ -1534,9 +1167,9 @@ Antes de responder:
         cursor = conn.cursor()
 
         cursor.execute("""
-        INSERT INTO chat_messages
-        (conversation_id, sender, message)
-        VALUES (?, ?, ?)
+            INSERT INTO chat_messages
+            (conversation_id, sender, message)
+            VALUES (?, ?, ?)
         """, (
             conversation_id,
             "bot",
@@ -1544,9 +1177,9 @@ Antes de responder:
         ))
 
         cursor.execute("""
-        UPDATE conversations
-        SET updated_at=CURRENT_TIMESTAMP
-        WHERE id=?
+            UPDATE conversations
+            SET updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
         """, (
             conversation_id,
         ))
@@ -1558,16 +1191,10 @@ Antes de responder:
     # ========================================================
 
     return jsonify({
-
         "success": True,
-
         "reply": texto,
-
-        "conversation_id":
-            conversation_id,
-
+        "conversation_id": conversation_id,
         "plan": plan
-
     })
 
 
@@ -1579,7 +1206,6 @@ Antes de responder:
 def conversations():
 
     if "user" not in session:
-
         return jsonify([]), 401
 
     with get_db() as conn:
@@ -1587,14 +1213,14 @@ def conversations():
         cursor = conn.cursor()
 
         cursor.execute("""
-        SELECT
-            id,
-            title,
-            created_at,
-            updated_at
-        FROM conversations
-        WHERE username=?
-        ORDER BY updated_at DESC, id DESC
+            SELECT
+                id,
+                title,
+                created_at,
+                updated_at
+            FROM conversations
+            WHERE username = ?
+            ORDER BY updated_at DESC, id DESC
         """, (
             session["user"],
         ))
@@ -1602,23 +1228,13 @@ def conversations():
         lista = cursor.fetchall()
 
     return jsonify([
-
         {
-            "id":
-                item["id"],
-
-            "title":
-                item["title"] or "Nova conversa",
-
-            "created_at":
-                item["created_at"],
-
-            "updated_at":
-                item["updated_at"]
+            "id": item["id"],
+            "title": item["title"] or "Nova conversa",
+            "created_at": item["created_at"],
+            "updated_at": item["updated_at"]
         }
-
         for item in lista
-
     ])
 
 
@@ -1626,12 +1242,8 @@ def conversations():
 # ABRIR CONVERSA
 # ============================================================
 
-@app.route(
-    "/conversation/<int:conversation_id>"
-)
-def open_conversation(
-    conversation_id
-):
+@app.route("/conversation/<int:conversation_id>")
+def open_conversation(conversation_id):
 
     if "user" not in session:
 
@@ -1652,22 +1264,20 @@ def open_conversation(
                 "Conversa não encontrada."
         }), 404
 
-    session["conversation_id"] = (
-        conversation_id
-    )
+    session["conversation_id"] = conversation_id
 
     with get_db() as conn:
 
         cursor = conn.cursor()
 
         cursor.execute("""
-        SELECT
-            sender,
-            message,
-            created_at
-        FROM chat_messages
-        WHERE conversation_id=?
-        ORDER BY id ASC
+            SELECT
+                sender,
+                message,
+                created_at
+            FROM chat_messages
+            WHERE conversation_id = ?
+            ORDER BY id ASC
         """, (
             conversation_id,
         ))
@@ -1675,12 +1285,13 @@ def open_conversation(
         mensagens = cursor.fetchall()
 
         cursor.execute("""
-        SELECT
-            title,
-            created_at,
-            updated_at
-        FROM conversations
-        WHERE id=? AND username=?
+            SELECT
+                title,
+                created_at,
+                updated_at
+            FROM conversations
+            WHERE id = ?
+            AND username = ?
         """, (
             conversation_id,
             session["user"]
@@ -1692,8 +1303,7 @@ def open_conversation(
 
         "success": True,
 
-        "conversation_id":
-            conversation_id,
+        "conversation_id": conversation_id,
 
         "title": (
             conversa["title"]
@@ -1714,22 +1324,13 @@ def open_conversation(
         ),
 
         "messages": [
-
             {
-                "sender":
-                    item["sender"],
-
-                "message":
-                    item["message"],
-
-                "created_at":
-                    item["created_at"]
+                "sender": item["sender"],
+                "message": item["message"],
+                "created_at": item["created_at"]
             }
-
             for item in mensagens
-
         ]
-
     })
 
 
@@ -1741,25 +1342,22 @@ def open_conversation(
 def history():
 
     if "user" not in session:
-
         return jsonify([]), 401
 
-    conversation_id = (
-        conversa_atual()
-    )
+    conversation_id = conversa_atual()
 
     with get_db() as conn:
 
         cursor = conn.cursor()
 
         cursor.execute("""
-        SELECT
-            sender,
-            message,
-            created_at
-        FROM chat_messages
-        WHERE conversation_id=?
-        ORDER BY id ASC
+            SELECT
+                sender,
+                message,
+                created_at
+            FROM chat_messages
+            WHERE conversation_id = ?
+            ORDER BY id ASC
         """, (
             conversation_id,
         ))
@@ -1767,20 +1365,12 @@ def history():
         mensagens = cursor.fetchall()
 
     return jsonify([
-
         {
-            "sender":
-                item["sender"],
-
-            "message":
-                item["message"],
-
-            "created_at":
-                item["created_at"]
+            "sender": item["sender"],
+            "message": item["message"],
+            "created_at": item["created_at"]
         }
-
         for item in mensagens
-
     ])
 
 
@@ -1788,10 +1378,7 @@ def history():
 # NOVA CONVERSA
 # ============================================================
 
-@app.route(
-    "/new_chat",
-    methods=["POST"]
-)
+@app.route("/new_chat", methods=["POST"])
 def new_chat():
 
     if "user" not in session:
@@ -1807,9 +1394,7 @@ def new_chat():
         "Nova conversa"
     )
 
-    session["conversation_id"] = (
-        conversation_id
-    )
+    session["conversation_id"] = conversation_id
 
     return jsonify({
 
@@ -1832,9 +1417,7 @@ def new_chat():
     "/conversation/<int:conversation_id>/rename",
     methods=["POST"]
 )
-def rename_conversation(
-    conversation_id
-):
+def rename_conversation(conversation_id):
 
     if "user" not in session:
 
@@ -1872,7 +1455,6 @@ def rename_conversation(
         }), 400
 
     if len(title) > 100:
-
         title = title[:100].rstrip()
 
     with get_db() as conn:
@@ -1880,10 +1462,11 @@ def rename_conversation(
         cursor = conn.cursor()
 
         cursor.execute("""
-        UPDATE conversations
-        SET title=?,
-            updated_at=CURRENT_TIMESTAMP
-        WHERE id=? AND username=?
+            UPDATE conversations
+            SET title = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            AND username = ?
         """, (
             title,
             conversation_id,
@@ -1893,11 +1476,8 @@ def rename_conversation(
         conn.commit()
 
     return jsonify({
-
         "success": True,
-
         "title": title
-
     })
 
 
@@ -1909,9 +1489,7 @@ def rename_conversation(
     "/conversation/<int:conversation_id>",
     methods=["DELETE"]
 )
-def delete_conversation(
-    conversation_id
-):
+def delete_conversation(conversation_id):
 
     if "user" not in session:
 
@@ -1937,8 +1515,9 @@ def delete_conversation(
         cursor = conn.cursor()
 
         cursor.execute("""
-        DELETE FROM conversations
-        WHERE id=? AND username=?
+            DELETE FROM conversations
+            WHERE id = ?
+            AND username = ?
         """, (
             conversation_id,
             session["user"]
@@ -1946,34 +1525,27 @@ def delete_conversation(
 
         conn.commit()
 
-    if (
-        session.get("conversation_id")
-        == conversation_id
-    ):
+    if session.get("conversation_id") == conversation_id:
 
         nova_conversa = criar_conversa(
             session["user"],
             "Nova conversa"
         )
 
-        session["conversation_id"] = (
-            nova_conversa
-        )
+        session["conversation_id"] = nova_conversa
 
     return jsonify({
 
         "success": True,
 
         "conversation_id":
-            session.get(
-                "conversation_id"
-            )
+            session.get("conversation_id")
 
     })
 
 
 # ============================================================
-# PLANO DO USUÁRIO
+# PLANO
 # ============================================================
 
 @app.route("/api/plan")
@@ -1994,11 +1566,8 @@ def api_plan():
     session["plan"] = plan
 
     return jsonify({
-
         "success": True,
-
         "plan": plan
-
     })
 
 
@@ -2028,9 +1597,7 @@ def api_status():
             ),
 
         "conversation_id":
-            session.get(
-                "conversation_id"
-            )
+            session.get("conversation_id")
 
     })
 
@@ -2053,4 +1620,3 @@ if __name__ == "__main__":
         port=port,
         debug=False
     )
-```
