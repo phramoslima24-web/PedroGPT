@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 
@@ -42,6 +43,7 @@ body {
         );
 
     color: white;
+
 }
 
 
@@ -240,6 +242,10 @@ body {
 }
 
 
+/* =========================
+   SCROLL
+========================= */
+
 .chat::-webkit-scrollbar {
 
     width: 6px;
@@ -258,7 +264,7 @@ body {
 
 
 /* =========================
-   MENSAGENS
+   MENSAGEM USUÁRIO
 ========================= */
 
 .msg-user {
@@ -294,6 +300,10 @@ body {
 }
 
 
+/* =========================
+   MENSAGEM BOT
+========================= */
+
 .msg-bot {
 
     align-self: flex-start;
@@ -323,6 +333,10 @@ body {
 }
 
 
+/* =========================
+   CONTEÚDO
+========================= */
+
 .conteudo-mensagem {
 
     line-height: 1.6;
@@ -330,20 +344,6 @@ body {
     word-wrap: break-word;
 
     overflow-wrap: break-word;
-
-}
-
-
-.linha-resposta {
-
-    margin-bottom: 6px;
-
-}
-
-
-.linha-resposta:last-child {
-
-    margin-bottom: 0;
 
 }
 
@@ -368,7 +368,11 @@ body {
 
     font-size: 20px;
 
-    margin: 10px 0 8px 0;
+    margin:
+        10px
+        0
+        8px
+        0;
 
 }
 
@@ -377,7 +381,11 @@ body {
 
     font-size: 18px;
 
-    margin: 10px 0 8px 0;
+    margin:
+        10px
+        0
+        8px
+        0;
 
 }
 
@@ -386,14 +394,22 @@ body {
 
     font-size: 16px;
 
-    margin: 8px 0 6px 0;
+    margin:
+        8px
+        0
+        6px
+        0;
 
 }
 
 
 .conteudo-mensagem ul {
 
-    margin: 8px 0 10px 20px;
+    margin:
+        8px
+        0
+        10px
+        20px;
 
     padding-left: 18px;
 
@@ -413,7 +429,11 @@ body {
 
 .conteudo-mensagem ol {
 
-    margin: 8px 0 10px 20px;
+    margin:
+        8px
+        0
+        10px
+        20px;
 
     padding-left: 18px;
 
@@ -446,7 +466,9 @@ body {
 
     display: block;
 
-    margin: 10px 0;
+    margin:
+        10px
+        0;
 
     padding: 14px;
 
@@ -476,106 +498,12 @@ body {
 
 
 /* =========================
-   ÁREA DE ANEXOS
-========================= */
-
-.anexos {
-
-    display: flex;
-
-    flex-wrap: wrap;
-
-    gap: 8px;
-
-    margin-bottom: 8px;
-
-}
-
-
-.anexo {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 8px;
-
-    padding: 8px 10px;
-
-    border-radius: 10px;
-
-    background:
-        rgba(255,255,255,0.08);
-
-    border:
-        1px solid
-        rgba(255,255,255,0.1);
-
-    font-size: 12px;
-
-    max-width: 220px;
-
-}
-
-
-.anexo-nome {
-
-    overflow: hidden;
-
-    text-overflow: ellipsis;
-
-    white-space: nowrap;
-
-}
-
-
-.remover-anexo {
-
-    border: none;
-
-    background: transparent;
-
-    color: #ff7777;
-
-    cursor: pointer;
-
-    font-size: 16px;
-
-    padding: 0;
-
-}
-
-
-/* =========================
-   IMAGEM ANEXADA
-========================= */
-
-.imagem-anexada {
-
-    max-width: 260px;
-
-    max-height: 260px;
-
-    border-radius: 12px;
-
-    display: block;
-
-    margin-top: 8px;
-
-    object-fit: contain;
-
-}
-
-
-/* =========================
-   INPUT
+   ÁREA DE ENTRADA
 ========================= */
 
 .entrada {
 
     display: flex;
-
-    flex-direction: column;
 
     gap: 8px;
 
@@ -590,26 +518,53 @@ body {
 
     backdrop-filter: blur(10px);
 
-}
-
-
-/* =========================
-   LINHA DO INPUT
-========================= */
-
-.entrada-linha {
-
-    display: flex;
-
-    gap: 10px;
-
     align-items: center;
 
 }
 
 
 /* =========================
-   INPUT TEXTO
+   BOTÃO ANEXAR
+========================= */
+
+.botao-anexo {
+
+    width: 46px;
+
+    height: 46px;
+
+    flex-shrink: 0;
+
+    border: none;
+
+    border-radius: 12px;
+
+    background:
+        rgba(255,255,255,0.08);
+
+    color: white;
+
+    font-size: 20px;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+
+}
+
+
+.botao-anexo:hover {
+
+    background:
+        rgba(255,255,255,0.15);
+
+    transform: scale(1.05);
+
+}
+
+
+/* =========================
+   INPUT
 ========================= */
 
 .entrada input[type="text"] {
@@ -645,41 +600,44 @@ body {
 
 
 /* =========================
-   BOTÃO ANEXAR
+   INPUT DE ARQUIVO
 ========================= */
 
-.botao-anexo {
+#arquivo {
 
-    width: 48px;
-
-    height: 48px;
-
-    border: none;
-
-    border-radius: 12px;
-
-    background:
-        rgba(255,255,255,0.08);
-
-    color: white;
-
-    font-size: 21px;
-
-    cursor: pointer;
-
-    transition: 0.2s;
-
-    flex-shrink: 0;
+    display: none;
 
 }
 
 
-.botao-anexo:hover {
+/* =========================
+   NOME DO ARQUIVO
+========================= */
+
+.arquivo-selecionado {
+
+    position: absolute;
+
+    bottom: 76px;
+
+    left: 15px;
+
+    max-width: 350px;
+
+    padding: 8px 12px;
+
+    border-radius: 10px;
 
     background:
-        rgba(255,255,255,0.15);
+        rgba(20,20,30,0.95);
 
-    transform: scale(1.05);
+    border:
+        1px solid
+        rgba(255,255,255,0.1);
+
+    font-size: 12px;
+
+    display: none;
 
 }
 
@@ -688,7 +646,7 @@ body {
    BOTÃO ENVIAR
 ========================= */
 
-.entrada-linha button.enviar {
+.entrada button.enviar {
 
     padding:
         14px
@@ -713,12 +671,10 @@ body {
 
     transition: 0.2s;
 
-    flex-shrink: 0;
-
 }
 
 
-.entrada-linha button.enviar:hover {
+.entrada button.enviar:hover {
 
     transform: scale(1.05);
 
@@ -922,28 +878,50 @@ body {
 
     }
 
-
-    .entrada input[type="text"] {
-
-        min-width: 0;
-
-    }
+}
 
 
-    .botao-anexo {
+/* =========================
+   PREVIEW DE IMAGEM
+========================= */
 
-        width: 44px;
+.preview-imagem {
 
-        height: 44px;
+    max-width: 240px;
 
-    }
+    max-height: 240px;
+
+    border-radius: 12px;
+
+    margin-top: 8px;
+
+    display: block;
+
+}
 
 
-    .entrada-linha button.enviar {
+/* =========================
+   ANEXO NA MENSAGEM
+========================= */
 
-        padding: 13px 15px;
+.anexo-mensagem {
 
-    }
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    margin-top: 8px;
+
+    padding: 8px 10px;
+
+    border-radius: 10px;
+
+    background:
+        rgba(0,0,0,0.15);
+
+    font-size: 13px;
 
 }
 
@@ -1038,7 +1016,6 @@ body {
     ></div>
 
 
-
     <!-- =====================
          WELCOME
     ====================== -->
@@ -1104,81 +1081,70 @@ body {
     </div>
 
 
+    <!-- =====================
+         ARQUIVO SELECIONADO
+    ====================== -->
+
+    <div
+        id="arquivoSelecionado"
+        class="arquivo-selecionado"
+    ></div>
+
 
     <!-- =====================
-         ENTRADA
+         INPUT
     ====================== -->
 
     <div class="entrada">
 
 
-        <!-- ANEXOS SELECIONADOS -->
+        <!-- BOTÃO ANEXAR -->
 
-        <div
-            id="anexos"
-            class="anexos"
-        ></div>
+        <button
+            type="button"
+            class="botao-anexo"
+            onclick="document.getElementById('arquivo').click()"
+            title="Anexar arquivo"
+        >
 
+            📎
 
-        <div class="entrada-linha">
-
-
-            <!-- INPUT DE ARQUIVOS -->
-
-            <input
-                type="file"
-                id="arquivo"
-                multiple
-                accept="image/*,.txt,.pdf,.doc,.docx,.xls,.xlsx,.csv,.json,.py,.js,.html,.css,.java,.cpp,.c"
-                style="display:none"
-            >
+        </button>
 
 
-            <!-- BOTÃO ANEXAR -->
-
-            <button
-                type="button"
-                class="botao-anexo"
-                onclick="document.getElementById('arquivo').click()"
-                title="Anexar arquivos"
-            >
-
-                📎
-
-            </button>
+        <input
+            type="file"
+            id="arquivo"
+            accept="image/*,.pdf,.txt,.csv,.json,.doc,.docx"
+            onchange="arquivoSelecionado()"
+        >
 
 
-            <!-- TEXTO -->
-
-            <input
-                type="text"
-                id="mensagem"
-                placeholder="Digite sua mensagem..."
-                autocomplete="off"
-            >
+        <input
+            type="text"
+            id="mensagem"
+            placeholder="Digite sua mensagem..."
+            autocomplete="off"
+        >
 
 
-            <!-- ENVIAR -->
+        <button
+            type="button"
+            class="enviar"
+            onclick="enviar()"
+        >
 
-            <button
-                class="enviar"
-                onclick="enviar()"
-            >
+            Enviar
 
-                Enviar
-
-            </button>
-
-        </div>
+        </button>
 
     </div>
 
 </div>
 
 
-
 <!-- =========================
-     QUICK ACTION SCRIPT
+     QUICK ACTION
 ========================= -->
 
 <script>
@@ -1203,90 +1169,41 @@ function atalho(texto) {
 }
 
 
-// =========================
-// ARQUIVOS SELECIONADOS
-// =========================
+function arquivoSelecionado() {
 
-const inputArquivo =
-    document.getElementById("arquivo");
+    const input =
+        document.getElementById("arquivo");
 
-
-if (inputArquivo) {
-
-    inputArquivo.addEventListener(
-        "change",
-        function() {
-
-            const container =
-                document.getElementById("anexos");
-
-            if (!container) return;
-
-            container.innerHTML = "";
+    const display =
+        document.getElementById(
+            "arquivoSelecionado"
+        );
 
 
-            Array.from(this.files).forEach(
-                function(file, index) {
+    if (!input.files.length) {
 
-                    const div =
-                        document.createElement("div");
+        display.style.display = "none";
 
-                    div.className = "anexo";
+        display.innerText = "";
 
+        return;
 
-                    let icone = "📄";
-
-
-                    if (
-                        file.type.startsWith("image/")
-                    ) {
-
-                        icone = "🖼️";
-
-                    }
+    }
 
 
-                    div.innerHTML = `
-
-                        <span>
-                            ${icone}
-                        </span>
-
-                        <span class="anexo-nome">
-                            ${escapeHtml(file.name)}
-                        </span>
-
-                    `;
+    const arquivo =
+        input.files[0];
 
 
-                    container.appendChild(div);
-
-                }
-            );
-
-        }
-    );
-
-}
+    display.innerText =
+        "📎 " + arquivo.name;
 
 
-// =========================
-// PROTEÇÃO HTML
-// =========================
-
-function escapeHtml(texto) {
-
-    return String(texto || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    display.style.display = "block";
 
 }
 
 </script>
-
 
 
 <!-- =========================
@@ -1306,3 +1223,4 @@ function escapeHtml(texto) {
 </body>
 
 </html>
+```
