@@ -12,7 +12,10 @@ from flask import (
     url_for
 )
 
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import (
+    generate_password_hash,
+    check_password_hash
+)
 
 from groq import Groq
 
@@ -20,36 +23,38 @@ from groq import Groq
 app = Flask(__name__)
 
 
-# ==========================
+# ============================================================
 # CONFIGURAÇÕES
-# ==========================
+# ============================================================
 
 app.secret_key = os.getenv(
     "FLASK_SECRET_KEY",
     "pedrogpt_secret_key"
 )
 
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
 client = Groq(
-    api_key=os.getenv("GROQ_API_KEY")
-)
+    api_key=GROQ_API_KEY
+) if GROQ_API_KEY else None
 
 
-# ==========================
+# ============================================================
 # VERSION
-# ==========================
+# ============================================================
 
 @app.route("/version")
 def version():
 
-    return {
+    return jsonify({
         "version": "1.2",
         "apk_url": "https://drive.google.com/file/d/1mdpeCrIJNcU2DlHLabjgh17zvM2ha703/view?usp=drive_link"
-    }
+    })
 
 
-# ==========================
+# ============================================================
 # BANCO DE DADOS
-# ==========================
+# ============================================================
 
 def get_db():
 
@@ -62,6 +67,7 @@ def get_db():
     conn.row_factory = sqlite3.Row
 
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA foreign_keys=ON")
 
     return conn
 
@@ -72,9 +78,9 @@ def init_db():
 
         cursor = conn.cursor()
 
-        # ==========================
+        # ====================================================
         # USUÁRIOS
-        # ==========================
+        # ====================================================
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -85,9 +91,9 @@ def init_db():
         )
         """)
 
-        # ==========================
+        # ====================================================
         # MENSAGENS ANTIGAS
-        # ==========================
+        # ====================================================
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages (
@@ -98,9 +104,9 @@ def init_db():
         )
         """)
 
-        # ==========================
+        # ====================================================
         # CONVERSAS
-        # ==========================
+        # ====================================================
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS conversations (
@@ -112,9 +118,9 @@ def init_db():
         )
         """)
 
-        # ==========================
+        # ====================================================
         # MENSAGENS DAS CONVERSAS
-        # ==========================
+        # ====================================================
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS chat_messages (
@@ -123,20 +129,23 @@ def init_db():
             sender TEXT NOT NULL,
             message TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
             FOREIGN KEY (conversation_id)
             REFERENCES conversations(id)
+            ON DELETE CASCADE
         )
         """)
 
         conn.commit()
 
-        # ==========================
-        # MIGRAÇÃO DO HISTÓRICO
-        # ==========================
+        # ====================================================
+        # MIGRAÇÃO DO HISTÓRICO ANTIGO
+        # ====================================================
 
         cursor.execute("""
         SELECT username
         FROM messages
+        WHERE username IS NOT NULL
         GROUP BY username
         """)
 
@@ -203,9 +212,9 @@ def init_db():
 init_db()
 
 
-# ==========================
+# ============================================================
 # FUNÇÕES AUXILIARES
-# ==========================
+# ============================================================
 
 def criar_conversa(
     username,
@@ -237,6 +246,9 @@ def verificar_conversa(
     conversation_id
 ):
 
+    if not conversation_id:
+        return False
+
     with get_db() as conn:
 
         cursor = conn.cursor()
@@ -258,6 +270,8 @@ def conversa_atual():
     if "user" not in session:
         return None
 
+    username = session["user"]
+
     conversation_id = session.get(
         "conversation_id"
     )
@@ -265,14 +279,15 @@ def conversa_atual():
     if conversation_id:
 
         if verificar_conversa(
-            session["user"],
+            username,
             conversation_id
         ):
 
             return conversation_id
 
     conversation_id = criar_conversa(
-        session["user"]
+        username,
+        "Nova conversa"
     )
 
     session["conversation_id"] = conversation_id
@@ -280,9 +295,100 @@ def conversa_atual():
     return conversation_id
 
 
-# ==========================
+def gerar_titulo(mensagem):
+
+    titulo = (
+        mensagem
+        .replace("\n", " ")
+        .strip()
+    )
+
+    if not titulo:
+        return "Nova conversa"
+
+    if len(titulo) > 45:
+        titulo = titulo[:45].rstrip() + "..."
+
+    return titulo
+
+
+def atualizar_titulo_se_necessario(
+    conversation_id,
+    mensagem
+):
+
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        SELECT title
+        FROM conversations
+        WHERE id=?
+        """, (
+            conversation_id,
+        ))
+
+        conversa = cursor.fetchone()
+
+        if not conversa:
+            return
+
+        titulo_atual = (
+            conversa["title"]
+            or ""
+        )
+
+        # Só gera título automaticamente
+        # quando a conversa ainda é nova.
+        if titulo_atual != "Nova conversa":
+            return
+
+        novo_titulo = gerar_titulo(
+            mensagem
+        )
+
+        cursor.execute("""
+        UPDATE conversations
+        SET title=?,
+            updated_at=CURRENT_TIMESTAMP
+        WHERE id=?
+        """, (
+            novo_titulo,
+            conversation_id
+        ))
+
+        conn.commit()
+
+
+def obter_plan_usuario(username):
+
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        SELECT plan
+        FROM users
+        WHERE username=?
+        """, (
+            username,
+        ))
+
+        usuario = cursor.fetchone()
+
+        if not usuario:
+            return "free"
+
+        return (
+            usuario["plan"]
+            or "free"
+        )
+
+
+# ============================================================
 # PÁGINAS
-# ==========================
+# ============================================================
 
 @app.route("/")
 def home():
@@ -294,6 +400,12 @@ def home():
         )
 
     conversa_atual()
+
+    # Garante que o plano da sessão
+    # continue atualizado.
+    session["plan"] = obter_plan_usuario(
+        session["user"]
+    )
 
     return render_template(
         "index.html",
@@ -308,6 +420,11 @@ def home():
 @app.route("/login")
 def login():
 
+    if "user" in session:
+        return redirect(
+            url_for("home")
+        )
+
     return render_template(
         "login.html"
     )
@@ -315,6 +432,11 @@ def login():
 
 @app.route("/register")
 def register():
+
+    if "user" in session:
+        return redirect(
+            url_for("home")
+        )
 
     return render_template(
         "register.html"
@@ -331,9 +453,9 @@ def logout():
     )
 
 
-# ==========================
+# ============================================================
 # REGISTER
-# ==========================
+# ============================================================
 
 @app.route(
     "/api/register",
@@ -341,7 +463,9 @@ def logout():
 )
 def api_register():
 
-    data = request.get_json() or {}
+    data = request.get_json(
+        silent=True
+    ) or {}
 
     username = (
         data.get("username") or ""
@@ -351,16 +475,52 @@ def api_register():
         data.get("password") or ""
     ).strip()
 
+    # --------------------------------------------------------
+    # VALIDAÇÕES
+    # --------------------------------------------------------
+
     if not username or not password:
 
         return jsonify({
             "success": False,
-            "message": "Campos vazios"
-        })
+            "message": "Preencha todos os campos."
+        }), 400
 
-    # ==========================
+    if len(username) < 3:
+
+        return jsonify({
+            "success": False,
+            "message":
+                "O usuário precisa ter pelo menos 3 caracteres."
+        }), 400
+
+    if len(username) > 30:
+
+        return jsonify({
+            "success": False,
+            "message":
+                "O usuário pode ter no máximo 30 caracteres."
+        }), 400
+
+    if len(password) < 4:
+
+        return jsonify({
+            "success": False,
+            "message":
+                "A senha precisa ter pelo menos 4 caracteres."
+        }), 400
+
+    if len(password) > 200:
+
+        return jsonify({
+            "success": False,
+            "message":
+                "A senha é muito longa."
+        }), 400
+
+    # --------------------------------------------------------
     # HASH DA SENHA
-    # ==========================
+    # --------------------------------------------------------
 
     password_hash = generate_password_hash(
         password
@@ -385,15 +545,18 @@ def api_register():
             conn.commit()
 
         return jsonify({
-            "success": True
+            "success": True,
+            "message":
+                "Conta criada com sucesso."
         })
 
     except sqlite3.IntegrityError:
 
         return jsonify({
             "success": False,
-            "message": "Usuário já existe"
-        })
+            "message":
+                "Usuário já existe."
+        }), 409
 
     except Exception as e:
 
@@ -404,13 +567,14 @@ def api_register():
 
         return jsonify({
             "success": False,
-            "message": "Erro interno ao criar conta."
-        })
+            "message":
+                "Erro interno ao criar conta."
+        }), 500
 
 
-# ==========================
+# ============================================================
 # LOGIN
-# ==========================
+# ============================================================
 
 @app.route(
     "/api/login",
@@ -418,7 +582,9 @@ def api_register():
 )
 def api_login():
 
-    data = request.get_json() or {}
+    data = request.get_json(
+        silent=True
+    ) or {}
 
     username = (
         data.get("username") or ""
@@ -432,8 +598,9 @@ def api_login():
 
         return jsonify({
             "success": False,
-            "message": "Preencha usuário e senha."
-        })
+            "message":
+                "Preencha usuário e senha."
+        }), 400
 
     with get_db() as conn:
 
@@ -457,14 +624,15 @@ def api_login():
 
             return jsonify({
                 "success": False,
-                "message": "Login inválido"
-            })
+                "message":
+                    "Usuário ou senha incorretos."
+            }), 401
 
         senha_correta = False
 
-        # ==========================
-        # NOVO SISTEMA
-        # ==========================
+        # ----------------------------------------------------
+        # SENHA COM HASH
+        # ----------------------------------------------------
 
         try:
 
@@ -477,22 +645,24 @@ def api_login():
 
             senha_correta = False
 
-
-        # ==========================
+        # ----------------------------------------------------
         # MIGRAÇÃO DE SENHAS ANTIGAS
-        # ==========================
+        # ----------------------------------------------------
 
         if not senha_correta:
 
-            # Caso a senha antiga esteja
-            # salva em texto puro.
+            senha_antiga = (
+                user["password"]
+            )
 
-            if user["password"] == password:
+            if senha_antiga == password:
 
                 senha_correta = True
 
-                nova_hash = generate_password_hash(
-                    password
+                nova_hash = (
+                    generate_password_hash(
+                        password
+                    )
                 )
 
                 cursor.execute("""
@@ -506,18 +676,19 @@ def api_login():
 
                 conn.commit()
 
-
         if not senha_correta:
 
             return jsonify({
                 "success": False,
-                "message": "Login inválido"
-            })
+                "message":
+                    "Usuário ou senha incorretos."
+            }), 401
 
-
-        # ==========================
+        # ----------------------------------------------------
         # LOGIN OK
-        # ==========================
+        # ----------------------------------------------------
+
+        session.clear()
 
         session["user"] = user["username"]
 
@@ -526,8 +697,11 @@ def api_login():
             or "free"
         )
 
+        # CORREÇÃO IMPORTANTE:
+        # antes estava usando uma variável
+        # "username" que não existia aqui.
         conversation_id = criar_conversa(
-            username,
+            user["username"],
             "Nova conversa"
         )
 
@@ -548,9 +722,9 @@ def api_login():
         })
 
 
-# ==========================
+# ============================================================
 # CHAT
-# ==========================
+# ============================================================
 
 @app.route(
     "/chat",
@@ -561,10 +735,14 @@ def chat():
     if "user" not in session:
 
         return jsonify({
-            "reply": "Faça login primeiro."
-        })
+            "reply":
+                "Faça login primeiro.",
+            "success": False
+        }), 401
 
-    data = request.get_json() or {}
+    data = request.get_json(
+        silent=True
+    ) or {}
 
     mensagem = (
         data.get("message") or ""
@@ -573,22 +751,43 @@ def chat():
     if not mensagem:
 
         return jsonify({
-            "reply": "Digite uma mensagem."
-        })
+            "reply":
+                "Digite uma mensagem.",
+            "success": False
+        }), 400
+
+    # Proteção contra mensagens gigantes.
+    if len(mensagem) > 12000:
+
+        return jsonify({
+            "reply":
+                "Sua mensagem é muito grande. Tente enviar uma mensagem menor.",
+            "success": False
+        }), 400
 
     username = session["user"]
 
-    plan = session.get(
-        "plan",
-        "free"
+    # Atualiza o plano diretamente
+    # do banco.
+    plan = obter_plan_usuario(
+        username
     )
+
+    session["plan"] = plan
 
     conversation_id = conversa_atual()
 
+    if not conversation_id:
 
-    # ==========================
+        return jsonify({
+            "reply":
+                "Não foi possível abrir a conversa.",
+            "success": False
+        }), 500
+
+    # ========================================================
     # LIMITE FREE
-    # ==========================
+    # ========================================================
 
     with get_db() as conn:
 
@@ -599,11 +798,16 @@ def chat():
             cursor.execute("""
             SELECT COUNT(*)
             FROM chat_messages cm
+
             INNER JOIN conversations c
             ON cm.conversation_id = c.id
+
             WHERE c.username=?
+
             AND cm.sender='user'
-            AND date(cm.created_at)=date('now')
+
+            AND date(cm.created_at)
+                = date('now')
             """, (
                 username,
             ))
@@ -614,13 +818,14 @@ def chat():
 
                 return jsonify({
                     "reply":
-                    "❌ Limite diário do plano FREE atingido (20 mensagens)."
-                })
+                        "❌ Limite diário do plano FREE atingido (20 mensagens).",
+                    "limit_reached": True,
+                    "plan": plan
+                }), 429
 
-
-        # ==========================
+        # ====================================================
         # SALVA MENSAGEM
-        # ==========================
+        # ====================================================
 
         cursor.execute("""
         INSERT INTO chat_messages
@@ -642,27 +847,18 @@ def chat():
 
         conn.commit()
 
+    # ========================================================
+    # GERA TÍTULO AUTOMÁTICO
+    # ========================================================
 
-        # ==========================
-        # HISTÓRICO
-        # ==========================
+    atualizar_titulo_se_necessario(
+        conversation_id,
+        mensagem
+    )
 
-        cursor.execute("""
-        SELECT sender, message
-        FROM chat_messages
-        WHERE conversation_id=?
-        ORDER BY id DESC
-        LIMIT 12
-        """, (
-            conversation_id,
-        ))
-
-        historico = cursor.fetchall()
-
-
-    # ==========================
-    # DATA E HORA ATUAL
-    # ==========================
+    # ========================================================
+    # DATA E HORA
+    # ========================================================
 
     agora = datetime.now()
 
@@ -674,10 +870,9 @@ def chat():
         "%H:%M"
     )
 
-
-    # ==========================
+    # ========================================================
     # ESTILO DO PLANO
-    # ==========================
+    # ========================================================
 
     if plan == "free":
 
@@ -703,10 +898,9 @@ Use exemplos quando eles ajudarem
 o usuário a entender.
 """
 
-
-    # ==========================
-    # PERSONALIDADE E INTELIGÊNCIA
-    # ==========================
+    # ========================================================
+    # PERSONALIDADE DO PEDROGPT
+    # ========================================================
 
     mensagens_ia = [
 
@@ -719,13 +913,14 @@ virtual brasileiro inteligente, útil,
 natural e amigável.
 
 Sua função é ajudar o usuário a
-entender assuntos, estudar, programar,
-resolver problemas, criar ideias,
-escrever textos e conversar.
+entender assuntos, estudar,
+programar, resolver problemas,
+criar ideias, escrever textos
+e conversar.
 
-==========================
+==================================================
 DATA E HORA
-==========================
+==================================================
 
 A data atual é:
 
@@ -739,151 +934,127 @@ Use essas informações quando o usuário
 perguntar sobre hoje, amanhã, ontem,
 datas ou horários.
 
-IMPORTANTE:
-
 Não invente a data atual.
 
-Se o usuário perguntar:
-
-"que dia é hoje?"
-
-responda usando a data fornecida acima.
-
-==========================
+==================================================
 IDIOMA
-==========================
+==================================================
 
 - Responda em português do Brasil
   quando o usuário falar português.
 - Se o usuário falar outro idioma,
   responda nesse idioma quando apropriado.
 
-==========================
+==================================================
 ENTENDIMENTO
-==========================
+==================================================
 
-Você deve tentar entender a intenção
-do usuário mesmo quando ele:
+Tente entender a intenção do usuário
+mesmo quando ele:
 
 - escrever errado;
 - usar abreviações;
-- escrever de maneira informal;
+- escrever informalmente;
 - esquecer acentos;
 - escrever frases curtas;
-- misturar português com outras palavras.
+- misturar idiomas.
 
-Exemplo:
+Não critique erros de escrita.
 
-Usuário:
-"oq é python"
-
-Entenda que ele quis dizer:
-
-"O que é Python?"
-
-Não critique os erros de escrita.
-
-==========================
+==================================================
 CONTEXTO
-==========================
+==================================================
 
-Use as mensagens anteriores da conversa
-para entender o que o usuário está dizendo.
+Use o histórico da conversa.
 
 Se o usuário disser:
 
 "e ele?"
 
-procure entender a quem "ele" se refere
-usando o contexto anterior.
+tente identificar a quem "ele"
+se refere usando o contexto.
 
 Se disser:
 
 "faça isso"
 
-entenda o que é "isso" pelo contexto.
+entenda o que é "isso"
+pelo contexto.
 
-Não peça esclarecimento se o contexto
-já permitir entender o pedido.
+Não peça esclarecimento quando
+o contexto já permitir entender
+o pedido.
 
-==========================
+==================================================
 RESPOSTAS
-==========================
+==================================================
 
 Responda diretamente.
 
-Não repita a pergunta do usuário
+Não repita a pergunta
 desnecessariamente.
 
 Não fique enrolando.
 
-Não use frases artificiais
-ou repetitivas.
-
 Se a pergunta for simples,
-responda de forma simples.
+responda simplesmente.
 
 Se for complexa,
-explique de maneira organizada.
+explique de forma organizada.
 
-Se o usuário pedir uma explicação,
-ensine de forma progressiva.
-
-==========================
+==================================================
 FORMATAÇÃO
-==========================
+==================================================
 
-Use Markdown para deixar a resposta
-fácil de ler.
+Use Markdown quando ajudar
+na organização.
 
-Quando fizer sentido, utilize:
+Pode utilizar:
 
 **Negrito**
 
 - Tópicos
-- Segundo tópico
-- Terceiro tópico
 
-Ou:
-
-1. Primeiro passo
-2. Segundo passo
-3. Terceiro passo
-
-Também pode usar:
+1. Passo um
+2. Passo dois
 
 ### Título
 
-quando a resposta for maior.
-
 Use parágrafos curtos.
 
-Evite blocos enormes de texto.
+Não transforme todas as respostas
+em listas.
 
-NÃO transforme absolutamente
-todas as respostas em listas.
+==================================================
+CÓDIGO
+==================================================
 
-Se a resposta puder ser dada
-em uma ou duas frases, faça isso.
+Quando o usuário pedir código:
 
-==========================
-NEGRITO
-==========================
+- entregue código funcional;
+- preserve a estrutura existente
+  quando solicitado;
+- não remova funcionalidades
+  sem motivo;
+- explique brevemente as mudanças;
+- use blocos de código Markdown;
+- se pedir um arquivo inteiro,
+  entregue o arquivo inteiro.
 
-Use **negrito** para informações
-realmente importantes.
+==================================================
+ESTUDOS
+==================================================
 
-Exemplo:
+Quando ajudar em estudos:
 
-**Python** é uma linguagem de
-programação muito utilizada.
+- explique de maneira simples;
+- use exemplos;
+- destaque conceitos importantes;
+- faça exercícios quando ajudar.
 
-Não coloque a resposta inteira
-em negrito.
-
-==========================
+==================================================
 PRECISÃO
-==========================
+==================================================
 
 Nunca invente conscientemente:
 
@@ -897,77 +1068,26 @@ Nunca invente conscientemente:
 - informações atuais.
 
 Se não souber algo,
-diga claramente que não sabe.
+diga claramente.
 
-Não transforme uma suposição
-em fato.
+Não transforme suposições em fatos.
 
-Se uma informação puder estar
-desatualizada, deixe isso claro.
-
-==========================
-INFORMAÇÕES ATUAIS
-==========================
-
-Você possui a data atual fornecida
-neste prompt.
-
-Porém, isso NÃO significa que você
-tenha acesso automático a notícias,
-sites ou informações atualizadas
-da internet.
-
-Não finja que pesquisou na internet
+Não finja ter pesquisado na internet
 quando não pesquisou.
 
-Se não possuir uma informação atual,
-diga isso claramente.
-
-==========================
-CÓDIGO
-==========================
-
-Quando o usuário pedir código:
-
-- entregue código funcional;
-- preserve a estrutura existente
-  quando solicitado;
-- não remova funcionalidades
-  sem motivo;
-- explique brevemente as mudanças;
-- use blocos de código Markdown.
-
-Se o usuário pedir um arquivo inteiro,
-entregue o arquivo inteiro.
-
-==========================
-ESTUDOS
-==========================
-
-Quando estiver ajudando em estudos:
-
-- explique de maneira simples;
-- use exemplos;
-- destaque conceitos importantes;
-- faça perguntas ou exercícios
-  quando isso ajudar.
-
-==========================
+==================================================
 CONVERSA
-==========================
+==================================================
 
 Se o usuário estiver apenas conversando,
-não transforme a conversa em uma aula.
+converse naturalmente.
 
-Se ele fizer uma pergunta direta,
-responda diretamente.
+Não transforme toda conversa
+em uma aula.
 
-Se ele fizer uma brincadeira,
-responda naturalmente quando apropriado.
-
-==========================
+==================================================
 ESTILO
-==========================
+==================================================
 
 Seja:
 
@@ -979,41 +1099,53 @@ Seja:
 - direto;
 - organizado.
 
-Não fique dizendo constantemente
-"como IA" ou "como assistente virtual".
+Não fique repetindo
+"como IA".
 
-Não repita "sou o PedroGPT"
-sem necessidade.
+Não diga constantemente
+"sou o PedroGPT".
 
-==========================
-PLANO DO USUÁRIO
-==========================
+==================================================
+PLANO
+==================================================
 
 {estilo}
 
-==========================
+==================================================
 REGRA PRINCIPAL
-==========================
+==================================================
 
 Antes de responder:
 
 1. Entenda a pergunta.
 2. Analise o contexto.
-3. Verifique se a data atual
-   é relevante.
-4. Escolha a melhor forma
-   de responder.
+3. Verifique se a data é relevante.
+4. Escolha a melhor forma de responder.
 5. Organize a resposta.
 6. Evite informações inventadas.
-
 """
         }
     ]
 
+    # ========================================================
+    # HISTÓRICO DA CONVERSA
+    # ========================================================
 
-    # ==========================
-    # ADICIONA HISTÓRICO
-    # ==========================
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        SELECT sender, message
+        FROM chat_messages
+        WHERE conversation_id=?
+        ORDER BY id DESC
+        LIMIT 20
+        """, (
+            conversation_id,
+        ))
+
+        historico = cursor.fetchall()
 
     for item in reversed(historico):
 
@@ -1027,14 +1159,26 @@ Antes de responder:
 
             "role": role,
 
-            "content": item["message"]
+            "content":
+                item["message"]
 
         })
 
+    # ========================================================
+    # VERIFICA API
+    # ========================================================
 
-    # ==========================
+    if client is None:
+
+        return jsonify({
+            "reply":
+                "❌ A chave GROQ_API_KEY não está configurada no servidor.",
+            "success": False
+        }), 500
+
+    # ========================================================
     # GROQ
-    # ==========================
+    # ========================================================
 
     try:
 
@@ -1046,7 +1190,7 @@ Antes de responder:
 
             temperature=0.7,
 
-            max_completion_tokens=1024
+            max_completion_tokens=2048
         )
 
         texto = (
@@ -1056,6 +1200,12 @@ Antes de responder:
             .content
         )
 
+        if not texto:
+
+            texto = (
+                "Não consegui gerar uma resposta."
+            )
+
     except Exception as e:
 
         print(
@@ -1063,14 +1213,46 @@ Antes de responder:
             repr(e)
         )
 
+        # Remove a mensagem do usuário
+        # somente quando a IA falha,
+        # evitando deixar uma conversa
+        # incompleta no histórico.
+        try:
+
+            with get_db() as conn:
+
+                cursor = conn.cursor()
+
+                cursor.execute("""
+                DELETE FROM chat_messages
+                WHERE id = (
+                    SELECT MAX(id)
+                    FROM chat_messages
+                    WHERE conversation_id=?
+                    AND sender='user'
+                )
+                """, (
+                    conversation_id,
+                ))
+
+                conn.commit()
+
+        except Exception as erro_db:
+
+            print(
+                "ERRO AO REVERTER MENSAGEM:",
+                repr(erro_db)
+            )
+
         return jsonify({
-            "reply": f"Erro IA: {str(e)}"
-        })
+            "reply":
+                "❌ Ocorreu um erro ao conectar com a IA. Tente novamente.",
+            "success": False
+        }), 500
 
-
-    # ==========================
+    # ========================================================
     # SALVA RESPOSTA
-    # ==========================
+    # ========================================================
 
     with get_db() as conn:
 
@@ -1096,23 +1278,34 @@ Antes de responder:
 
         conn.commit()
 
+    # ========================================================
+    # RESPOSTA
+    # ========================================================
 
     return jsonify({
+
+        "success": True,
+
         "reply": texto,
-        "conversation_id": conversation_id
+
+        "conversation_id":
+            conversation_id,
+
+        "plan": plan
+
     })
 
 
-# ==========================
+# ============================================================
 # LISTAR CONVERSAS
-# ==========================
+# ============================================================
 
 @app.route("/conversations")
 def conversations():
 
     if "user" not in session:
 
-        return jsonify([])
+        return jsonify([]), 401
 
     with get_db() as conn:
 
@@ -1126,7 +1319,7 @@ def conversations():
             updated_at
         FROM conversations
         WHERE username=?
-        ORDER BY updated_at DESC
+        ORDER BY updated_at DESC, id DESC
         """, (
             session["user"],
         ))
@@ -1136,10 +1329,17 @@ def conversations():
     return jsonify([
 
         {
-            "id": item["id"],
-            "title": item["title"],
-            "created_at": item["created_at"],
-            "updated_at": item["updated_at"]
+            "id":
+                item["id"],
+
+            "title":
+                item["title"] or "Nova conversa",
+
+            "created_at":
+                item["created_at"],
+
+            "updated_at":
+                item["updated_at"]
         }
 
         for item in lista
@@ -1147,9 +1347,9 @@ def conversations():
     ])
 
 
-# ==========================
+# ============================================================
 # ABRIR CONVERSA
-# ==========================
+# ============================================================
 
 @app.route(
     "/conversation/<int:conversation_id>"
@@ -1162,7 +1362,8 @@ def open_conversation(
 
         return jsonify({
             "success": False,
-            "message": "Faça login primeiro."
+            "message":
+                "Faça login primeiro."
         }), 401
 
     if not verificar_conversa(
@@ -1172,7 +1373,8 @@ def open_conversation(
 
         return jsonify({
             "success": False,
-            "message": "Conversa não encontrada."
+            "message":
+                "Conversa não encontrada."
         }), 404
 
     session["conversation_id"] = (
@@ -1184,7 +1386,10 @@ def open_conversation(
         cursor = conn.cursor()
 
         cursor.execute("""
-        SELECT sender, message, created_at
+        SELECT
+            sender,
+            message,
+            created_at
         FROM chat_messages
         WHERE conversation_id=?
         ORDER BY id ASC
@@ -1195,7 +1400,10 @@ def open_conversation(
         mensagens = cursor.fetchall()
 
         cursor.execute("""
-        SELECT title
+        SELECT
+            title,
+            created_at,
+            updated_at
         FROM conversations
         WHERE id=? AND username=?
         """, (
@@ -1218,12 +1426,29 @@ def open_conversation(
             else "Nova conversa"
         ),
 
+        "created_at": (
+            conversa["created_at"]
+            if conversa
+            else None
+        ),
+
+        "updated_at": (
+            conversa["updated_at"]
+            if conversa
+            else None
+        ),
+
         "messages": [
 
             {
-                "sender": item["sender"],
-                "message": item["message"],
-                "created_at": item["created_at"]
+                "sender":
+                    item["sender"],
+
+                "message":
+                    item["message"],
+
+                "created_at":
+                    item["created_at"]
             }
 
             for item in mensagens
@@ -1233,16 +1458,16 @@ def open_conversation(
     })
 
 
-# ==========================
+# ============================================================
 # HISTORY
-# ==========================
+# ============================================================
 
 @app.route("/history")
 def history():
 
     if "user" not in session:
 
-        return jsonify([])
+        return jsonify([]), 401
 
     conversation_id = (
         conversa_atual()
@@ -1253,7 +1478,10 @@ def history():
         cursor = conn.cursor()
 
         cursor.execute("""
-        SELECT sender, message, created_at
+        SELECT
+            sender,
+            message,
+            created_at
         FROM chat_messages
         WHERE conversation_id=?
         ORDER BY id ASC
@@ -1266,9 +1494,14 @@ def history():
     return jsonify([
 
         {
-            "sender": item["sender"],
-            "message": item["message"],
-            "created_at": item["created_at"]
+            "sender":
+                item["sender"],
+
+            "message":
+                item["message"],
+
+            "created_at":
+                item["created_at"]
         }
 
         for item in mensagens
@@ -1276,9 +1509,9 @@ def history():
     ])
 
 
-# ==========================
+# ============================================================
 # NOVA CONVERSA
-# ==========================
+# ============================================================
 
 @app.route(
     "/new_chat",
@@ -1290,8 +1523,9 @@ def new_chat():
 
         return jsonify({
             "success": False,
-            "message": "Faça login primeiro."
-        })
+            "message":
+                "Faça login primeiro."
+        }), 401
 
     conversation_id = criar_conversa(
         session["user"],
@@ -1315,9 +1549,9 @@ def new_chat():
     })
 
 
-# ==========================
+# ============================================================
 # RENOMEAR CONVERSA
-# ==========================
+# ============================================================
 
 @app.route(
     "/conversation/<int:conversation_id>/rename",
@@ -1331,7 +1565,8 @@ def rename_conversation(
 
         return jsonify({
             "success": False,
-            "message": "Faça login primeiro."
+            "message":
+                "Faça login primeiro."
         }), 401
 
     if not verificar_conversa(
@@ -1341,10 +1576,13 @@ def rename_conversation(
 
         return jsonify({
             "success": False,
-            "message": "Conversa não encontrada."
+            "message":
+                "Conversa não encontrada."
         }), 404
 
-    data = request.get_json() or {}
+    data = request.get_json(
+        silent=True
+    ) or {}
 
     title = (
         data.get("title") or ""
@@ -1355,10 +1593,12 @@ def rename_conversation(
         return jsonify({
             "success": False,
             "message":
-            "Digite um nome para a conversa."
-        })
+                "Digite um nome para a conversa."
+        }), 400
 
-    title = title[:100]
+    if len(title) > 100:
+
+        title = title[:100].rstrip()
 
     with get_db() as conn:
 
@@ -1366,7 +1606,8 @@ def rename_conversation(
 
         cursor.execute("""
         UPDATE conversations
-        SET title=?
+        SET title=?,
+            updated_at=CURRENT_TIMESTAMP
         WHERE id=? AND username=?
         """, (
             title,
@@ -1377,14 +1618,17 @@ def rename_conversation(
         conn.commit()
 
     return jsonify({
+
         "success": True,
+
         "title": title
+
     })
 
 
-# ==========================
+# ============================================================
 # EXCLUIR CONVERSA
-# ==========================
+# ============================================================
 
 @app.route(
     "/conversation/<int:conversation_id>",
@@ -1398,7 +1642,8 @@ def delete_conversation(
 
         return jsonify({
             "success": False,
-            "message": "Faça login primeiro."
+            "message":
+                "Faça login primeiro."
         }), 401
 
     if not verificar_conversa(
@@ -1408,20 +1653,16 @@ def delete_conversation(
 
         return jsonify({
             "success": False,
-            "message": "Conversa não encontrada."
+            "message":
+                "Conversa não encontrada."
         }), 404
 
     with get_db() as conn:
 
         cursor = conn.cursor()
 
-        cursor.execute("""
-        DELETE FROM chat_messages
-        WHERE conversation_id=?
-        """, (
-            conversation_id,
-        ))
-
+        # As mensagens são removidas
+        # pelo ON DELETE CASCADE.
         cursor.execute("""
         DELETE FROM conversations
         WHERE id=? AND username=?
@@ -1431,6 +1672,11 @@ def delete_conversation(
         ))
 
         conn.commit()
+
+    # --------------------------------------------------------
+    # Se era a conversa atual,
+    # cria uma nova automaticamente.
+    # --------------------------------------------------------
 
     if (
         session.get("conversation_id")
@@ -1458,9 +1704,72 @@ def delete_conversation(
     })
 
 
-# ==========================
+# ============================================================
+# PLANO DO USUÁRIO
+# ============================================================
+
+@app.route("/api/plan")
+def api_plan():
+
+    if "user" not in session:
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Faça login primeiro."
+        }), 401
+
+    plan = obter_plan_usuario(
+        session["user"]
+    )
+
+    session["plan"] = plan
+
+    return jsonify({
+
+        "success": True,
+
+        "plan": plan
+
+    })
+
+
+# ============================================================
+# STATUS
+# ============================================================
+
+@app.route("/api/status")
+def api_status():
+
+    if "user" not in session:
+
+        return jsonify({
+            "logged": False
+        })
+
+    return jsonify({
+
+        "logged": True,
+
+        "username":
+            session["user"],
+
+        "plan":
+            obter_plan_usuario(
+                session["user"]
+            ),
+
+        "conversation_id":
+            session.get(
+                "conversation_id"
+            )
+
+    })
+
+
+# ============================================================
 # START
-# ==========================
+# ============================================================
 
 if __name__ == "__main__":
 
@@ -1473,5 +1782,6 @@ if __name__ == "__main__":
 
     app.run(
         host="0.0.0.0",
-        port=port
+        port=port,
+        debug=False
     )
