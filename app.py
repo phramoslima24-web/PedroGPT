@@ -40,11 +40,27 @@ client = Groq(
 
 
 # ============================================================
+# ADMIN
+# ============================================================
+
+ADMIN_USERNAME = os.getenv(
+    "ADMIN_USERNAME",
+    "admin"
+)
+
+ADMIN_PASSWORD = os.getenv(
+    "ADMIN_PASSWORD",
+    "123456"
+)
+
+
+# ============================================================
 # VERSION
 # ============================================================
 
 @app.route("/version")
 def version():
+
     return jsonify({
         "version": "1.2",
         "apk_url": "https://drive.google.com/file/d/1mdpeCrIJNcU2DlHLabjgh17zvM2ha703/view?usp=drive_link"
@@ -59,6 +75,7 @@ DATABASE = "database.db"
 
 
 def get_db():
+
     conn = sqlite3.connect(
         DATABASE,
         timeout=10,
@@ -372,6 +389,18 @@ def obter_plan_usuario(username):
 
 
 # ============================================================
+# VERIFICAÇÃO DO ADMIN
+# ============================================================
+
+def admin_logado():
+
+    return session.get(
+        "admin_logged",
+        False
+    )
+
+
+# ============================================================
 # PÁGINAS
 # ============================================================
 
@@ -415,16 +444,419 @@ def register():
 @app.route("/logout")
 def logout():
 
-    session.clear()
+    session.pop("user", None)
+    session.pop("plan", None)
+    session.pop("conversation_id", None)
 
     return redirect(url_for("login"))
+
+
+# ============================================================
+# ADMIN LOGIN
+# ============================================================
+
+@app.route("/admin")
+def admin():
+
+    if admin_logado():
+
+        return redirect(
+            url_for("admin_dashboard")
+        )
+
+    return render_template(
+        "admin_login.html"
+    )
+
+
+@app.route(
+    "/admin/login",
+    methods=["POST"]
+)
+def admin_login():
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    username = (
+        data.get("username") or ""
+    ).strip()
+
+    password = (
+        data.get("password") or ""
+    )
+
+    if not username or not password:
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Preencha usuário e senha."
+        }), 400
+
+    if (
+        username != ADMIN_USERNAME
+        or password != ADMIN_PASSWORD
+    ):
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Usuário ou senha de administrador incorretos."
+        }), 401
+
+    session["admin_logged"] = True
+    session["admin_username"] = username
+
+    return jsonify({
+        "success": True,
+        "message":
+            "Login administrativo realizado."
+    })
+
+
+# ============================================================
+# ADMIN DASHBOARD
+# ============================================================
+
+@app.route("/admin/dashboard")
+def admin_dashboard():
+
+    if not admin_logado():
+
+        return redirect(
+            url_for("admin")
+        )
+
+    return render_template(
+        "admin.html"
+    )
+
+
+# ============================================================
+# ADMIN LOGOUT
+# ============================================================
+
+@app.route("/admin/logout")
+def admin_logout():
+
+    session.pop(
+        "admin_logged",
+        None
+    )
+
+    session.pop(
+        "admin_username",
+        None
+    )
+
+    return redirect(
+        url_for("admin")
+    )
+
+
+# ============================================================
+# ADMIN - ESTATÍSTICAS
+# ============================================================
+
+@app.route("/api/admin/stats")
+def admin_stats():
+
+    if not admin_logado():
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Não autorizado."
+        }), 401
+
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        # Total de usuários
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM users
+        """)
+
+        total_usuarios = cursor.fetchone()[0]
+
+        # Free
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM users
+            WHERE plan = 'free'
+        """)
+
+        total_free = cursor.fetchone()[0]
+
+        # Premium
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM users
+            WHERE plan = 'premium'
+        """)
+
+        total_premium = cursor.fetchone()[0]
+
+        # Conversas
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM conversations
+        """)
+
+        total_conversas = cursor.fetchone()[0]
+
+        # Mensagens
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM chat_messages
+        """)
+
+        total_mensagens = cursor.fetchone()[0]
+
+    return jsonify({
+
+        "success": True,
+
+        "users": total_usuarios,
+
+        "free": total_free,
+
+        "premium": total_premium,
+
+        "conversations": total_conversas,
+
+        "messages": total_mensagens
+
+    })
+
+
+# ============================================================
+# ADMIN - LISTAR USUÁRIOS
+# ============================================================
+
+@app.route("/api/admin/users")
+def admin_users():
+
+    if not admin_logado():
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Não autorizado."
+        }), 401
+
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT
+                id,
+                username,
+                plan
+            FROM users
+            ORDER BY id DESC
+        """)
+
+        usuarios = cursor.fetchall()
+
+    return jsonify({
+
+        "success": True,
+
+        "users": [
+
+            {
+                "id":
+                    usuario["id"],
+
+                "username":
+                    usuario["username"],
+
+                "plan":
+                    usuario["plan"] or "free"
+            }
+
+            for usuario in usuarios
+
+        ]
+
+    })
+
+
+# ============================================================
+# ADMIN - ALTERAR PLANO
+# ============================================================
+
+@app.route(
+    "/api/admin/user/<int:user_id>/plan",
+    methods=["POST"]
+)
+def admin_change_plan(user_id):
+
+    if not admin_logado():
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Não autorizado."
+        }), 401
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    plan = (
+        data.get("plan") or ""
+    ).strip().lower()
+
+    if plan not in (
+        "free",
+        "premium"
+    ):
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Plano inválido."
+        }), 400
+
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT id, username
+            FROM users
+            WHERE id = ?
+        """, (
+            user_id,
+        ))
+
+        usuario = cursor.fetchone()
+
+        if not usuario:
+
+            return jsonify({
+                "success": False,
+                "message":
+                    "Usuário não encontrado."
+            }), 404
+
+        cursor.execute("""
+            UPDATE users
+            SET plan = ?
+            WHERE id = ?
+        """, (
+            plan,
+            user_id
+        ))
+
+        conn.commit()
+
+    return jsonify({
+
+        "success": True,
+
+        "message":
+            f"Usuário {usuario['username']} agora é {plan}.",
+
+        "plan":
+            plan
+
+    })
+
+
+# ============================================================
+# ADMIN - EXCLUIR USUÁRIO
+# ============================================================
+
+@app.route(
+    "/api/admin/user/<int:user_id>",
+    methods=["DELETE"]
+)
+def admin_delete_user(user_id):
+
+    if not admin_logado():
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Não autorizado."
+        }), 401
+
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT username
+            FROM users
+            WHERE id = ?
+        """, (
+            user_id,
+        ))
+
+        usuario = cursor.fetchone()
+
+        if not usuario:
+
+            return jsonify({
+                "success": False,
+                "message":
+                    "Usuário não encontrado."
+            }), 404
+
+        username = usuario["username"]
+
+        # Exclui mensagens antigas
+        cursor.execute("""
+            DELETE FROM messages
+            WHERE username = ?
+        """, (
+            username,
+        ))
+
+        # Exclui conversas
+        cursor.execute("""
+            DELETE FROM conversations
+            WHERE username = ?
+        """, (
+            username,
+        ))
+
+        # Exclui usuário
+        cursor.execute("""
+            DELETE FROM users
+            WHERE id = ?
+        """, (
+            user_id,
+        ))
+
+        conn.commit()
+
+    return jsonify({
+
+        "success": True,
+
+        "message":
+            f"Usuário {username} excluído."
+
+    })
 
 
 # ============================================================
 # REGISTER
 # ============================================================
 
-@app.route("/api/register", methods=["POST"])
+@app.route(
+    "/api/register",
+    methods=["POST"]
+)
 def api_register():
 
     data = request.get_json(
@@ -443,7 +875,8 @@ def api_register():
 
         return jsonify({
             "success": False,
-            "message": "Preencha todos os campos."
+            "message":
+                "Preencha todos os campos."
         }), 400
 
     if len(username) < 3:
@@ -502,14 +935,16 @@ def api_register():
 
         return jsonify({
             "success": True,
-            "message": "Conta criada com sucesso."
+            "message":
+                "Conta criada com sucesso."
         })
 
     except sqlite3.IntegrityError:
 
         return jsonify({
             "success": False,
-            "message": "Usuário já existe."
+            "message":
+                "Usuário já existe."
         }), 409
 
     except Exception as e:
@@ -530,7 +965,10 @@ def api_register():
 # LOGIN
 # ============================================================
 
-@app.route("/api/login", methods=["POST"])
+@app.route(
+    "/api/login",
+    methods=["POST"]
+)
 def api_login():
 
     data = request.get_json(
@@ -644,12 +1082,20 @@ def api_login():
             "Nova conversa"
         )
 
-        session["conversation_id"] = conversation_id
+        session["conversation_id"] = (
+            conversation_id
+        )
 
         return jsonify({
+
             "success": True,
-            "plan": session["plan"],
-            "conversation_id": conversation_id
+
+            "plan":
+                session["plan"],
+
+            "conversation_id":
+                conversation_id
+
         })
 
 
@@ -657,13 +1103,17 @@ def api_login():
 # CHAT
 # ============================================================
 
-@app.route("/chat", methods=["POST"])
+@app.route(
+    "/chat",
+    methods=["POST"]
+)
 def chat():
 
     if "user" not in session:
 
         return jsonify({
-            "reply": "Faça login primeiro.",
+            "reply":
+                "Faça login primeiro.",
             "success": False
         }), 401
 
@@ -678,7 +1128,8 @@ def chat():
     if not mensagem:
 
         return jsonify({
-            "reply": "Digite uma mensagem.",
+            "reply":
+                "Digite uma mensagem.",
             "success": False
         }), 400
 
@@ -692,7 +1143,9 @@ def chat():
 
     username = session["user"]
 
-    plan = obter_plan_usuario(username)
+    plan = obter_plan_usuario(
+        username
+    )
 
     session["plan"] = plan
 
@@ -738,10 +1191,16 @@ def chat():
             if total >= 20:
 
                 return jsonify({
+
                     "reply":
                         "❌ Limite diário do plano FREE atingido (20 mensagens).",
-                    "limit_reached": True,
-                    "plan": plan
+
+                    "limit_reached":
+                        True,
+
+                    "plan":
+                        plan
+
                 }), 429
 
         # ====================================================
@@ -827,6 +1286,7 @@ o usuário a entender.
 
         {
             "role": "system",
+
             "content": f"""
 Você é o PedroGPT, um assistente
 virtual brasileiro inteligente, útil,
@@ -1076,8 +1536,13 @@ Antes de responder:
         )
 
         mensagens_ia.append({
-            "role": role,
-            "content": item["message"]
+
+            "role":
+                role,
+
+            "content":
+                item["message"]
+
         })
 
     # ========================================================
@@ -1099,9 +1564,13 @@ Antes de responder:
     try:
 
         resposta = client.chat.completions.create(
+
             model="openai/gpt-oss-120b",
+
             messages=mensagens_ia,
+
             temperature=0.7,
+
             max_completion_tokens=2048
         )
 
@@ -1153,9 +1622,13 @@ Antes de responder:
             )
 
         return jsonify({
+
             "reply":
                 "❌ Ocorreu um erro ao conectar com a IA. Tente novamente.",
-            "success": False
+
+            "success":
+                False
+
         }), 500
 
     # ========================================================
@@ -1191,10 +1664,19 @@ Antes de responder:
     # ========================================================
 
     return jsonify({
-        "success": True,
-        "reply": texto,
-        "conversation_id": conversation_id,
-        "plan": plan
+
+        "success":
+            True,
+
+        "reply":
+            texto,
+
+        "conversation_id":
+            conversation_id,
+
+        "plan":
+            plan
+
     })
 
 
@@ -1228,13 +1710,23 @@ def conversations():
         lista = cursor.fetchall()
 
     return jsonify([
+
         {
-            "id": item["id"],
-            "title": item["title"] or "Nova conversa",
-            "created_at": item["created_at"],
-            "updated_at": item["updated_at"]
+            "id":
+                item["id"],
+
+            "title":
+                item["title"] or "Nova conversa",
+
+            "created_at":
+                item["created_at"],
+
+            "updated_at":
+                item["updated_at"]
         }
+
         for item in lista
+
     ])
 
 
@@ -1242,7 +1734,9 @@ def conversations():
 # ABRIR CONVERSA
 # ============================================================
 
-@app.route("/conversation/<int:conversation_id>")
+@app.route(
+    "/conversation/<int:conversation_id>"
+)
 def open_conversation(conversation_id):
 
     if "user" not in session:
@@ -1264,7 +1758,9 @@ def open_conversation(conversation_id):
                 "Conversa não encontrada."
         }), 404
 
-    session["conversation_id"] = conversation_id
+    session["conversation_id"] = (
+        conversation_id
+    )
 
     with get_db() as conn:
 
@@ -1301,9 +1797,11 @@ def open_conversation(conversation_id):
 
     return jsonify({
 
-        "success": True,
+        "success":
+            True,
 
-        "conversation_id": conversation_id,
+        "conversation_id":
+            conversation_id,
 
         "title": (
             conversa["title"]
@@ -1324,12 +1822,20 @@ def open_conversation(conversation_id):
         ),
 
         "messages": [
+
             {
-                "sender": item["sender"],
-                "message": item["message"],
-                "created_at": item["created_at"]
+                "sender":
+                    item["sender"],
+
+                "message":
+                    item["message"],
+
+                "created_at":
+                    item["created_at"]
             }
+
             for item in mensagens
+
         ]
     })
 
@@ -1365,12 +1871,20 @@ def history():
         mensagens = cursor.fetchall()
 
     return jsonify([
+
         {
-            "sender": item["sender"],
-            "message": item["message"],
-            "created_at": item["created_at"]
+            "sender":
+                item["sender"],
+
+            "message":
+                item["message"],
+
+            "created_at":
+                item["created_at"]
         }
+
         for item in mensagens
+
     ])
 
 
@@ -1378,7 +1892,10 @@ def history():
 # NOVA CONVERSA
 # ============================================================
 
-@app.route("/new_chat", methods=["POST"])
+@app.route(
+    "/new_chat",
+    methods=["POST"]
+)
 def new_chat():
 
     if "user" not in session:
@@ -1394,11 +1911,14 @@ def new_chat():
         "Nova conversa"
     )
 
-    session["conversation_id"] = conversation_id
+    session["conversation_id"] = (
+        conversation_id
+    )
 
     return jsonify({
 
-        "success": True,
+        "success":
+            True,
 
         "conversation_id":
             conversation_id,
@@ -1476,8 +1996,13 @@ def rename_conversation(conversation_id):
         conn.commit()
 
     return jsonify({
-        "success": True,
-        "title": title
+
+        "success":
+            True,
+
+        "title":
+            title
+
     })
 
 
@@ -1525,21 +2050,28 @@ def delete_conversation(conversation_id):
 
         conn.commit()
 
-    if session.get("conversation_id") == conversation_id:
+    if session.get(
+        "conversation_id"
+    ) == conversation_id:
 
         nova_conversa = criar_conversa(
             session["user"],
             "Nova conversa"
         )
 
-        session["conversation_id"] = nova_conversa
+        session["conversation_id"] = (
+            nova_conversa
+        )
 
     return jsonify({
 
-        "success": True,
+        "success":
+            True,
 
         "conversation_id":
-            session.get("conversation_id")
+            session.get(
+                "conversation_id"
+            )
 
     })
 
@@ -1566,8 +2098,13 @@ def api_plan():
     session["plan"] = plan
 
     return jsonify({
-        "success": True,
-        "plan": plan
+
+        "success":
+            True,
+
+        "plan":
+            plan
+
     })
 
 
@@ -1581,12 +2118,14 @@ def api_status():
     if "user" not in session:
 
         return jsonify({
-            "logged": False
+            "logged":
+                False
         })
 
     return jsonify({
 
-        "logged": True,
+        "logged":
+            True,
 
         "username":
             session["user"],
@@ -1597,7 +2136,9 @@ def api_status():
             ),
 
         "conversation_id":
-            session.get("conversation_id")
+            session.get(
+                "conversation_id"
+            )
 
     })
 
