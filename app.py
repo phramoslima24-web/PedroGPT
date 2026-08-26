@@ -1,7 +1,7 @@
+````python
 import os
 import sqlite3
 import base64
-import mimetypes
 from datetime import datetime
 
 from flask import (
@@ -11,12 +11,13 @@ from flask import (
     jsonify,
     session,
     redirect,
-    url_for,
-    send_from_directory
+    url_for
 )
 
-from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
+from werkzeug.security import (
+    generate_password_hash,
+    check_password_hash
+)
 
 from groq import Groq
 
@@ -24,9 +25,9 @@ from groq import Groq
 app = Flask(__name__)
 
 
-# =========================================================
+# ==========================
 # CONFIGURAÇÕES
-# =========================================================
+# ==========================
 
 app.secret_key = os.getenv(
     "FLASK_SECRET_KEY",
@@ -38,24 +39,32 @@ client = Groq(
 )
 
 
-# =========================================================
-# UPLOADS
-# =========================================================
+# ==========================
+# CONFIGURAÇÕES DE ARQUIVOS
+# ==========================
 
-UPLOAD_FOLDER = "uploads"
+MAX_FILE_SIZE = 10 * 1024 * 1024
 
-os.makedirs(
-    UPLOAD_FOLDER,
-    exist_ok=True
-)
-
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-
-# Limite máximo por arquivo: 10 MB
-app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
-
-
-ALLOWED_IMAGE_EXTENSIONS = {
+ALLOWED_EXTENSIONS = {
+    "txt",
+    "pdf",
+    "doc",
+    "docx",
+    "csv",
+    "json",
+    "py",
+    "js",
+    "html",
+    "css",
+    "java",
+    "c",
+    "cpp",
+    "h",
+    "hpp",
+    "md",
+    "xml",
+    "sql",
+    "zip",
     "png",
     "jpg",
     "jpeg",
@@ -64,73 +73,22 @@ ALLOWED_IMAGE_EXTENSIONS = {
 }
 
 
-ALLOWED_TEXT_EXTENSIONS = {
-    "txt",
-    "py",
-    "js",
-    "html",
-    "css",
-    "json",
-    "xml",
-    "csv",
-    "md",
-    "java",
-    "c",
-    "cpp",
-    "h",
-    "hpp",
-    "sql",
-    "php",
-    "ts",
-    "tsx",
-    "jsx",
-    "sh",
-    "bat"
-}
-
-
-def arquivo_e_imagem(nome):
-
-    extensao = (
-        nome
-        .rsplit(".", 1)[-1]
-        .lower()
-        if "." in nome
-        else ""
-    )
-
-    return extensao in ALLOWED_IMAGE_EXTENSIONS
-
-
-def arquivo_e_texto(nome):
-
-    extensao = (
-        nome
-        .rsplit(".", 1)[-1]
-        .lower()
-        if "." in nome
-        else ""
-    )
-
-    return extensao in ALLOWED_TEXT_EXTENSIONS
-
-
-# =========================================================
+# ==========================
 # VERSION
-# =========================================================
+# ==========================
 
 @app.route("/version")
 def version():
 
     return {
-        "version": "1.3",
+        "version": "1.2",
         "apk_url": "https://drive.google.com/file/d/1mdpeCrIJNcU2DlHLabjgh17zvM2ha703/view?usp=drive_link"
     }
 
 
-# =========================================================
+# ==========================
 # BANCO DE DADOS
-# =========================================================
+# ==========================
 
 def get_db():
 
@@ -142,9 +100,7 @@ def get_db():
 
     conn.row_factory = sqlite3.Row
 
-    conn.execute(
-        "PRAGMA journal_mode=WAL"
-    )
+    conn.execute("PRAGMA journal_mode=WAL")
 
     return conn
 
@@ -155,9 +111,9 @@ def init_db():
 
         cursor = conn.cursor()
 
-        # =================================================
+        # ==========================
         # USUÁRIOS
-        # =================================================
+        # ==========================
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -168,9 +124,9 @@ def init_db():
         )
         """)
 
-        # =================================================
+        # ==========================
         # MENSAGENS ANTIGAS
-        # =================================================
+        # ==========================
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages (
@@ -181,9 +137,9 @@ def init_db():
         )
         """)
 
-        # =================================================
+        # ==========================
         # CONVERSAS
-        # =================================================
+        # ==========================
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS conversations (
@@ -195,9 +151,9 @@ def init_db():
         )
         """)
 
-        # =================================================
-        # MENSAGENS
-        # =================================================
+        # ==========================
+        # MENSAGENS DAS CONVERSAS
+        # ==========================
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS chat_messages (
@@ -211,30 +167,33 @@ def init_db():
         )
         """)
 
-        # =================================================
-        # ANEXOS
-        # =================================================
+        # ==========================
+        # ARQUIVOS DAS CONVERSAS
+        # ==========================
 
         cursor.execute("""
-        CREATE TABLE IF NOT EXISTS attachments (
+        CREATE TABLE IF NOT EXISTS chat_files (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             conversation_id INTEGER NOT NULL,
+            message_id INTEGER,
             username TEXT NOT NULL,
-            original_name TEXT NOT NULL,
-            stored_name TEXT NOT NULL,
-            file_type TEXT,
-            file_size INTEGER DEFAULT 0,
+            filename TEXT NOT NULL,
+            mimetype TEXT,
+            size INTEGER DEFAULT 0,
+            content TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (conversation_id)
-            REFERENCES conversations(id)
+            REFERENCES conversations(id),
+            FOREIGN KEY (message_id)
+            REFERENCES chat_messages(id)
         )
         """)
 
         conn.commit()
 
-        # =================================================
-        # MIGRAÇÃO DO HISTÓRICO ANTIGO
-        # =================================================
+        # ==========================
+        # MIGRAÇÃO DO HISTÓRICO
+        # ==========================
 
         cursor.execute("""
         SELECT username
@@ -305,9 +264,9 @@ def init_db():
 init_db()
 
 
-# =========================================================
+# ==========================
 # FUNÇÕES AUXILIARES
-# =========================================================
+# ==========================
 
 def criar_conversa(
     username,
@@ -382,18 +341,129 @@ def conversa_atual():
     return conversation_id
 
 
-def tamanho_arquivo(caminho):
+def arquivo_permitido(filename):
+
+    if not filename:
+        return False
+
+    if "." not in filename:
+        return False
+
+    extensao = filename.rsplit(
+        ".",
+        1
+    )[1].lower()
+
+    return extensao in ALLOWED_EXTENSIONS
+
+
+def ler_arquivo_texto(file):
 
     try:
-        return os.path.getsize(caminho)
 
-    except Exception:
-        return 0
+        dados = file.read()
+
+        if not dados:
+            return ""
+
+        return dados.decode(
+            "utf-8",
+            errors="replace"
+        )
+
+    except Exception as e:
+
+        print(
+            "ERRO AO LER ARQUIVO:",
+            repr(e)
+        )
+
+        return ""
 
 
-# =========================================================
+def preparar_arquivo(file):
+
+    filename = (
+        file.filename or
+        "arquivo"
+    )
+
+    if not arquivo_permitido(filename):
+
+        raise ValueError(
+            "Tipo de arquivo não permitido."
+        )
+
+    file.seek(0, 2)
+
+    tamanho = file.tell()
+
+    file.seek(0)
+
+    if tamanho > MAX_FILE_SIZE:
+
+        raise ValueError(
+            "O arquivo é muito grande. "
+            "O limite é 10 MB."
+        )
+
+    mimetype = (
+        file.mimetype or
+        "application/octet-stream"
+    )
+
+    extensao = filename.rsplit(
+        ".",
+        1
+    )[1].lower()
+
+    texto = ""
+
+    tipos_texto = {
+        "txt",
+        "csv",
+        "json",
+        "py",
+        "js",
+        "html",
+        "css",
+        "java",
+        "c",
+        "cpp",
+        "h",
+        "hpp",
+        "md",
+        "xml",
+        "sql"
+    }
+
+    if extensao in tipos_texto:
+
+        texto = ler_arquivo_texto(file)
+
+    else:
+
+        dados = file.read()
+
+        if dados:
+
+            texto = (
+                f"[Arquivo anexado: {filename}]\n"
+                f"Tipo: {mimetype}\n"
+                f"Tamanho: {tamanho} bytes"
+            )
+
+    return {
+        "filename": filename,
+        "mimetype": mimetype,
+        "size": tamanho,
+        "content": texto
+    }
+
+
+# ==========================
 # PÁGINAS
-# =========================================================
+# ==========================
 
 @app.route("/")
 def home():
@@ -442,9 +512,9 @@ def logout():
     )
 
 
-# =========================================================
+# ==========================
 # REGISTER
-# =========================================================
+# ==========================
 
 @app.route(
     "/api/register",
@@ -515,9 +585,9 @@ def api_register():
         })
 
 
-# =========================================================
+# ==========================
 # LOGIN
-# =========================================================
+# ==========================
 
 @app.route(
     "/api/login",
@@ -580,10 +650,6 @@ def api_login():
 
             senha_correta = False
 
-        # =================================================
-        # MIGRAÇÃO DE SENHAS ANTIGAS
-        # =================================================
-
         if not senha_correta:
 
             if user["password"] == password:
@@ -615,8 +681,8 @@ def api_login():
         session["user"] = user["username"]
 
         session["plan"] = (
-            user["plan"]
-            or "free"
+            user["plan"] or
+            "free"
         )
 
         conversation_id = criar_conversa(
@@ -641,273 +707,9 @@ def api_login():
         })
 
 
-# =========================================================
-# UPLOAD DE ARQUIVO
-# =========================================================
-
-@app.route(
-    "/upload",
-    methods=["POST"]
-)
-def upload():
-
-    if "user" not in session:
-
-        return jsonify({
-            "success": False,
-            "message": "Faça login primeiro."
-        }), 401
-
-    if "file" not in request.files:
-
-        return jsonify({
-            "success": False,
-            "message": "Nenhum arquivo enviado."
-        }), 400
-
-    arquivo = request.files["file"]
-
-    if not arquivo or not arquivo.filename:
-
-        return jsonify({
-            "success": False,
-            "message": "Arquivo inválido."
-        }), 400
-
-    nome_original = arquivo.filename
-
-    nome_seguro = secure_filename(
-        nome_original
-    )
-
-    if not nome_seguro:
-
-        return jsonify({
-            "success": False,
-            "message": "Nome de arquivo inválido."
-        }), 400
-
-    eh_imagem = arquivo_e_imagem(
-        nome_seguro
-    )
-
-    eh_texto = arquivo_e_texto(
-        nome_seguro
-    )
-
-    if not eh_imagem and not eh_texto:
-
-        return jsonify({
-            "success": False,
-            "message":
-                "Tipo de arquivo não permitido."
-        }), 400
-
-    conversation_id = conversa_atual()
-
-    # =====================================================
-    # NOME ÚNICO
-    # =====================================================
-
-    extensao = ""
-
-    if "." in nome_seguro:
-
-        extensao = "." + nome_seguro.rsplit(
-            ".",
-            1
-        )[1].lower()
-
-    nome_salvo = (
-        f"{session['user']}_"
-        f"{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
-        f"{extensao}"
-    )
-
-    caminho = os.path.join(
-        app.config["UPLOAD_FOLDER"],
-        nome_salvo
-    )
-
-    try:
-
-        arquivo.save(caminho)
-
-        tamanho = tamanho_arquivo(
-            caminho
-        )
-
-        mime_type = (
-            mimetypes.guess_type(
-                nome_original
-            )[0]
-            or arquivo.mimetype
-            or "application/octet-stream"
-        )
-
-        # =================================================
-        # SALVA NO BANCO
-        # =================================================
-
-        with get_db() as conn:
-
-            cursor = conn.cursor()
-
-            cursor.execute("""
-            INSERT INTO attachments
-            (
-                conversation_id,
-                username,
-                original_name,
-                stored_name,
-                file_type,
-                file_size
-            )
-            VALUES (?, ?, ?, ?, ?, ?)
-            """, (
-                conversation_id,
-                session["user"],
-                nome_original,
-                nome_salvo,
-                mime_type,
-                tamanho
-            ))
-
-            attachment_id = cursor.lastrowid
-
-            conn.commit()
-
-        # =================================================
-        # ARQUIVO DE TEXTO/CÓDIGO
-        # =================================================
-
-        conteudo = None
-
-        if eh_texto:
-
-            try:
-
-                with open(
-                    caminho,
-                    "r",
-                    encoding="utf-8",
-                    errors="ignore"
-                ) as f:
-
-                    conteudo = f.read()
-
-                # Evita mandar arquivos gigantes
-                conteudo = conteudo[:50000]
-
-            except Exception as e:
-
-                print(
-                    "ERRO AO LER ARQUIVO:",
-                    repr(e)
-                )
-
-        return jsonify({
-
-            "success": True,
-
-            "attachment_id":
-                attachment_id,
-
-            "conversation_id":
-                conversation_id,
-
-            "filename":
-                nome_original,
-
-            "stored_name":
-                nome_salvo,
-
-            "mime_type":
-                mime_type,
-
-            "size":
-                tamanho,
-
-            "is_image":
-                eh_imagem,
-
-            "is_text":
-                eh_texto,
-
-            "content":
-                conteudo
-
-        })
-
-    except Exception as e:
-
-        print(
-            "ERRO UPLOAD:",
-            repr(e)
-        )
-
-        if os.path.exists(caminho):
-
-            try:
-                os.remove(caminho)
-            except Exception:
-                pass
-
-        return jsonify({
-            "success": False,
-            "message":
-                "Erro ao salvar arquivo."
-        }), 500
-
-
-# =========================================================
-# SERVIR UPLOADS
-# =========================================================
-
-@app.route(
-    "/uploads/<path:filename>"
-)
-def uploaded_file(filename):
-
-    if "user" not in session:
-
-        return jsonify({
-            "success": False,
-            "message": "Faça login primeiro."
-        }), 401
-
-    caminho_seguro = secure_filename(
-        os.path.basename(filename)
-    )
-
-    if not caminho_seguro:
-
-        return jsonify({
-            "success": False,
-            "message": "Arquivo inválido."
-        }), 400
-
-    # Só permite acessar arquivos
-    # pertencentes ao usuário atual
-
-    prefixo = f"{session['user']}_"
-
-    if not caminho_seguro.startswith(prefixo):
-
-        return jsonify({
-            "success": False,
-            "message": "Acesso negado."
-        }), 403
-
-    return send_from_directory(
-        app.config["UPLOAD_FOLDER"],
-        caminho_seguro
-    )
-
-
-# =========================================================
+# ==========================
 # CHAT
-# =========================================================
+# ==========================
 
 @app.route(
     "/chat",
@@ -919,38 +721,68 @@ def chat():
 
         return jsonify({
             "reply": "Faça login primeiro."
-        })
+        }), 401
 
-    # =====================================================
-    # SUPORTA JSON E MULTIPART
-    # =====================================================
+    mensagem = ""
 
-    arquivo = None
+    arquivo_info = None
 
-    if request.files:
+    # ==========================
+    # JSON
+    # ==========================
+
+    if request.is_json:
+
+        data = request.get_json() or {}
+
+        mensagem = (
+            data.get("message") or ""
+        ).strip()
+
+    # ==========================
+    # FORM DATA
+    # ==========================
+
+    else:
+
+        mensagem = (
+            request.form.get("message") or ""
+        ).strip()
 
         arquivo = request.files.get(
             "file"
         )
 
-        mensagem = (
-            request.form.get("message")
-            or ""
-        ).strip()
+        if arquivo and arquivo.filename:
 
-    else:
+            try:
 
-        data = request.get_json() or {}
+                arquivo_info = preparar_arquivo(
+                    arquivo
+                )
 
-        mensagem = (
-            data.get("message")
-            or ""
-        ).strip()
+            except ValueError as e:
 
-    if not mensagem and not arquivo:
+                return jsonify({
+                    "reply": str(e)
+                }), 400
+
+            except Exception as e:
+
+                print(
+                    "ERRO ARQUIVO:",
+                    repr(e)
+                )
+
+                return jsonify({
+                    "reply":
+                    "Não foi possível processar o arquivo."
+                }), 400
+
+    if not mensagem and not arquivo_info:
 
         return jsonify({
-            "reply": "Digite uma mensagem ou envie um arquivo."
+            "reply": "Digite uma mensagem ou selecione um arquivo."
         })
 
     username = session["user"]
@@ -962,9 +794,9 @@ def chat():
 
     conversation_id = conversa_atual()
 
-    # =====================================================
+    # ==========================
     # LIMITE FREE
-    # =====================================================
+    # ==========================
 
     with get_db() as conn:
 
@@ -993,18 +825,43 @@ def chat():
                     "❌ Limite diário do plano FREE atingido (20 mensagens)."
                 })
 
-        # =================================================
-        # SALVA MENSAGEM
-        # =================================================
+        # ==========================
+        # TEXTO PARA A IA
+        # ==========================
 
-        texto_salvo = mensagem
+        mensagem_ia = mensagem
 
-        if arquivo:
+        if arquivo_info:
 
-            texto_salvo += (
-                f"\n[Arquivo enviado: "
-                f"{arquivo.filename}]"
+            mensagem_arquivo = (
+                "\n\n"
+                "📎 ARQUIVO ANEXADO\n"
+                f"Nome: {arquivo_info['filename']}\n"
+                f"Tipo: {arquivo_info['mimetype']}\n"
+                f"Tamanho: {arquivo_info['size']} bytes\n"
             )
+
+            if arquivo_info["content"]:
+
+                conteudo = arquivo_info["content"]
+
+                # Evita mandar arquivos de texto
+                # gigantes para a API.
+
+                conteudo = conteudo[:30000]
+
+                mensagem_arquivo += (
+                    "\nConteúdo do arquivo:\n"
+                    "```text\n"
+                    f"{conteudo}\n"
+                    "```\n"
+                )
+
+            mensagem_ia += mensagem_arquivo
+
+        # ==========================
+        # SALVA MENSAGEM
+        # ==========================
 
         cursor.execute("""
         INSERT INTO chat_messages
@@ -1013,8 +870,39 @@ def chat():
         """, (
             conversation_id,
             "user",
-            texto_salvo
+            mensagem or
+            f"📎 {arquivo_info['filename']}"
         ))
+
+        message_id = cursor.lastrowid
+
+        # ==========================
+        # SALVA ARQUIVO
+        # ==========================
+
+        if arquivo_info:
+
+            cursor.execute("""
+            INSERT INTO chat_files
+            (
+                conversation_id,
+                message_id,
+                username,
+                filename,
+                mimetype,
+                size,
+                content
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                conversation_id,
+                message_id,
+                username,
+                arquivo_info["filename"],
+                arquivo_info["mimetype"],
+                arquivo_info["size"],
+                arquivo_info["content"][:30000]
+            ))
 
         cursor.execute("""
         UPDATE conversations
@@ -1026,9 +914,9 @@ def chat():
 
         conn.commit()
 
-        # =================================================
+        # ==========================
         # HISTÓRICO
-        # =================================================
+        # ==========================
 
         cursor.execute("""
         SELECT sender, message
@@ -1042,9 +930,9 @@ def chat():
 
         historico = cursor.fetchall()
 
-    # =====================================================
+    # ==========================
     # DATA E HORA
-    # =====================================================
+    # ==========================
 
     agora = datetime.now()
 
@@ -1056,9 +944,9 @@ def chat():
         "%H:%M"
     )
 
-    # =====================================================
+    # ==========================
     # ESTILO DO PLANO
-    # =====================================================
+    # ==========================
 
     if plan == "free":
 
@@ -1084,9 +972,9 @@ Use exemplos quando eles ajudarem
 o usuário a entender.
 """
 
-    # =====================================================
-    # SISTEMA
-    # =====================================================
+    # ==========================
+    # PERSONALIDADE
+    # ==========================
 
     mensagens_ia = [
 
@@ -1101,68 +989,72 @@ natural e amigável.
 Sua função é ajudar o usuário a
 entender assuntos, estudar,
 programar, resolver problemas,
-criar ideias, escrever textos
-e conversar.
+criar ideias, escrever textos,
+analisar conteúdos e conversar.
 
 ==========================
 DATA E HORA
 ==========================
 
-Data atual:
+A data atual é:
 
 {data_atual}
 
-Hora atual:
+A hora atual é:
 
 {hora_atual}
 
 Use essas informações quando
 forem relevantes.
 
+Não invente a data atual.
+
 ==========================
 IDIOMA
 ==========================
 
-- Responda em português do Brasil
-  quando o usuário falar português.
-- Se o usuário falar outro idioma,
-  responda nesse idioma quando apropriado.
+Responda em português do Brasil
+quando o usuário falar português.
 
-==========================
-ENTENDIMENTO
-==========================
-
-Entenda mensagens informais,
-abreviações, erros de digitação
-e frases curtas.
-
-Não critique erros de escrita.
-
-==========================
-CONTEXTO
-==========================
-
-Use as mensagens anteriores
-da conversa para entender
-referências como "ele", "isso",
-"aquilo" etc.
+Se o usuário falar outro idioma,
+responda nesse idioma quando apropriado.
 
 ==========================
 ARQUIVOS
 ==========================
 
-O usuário pode enviar imagens
-e arquivos de texto ou código.
+O usuário pode enviar arquivos
+junto com mensagens.
 
-Quando receber uma imagem,
-analise visualmente o conteúdo
-e responda de acordo com a pergunta.
+Quando houver conteúdo de arquivo
+disponível no contexto:
 
-Quando receber código ou texto,
-analise o conteúdo fornecido.
+- analise o conteúdo;
+- responda sobre o arquivo;
+- explique o que encontrou;
+- não invente informações que não
+  estejam disponíveis.
 
-Não invente conteúdo que não
-esteja presente no arquivo.
+Se o arquivo for uma imagem ou um
+formato que você não consiga analisar
+diretamente, diga claramente essa
+limitação.
+
+==========================
+CONTEXTO
+==========================
+
+Use as mensagens anteriores da conversa
+para entender referências como:
+
+"ele"
+"isso"
+"aquilo"
+"o arquivo"
+"essa parte"
+
+Não peça esclarecimento se o contexto
+já permitir entender o pedido.
 
 ==========================
 RESPOSTAS
@@ -1175,11 +1067,11 @@ desnecessariamente.
 
 Não fique enrolando.
 
-Se a pergunta for simples,
-responda simplesmente.
+Perguntas simples devem receber
+respostas simples.
 
-Se for complexa,
-explique de maneira organizada.
+Perguntas complexas devem ser
+explicadas de maneira organizada.
 
 ==========================
 FORMATAÇÃO
@@ -1187,26 +1079,34 @@ FORMATAÇÃO
 
 Use Markdown quando fizer sentido.
 
-Pode utilizar:
+Você pode usar:
 
-**Negrito**
+**negrito**
 
-- Tópicos
+- tópicos
 
-1. Passo um
-2. Passo dois
+1. listas numeradas
 
-### Título
+### títulos
 
 Use parágrafos curtos.
+
+Não transforme absolutamente
+todas as respostas em listas.
 
 ==========================
 PRECISÃO
 ==========================
 
-Nunca invente conscientemente
-datas, números, nomes,
-estatísticas ou informações.
+Nunca invente conscientemente:
+
+- datas;
+- números;
+- nomes;
+- estatísticas;
+- fontes;
+- links;
+- informações.
 
 Se não souber algo,
 diga claramente.
@@ -1222,16 +1122,15 @@ Quando o usuário pedir código:
   quando solicitado;
 - não remova funcionalidades
   sem motivo;
-- entregue arquivos completos
+- entregue o arquivo inteiro
   quando solicitado.
 
 ==========================
 ESTUDOS
 ==========================
 
-Explique de forma simples,
-progressiva e com exemplos
-quando isso ajudar.
+Explique de maneira simples,
+com exemplos quando ajudarem.
 
 ==========================
 ESTILO
@@ -1247,18 +1146,37 @@ Seja:
 - direto;
 - organizado.
 
+Não fique repetindo
+"como IA".
+
+Não repita "sou o PedroGPT"
+sem necessidade.
+
 ==========================
 PLANO
 ==========================
 
 {estilo}
+
+==========================
+REGRA PRINCIPAL
+==========================
+
+Antes de responder:
+
+1. Entenda a pergunta.
+2. Analise o contexto.
+3. Analise o arquivo, se houver.
+4. Verifique se a data é relevante.
+5. Escolha a melhor forma de responder.
+6. Evite informações inventadas.
 """
         }
     ]
 
-    # =====================================================
+    # ==========================
     # HISTÓRICO
-    # =====================================================
+    # ==========================
 
     for item in reversed(historico):
 
@@ -1276,164 +1194,15 @@ PLANO
 
         })
 
-    # =====================================================
-    # PROCESSAMENTO DO ARQUIVO
-    # =====================================================
-
-    imagem_base64 = None
-
-    if arquivo:
-
-        nome_original = arquivo.filename
-
-        nome_seguro = secure_filename(
-            nome_original
-        )
-
-        if not nome_seguro:
-
-            return jsonify({
-                "reply":
-                    "Nome de arquivo inválido."
-            })
-
-        eh_imagem = arquivo_e_imagem(
-            nome_seguro
-        )
-
-        eh_texto = arquivo_e_texto(
-            nome_seguro
-        )
-
-        if not eh_imagem and not eh_texto:
-
-            return jsonify({
-                "reply":
-                    "Esse tipo de arquivo não é permitido."
-            })
-
-        try:
-
-            dados = arquivo.read()
-
-            if len(dados) > 10 * 1024 * 1024:
-
-                return jsonify({
-                    "reply":
-                        "O arquivo é muito grande. O limite é 10 MB."
-                })
-
-            if eh_texto:
-
-                conteudo = dados.decode(
-                    "utf-8",
-                    errors="ignore"
-                )
-
-                conteudo = conteudo[:50000]
-
-                mensagens_ia.append({
-
-                    "role": "user",
-
-                    "content":
-                        f"""
-O usuário enviou o arquivo:
-
-{nome_original}
-
-Conteúdo do arquivo:
-
-{conteudo}
-"""
-                })
-
-            elif eh_imagem:
-
-                mime_type = (
-                    mimetypes.guess_type(
-                        nome_original
-                    )[0]
-                    or "image/jpeg"
-                )
-
-                imagem_base64 = base64.b64encode(
-                    dados
-                ).decode("utf-8")
-
-                mensagens_ia.append({
-
-                    "role": "user",
-
-                    "content": [
-
-                        {
-                            "type": "text",
-
-                            "text":
-                                mensagem
-                                or
-                                "Analise esta imagem."
-                        },
-
-                        {
-                            "type": "image_url",
-
-                            "image_url": {
-                                "url":
-                                    f"data:{mime_type};base64,{imagem_base64}"
-                            }
-                        }
-
-                    ]
-
-                })
-
-        except Exception as e:
-
-            print(
-                "ERRO PROCESSANDO ARQUIVO:",
-                repr(e)
-            )
-
-            return jsonify({
-                "reply":
-                    "Não consegui processar esse arquivo."
-            })
-
-    # =====================================================
-    # MENSAGEM NORMAL
-    # =====================================================
-
-    if not arquivo and mensagem:
-
-        mensagens_ia.append({
-
-            "role": "user",
-
-            "content": mensagem
-
-        })
-
-    # =====================================================
+    # ==========================
     # GROQ
-    # =====================================================
+    # ==========================
 
     try:
 
-        # Modelo normal
-        modelo = "openai/gpt-oss-120b"
-
-        # Para imagens usamos um modelo multimodal.
-        # Caso o modelo não esteja disponível na sua
-        # conta/região, o erro aparecerá no log do Render.
-        if imagem_base64:
-
-            modelo = "meta-llama/llama-4-scout-17b-16e-instruct"
-
         resposta = client.chat.completions.create(
 
-            model=modelo,
+            model="openai/gpt-oss-120b",
 
             messages=mensagens_ia,
 
@@ -1457,13 +1226,12 @@ Conteúdo do arquivo:
         )
 
         return jsonify({
-            "reply":
-                f"Erro IA: {str(e)}"
-        })
+            "reply": f"Erro IA: {str(e)}"
+        }), 500
 
-    # =====================================================
+    # ==========================
     # SALVA RESPOSTA
-    # =====================================================
+    # ==========================
 
     with get_db() as conn:
 
@@ -1494,14 +1262,27 @@ Conteúdo do arquivo:
         "reply": texto,
 
         "conversation_id":
-            conversation_id
+            conversation_id,
+
+        "file": (
+            {
+                "name":
+                    arquivo_info["filename"],
+                "type":
+                    arquivo_info["mimetype"],
+                "size":
+                    arquivo_info["size"]
+            }
+            if arquivo_info
+            else None
+        )
 
     })
 
 
-# =========================================================
+# ==========================
 # LISTAR CONVERSAS
-# =========================================================
+# ==========================
 
 @app.route("/conversations")
 def conversations():
@@ -1543,9 +1324,9 @@ def conversations():
     ])
 
 
-# =========================================================
+# ==========================
 # ABRIR CONVERSA
-# =========================================================
+# ==========================
 
 @app.route(
     "/conversation/<int:conversation_id>"
@@ -1629,9 +1410,9 @@ def open_conversation(
     })
 
 
-# =========================================================
+# ==========================
 # HISTORY
-# =========================================================
+# ==========================
 
 @app.route("/history")
 def history():
@@ -1672,9 +1453,9 @@ def history():
     ])
 
 
-# =========================================================
+# ==========================
 # NOVA CONVERSA
-# =========================================================
+# ==========================
 
 @app.route(
     "/new_chat",
@@ -1711,9 +1492,9 @@ def new_chat():
     })
 
 
-# =========================================================
+# ==========================
 # RENOMEAR CONVERSA
-# =========================================================
+# ==========================
 
 @app.route(
     "/conversation/<int:conversation_id>/rename",
@@ -1751,7 +1532,7 @@ def rename_conversation(
         return jsonify({
             "success": False,
             "message":
-                "Digite um nome para a conversa."
+            "Digite um nome para a conversa."
         })
 
     title = title[:100]
@@ -1778,9 +1559,9 @@ def rename_conversation(
     })
 
 
-# =========================================================
+# ==========================
 # EXCLUIR CONVERSA
-# =========================================================
+# ==========================
 
 @app.route(
     "/conversation/<int:conversation_id>",
@@ -1811,48 +1592,12 @@ def delete_conversation(
 
         cursor = conn.cursor()
 
-        # =================================================
-        # REMOVE ANEXOS
-        # =================================================
-
         cursor.execute("""
-        SELECT stored_name
-        FROM attachments
+        DELETE FROM chat_files
         WHERE conversation_id=?
-        AND username=?
         """, (
             conversation_id,
-            session["user"]
         ))
-
-        anexos = cursor.fetchall()
-
-        for anexo in anexos:
-
-            caminho = os.path.join(
-                app.config["UPLOAD_FOLDER"],
-                anexo["stored_name"]
-            )
-
-            if os.path.exists(caminho):
-
-                try:
-                    os.remove(caminho)
-                except Exception:
-                    pass
-
-        cursor.execute("""
-        DELETE FROM attachments
-        WHERE conversation_id=?
-        AND username=?
-        """, (
-            conversation_id,
-            session["user"]
-        ))
-
-        # =================================================
-        # REMOVE MENSAGENS
-        # =================================================
 
         cursor.execute("""
         DELETE FROM chat_messages
@@ -1860,10 +1605,6 @@ def delete_conversation(
         """, (
             conversation_id,
         ))
-
-        # =================================================
-        # REMOVE CONVERSA
-        # =================================================
 
         cursor.execute("""
         DELETE FROM conversations
@@ -1901,23 +1642,9 @@ def delete_conversation(
     })
 
 
-# =========================================================
-# ERRO DE ARQUIVO GRANDE
-# =========================================================
-
-@app.errorhandler(413)
-def arquivo_muito_grande(error):
-
-    return jsonify({
-        "success": False,
-        "message":
-            "O arquivo é muito grande. O limite é 10 MB."
-    }), 413
-
-
-# =========================================================
+# ==========================
 # START
-# =========================================================
+# ==========================
 
 if __name__ == "__main__":
 
@@ -1932,3 +1659,12 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=port
     )
+````
+
+### Git
+
+```bash
+git add .
+git commit -m "Adiciona suporte a arquivos no PedroGPT"
+git push
+```
