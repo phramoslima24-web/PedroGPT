@@ -6,13 +6,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>PedroGPT</title>
+<title>Orion AI</title>
 
 <style>
-
-/* =========================
-   RESET
-========================= */
 
 * {
     margin: 0;
@@ -21,17 +17,9 @@
     font-family: Arial, sans-serif;
 }
 
-
-/* =========================
-   BODY
-========================= */
-
 body {
-
     display: flex;
-
     height: 100vh;
-
     overflow: hidden;
 
     background:
@@ -45,15 +33,12 @@ body {
     color: white;
 }
 
-
 /* =========================
    SIDEBAR
 ========================= */
 
 .sidebar {
-
     width: 280px;
-
     flex-shrink: 0;
 
     background:
@@ -68,34 +53,23 @@ body {
     padding: 18px;
 
     display: flex;
-
     flex-direction: column;
-
     gap: 14px;
 
     overflow: hidden;
 }
 
-
 .logo {
-
     text-align: center;
-
     padding: 8px 0 12px;
 }
 
-
 .logo h2 {
-
     font-size: 22px;
-
 }
 
-
 .usuario {
-
     padding: 12px;
-
     border-radius: 12px;
 
     background:
@@ -106,31 +80,24 @@ body {
         rgba(255,255,255,0.07);
 
     text-align: center;
-
     font-size: 14px;
 
     overflow: hidden;
-
     text-overflow: ellipsis;
-
     white-space: nowrap;
 }
-
 
 /* =========================
    PLANO
 ========================= */
 
 .plano {
-
     text-align: center;
 
     padding: 7px;
-
     border-radius: 9px;
 
     font-size: 12px;
-
     font-weight: bold;
 
     background:
@@ -143,15 +110,12 @@ body {
     color: #c4b5fd;
 }
 
-
 /* =========================
    NOVA CONVERSA
 ========================= */
 
 .nova-conversa {
-
     width: 100%;
-
     border: none;
 
     background:
@@ -164,78 +128,57 @@ body {
     color: white;
 
     padding: 12px;
-
     border-radius: 11px;
 
     cursor: pointer;
-
     font-weight: bold;
 
     transition: 0.2s;
 }
 
-
 .nova-conversa:hover {
-
-    transform:
-        translateY(-1px);
+    transform: translateY(-1px);
 
     box-shadow:
         0 7px 20px
         rgba(16,185,129,0.25);
 }
 
-
 /* =========================
    CONVERSAS
 ========================= */
 
 .lista-titulo {
-
     font-size: 12px;
-
-    color:
-        rgba(255,255,255,0.5);
-
+    color: rgba(255,255,255,0.5);
     margin-top: 5px;
 }
 
-
 .conversas {
-
     flex: 1;
 
     overflow-y: auto;
 
     display: flex;
-
     flex-direction: column;
-
     gap: 6px;
 }
 
-
 .conversas::-webkit-scrollbar {
-
     width: 5px;
 }
 
-
 .conversas::-webkit-scrollbar-thumb {
-
     background:
         rgba(255,255,255,0.15);
 
     border-radius: 10px;
 }
 
-
 .conversa-item {
-
     width: 100%;
 
     padding: 11px;
-
     border-radius: 10px;
 
     border: 1px solid transparent;
@@ -246,28 +189,21 @@ body {
     color: white;
 
     text-align: left;
-
     cursor: pointer;
 
     transition: 0.2s;
 
     overflow: hidden;
-
     text-overflow: ellipsis;
-
     white-space: nowrap;
 }
 
-
 .conversa-item:hover {
-
     background:
         rgba(255,255,255,0.08);
 }
 
-
 .conversa-item.ativa {
-
     background:
         rgba(124,58,237,0.18);
 
@@ -275,24 +211,20 @@ body {
         rgba(124,58,237,0.35);
 }
 
-
 /* =========================
    LOGOUT
 ========================= */
 
 .logout {
-
     display: block;
 
     text-decoration: none;
-
     color: white;
 
     background:
         rgba(255,255,255,0.07);
 
     padding: 11px;
-
     border-radius: 10px;
 
     text-align: center;
@@ -300,46 +232,35 @@ body {
     transition: 0.2s;
 }
 
-
 .logout:hover {
-
     background:
         rgba(255,255,255,0.12);
 }
-
 
 /* =========================
    MAIN
 ========================= */
 
 .main {
-
     flex: 1;
-
     min-width: 0;
 
     display: flex;
-
     flex-direction: column;
 
     height: 100vh;
 }
-
 
 /* =========================
    HEADER
 ========================= */
 
 .header {
-
     height: 62px;
-
     flex-shrink: 0;
 
     display: flex;
-
     align-items: center;
-
     justify-content: center;
 
     padding: 0 18px;
@@ -356,13 +277,11 @@ body {
     font-weight: bold;
 }
 
-
 /* =========================
    OPÇÕES
 ========================= */
 
 .opcoes {
-
     padding: 9px 18px;
 
     border-bottom:
@@ -375,29 +294,21 @@ body {
         rgba(255,255,255,0.75);
 }
 
-
 .opcoes label {
-
     cursor: pointer;
-
     user-select: none;
 }
 
-
 .opcoes input {
-
     accent-color: #7c3aed;
-
     cursor: pointer;
 }
-
 
 /* =========================
    CHAT
 ========================= */
 
 .chat {
-
     flex: 1;
 
     overflow-y: auto;
@@ -405,29 +316,22 @@ body {
     padding: 24px;
 
     display: flex;
-
     flex-direction: column;
-
     gap: 13px;
 
     scroll-behavior: smooth;
 }
 
-
 .chat::-webkit-scrollbar {
-
     width: 7px;
 }
 
-
 .chat::-webkit-scrollbar-thumb {
-
     background:
         rgba(255,255,255,0.15);
 
     border-radius: 10px;
 }
-
 
 /* =========================
    MENSAGENS
@@ -435,7 +339,6 @@ body {
 
 .msg-user,
 .msg-bot {
-
     max-width: 78%;
 
     padding: 12px 14px;
@@ -448,9 +351,7 @@ body {
         rgba(0,0,0,0.18);
 }
 
-
 .msg-user {
-
     align-self: flex-end;
 
     border-radius:
@@ -467,9 +368,7 @@ body {
         );
 }
 
-
 .msg-bot {
-
     align-self: flex-start;
 
     border-radius:
@@ -489,81 +388,55 @@ body {
         blur(10px);
 }
 
-
 /* =========================
    CONTEÚDO
 ========================= */
 
 .conteudo-mensagem {
-
     line-height: 1.6;
 
     word-wrap: break-word;
-
     overflow-wrap: break-word;
 }
 
-
 .conteudo-mensagem strong {
-
     font-weight: 700;
 }
 
-
 .conteudo-mensagem em {
-
     font-style: italic;
 }
 
-
 .linha-resposta {
-
     margin-bottom: 6px;
 }
 
-
 .linha-resposta:last-child {
-
     margin-bottom: 0;
 }
 
-
 .quebra-linha {
-
     height: 8px;
 }
-
 
 /* =========================
    TÍTULOS
 ========================= */
 
 .conteudo-mensagem h2 {
-
     font-size: 20px;
-
-    margin:
-        10px 0 8px;
+    margin: 10px 0 8px;
 }
-
 
 .conteudo-mensagem h3 {
-
     font-size: 18px;
-
-    margin:
-        10px 0 8px;
+    margin: 10px 0 8px;
 }
-
 
 .conteudo-mensagem h4 {
-
     font-size: 16px;
-
-    margin:
-        8px 0 6px;
+    margin: 8px 0 6px;
 }
-
 
 /* =========================
    LISTAS
@@ -571,32 +444,23 @@ body {
 
 .conteudo-mensagem ul,
 .conteudo-mensagem ol {
-
-    margin:
-        8px 0 10px 20px;
-
+    margin: 8px 0 10px 20px;
     padding-left: 18px;
 }
 
-
 .conteudo-mensagem li {
-
     margin-bottom: 7px;
-
     line-height: 1.55;
 }
-
 
 /* =========================
    CÓDIGO
 ========================= */
 
 .codigo-pedrogpt {
-
     display: block;
 
     margin: 10px 0;
-
     padding: 14px;
 
     border-radius: 10px;
@@ -618,38 +482,28 @@ body {
         monospace;
 
     font-size: 13px;
-
     line-height: 1.5;
 }
 
-
 .codigo-pedrogpt code {
-
     font-family:
         Consolas,
         Monaco,
         monospace;
 }
 
-
 /* =========================
    TYPING
 ========================= */
 
 .typing-dots {
-
     display: inline-flex;
-
     gap: 4px;
-
     margin-left: 5px;
 }
 
-
 .typing-dots span {
-
     width: 6px;
-
     height: 6px;
 
     border-radius: 50%;
@@ -660,29 +514,22 @@ body {
         typing 1.2s infinite;
 }
 
-
 .typing-dots span:nth-child(2) {
-
     animation-delay: .15s;
 }
 
-
 .typing-dots span:nth-child(3) {
-
     animation-delay: .3s;
 }
-
 
 /* =========================
    ENTRADA
 ========================= */
 
 .entrada {
-
     flex-shrink: 0;
 
     display: flex;
-
     gap: 10px;
 
     padding: 14px;
@@ -698,11 +545,8 @@ body {
         blur(14px);
 }
 
-
 .entrada input {
-
     flex: 1;
-
     min-width: 0;
 
     padding: 14px;
@@ -721,9 +565,7 @@ body {
     outline: none;
 }
 
-
 .entrada input:focus {
-
     border-color: #7c3aed;
 
     box-shadow:
@@ -731,21 +573,16 @@ body {
         rgba(124,58,237,0.12);
 }
 
-
 .entrada input::placeholder {
-
     color:
         rgba(255,255,255,0.45);
 }
 
-
 .entrada button {
-
     padding:
         14px 20px;
 
     border-radius: 13px;
-
     border: none;
 
     cursor: pointer;
@@ -764,30 +601,21 @@ body {
     transition: 0.2s;
 }
 
-
 .entrada button:hover {
-
-    transform:
-        translateY(-1px);
+    transform: translateY(-1px);
 }
-
 
 .entrada button:disabled {
-
     opacity: .55;
-
     cursor: not-allowed;
-
     transform: none;
 }
-
 
 /* =========================
    WELCOME
 ========================= */
 
 .welcome {
-
     position: absolute;
 
     inset: 0;
@@ -816,26 +644,20 @@ body {
     z-index: 10;
 }
 
-
 .welcome h2 {
-
     font-size: 28px;
 }
 
-
 .welcome p {
-
     color:
         rgba(255,255,255,0.6);
 }
-
 
 /* =========================
    QUICK ACTIONS
 ========================= */
 
 .quick-actions {
-
     display: flex;
 
     gap: 10px;
@@ -849,9 +671,7 @@ body {
     margin-top: 8px;
 }
 
-
 .quick {
-
     padding:
         11px 15px;
 
@@ -871,26 +691,20 @@ body {
     font-size: 14px;
 }
 
-
 .quick:hover {
-
-    transform:
-        translateY(-2px);
+    transform: translateY(-2px);
 
     background:
         rgba(255,255,255,0.13);
 }
-
 
 /* =========================
    HIDDEN
 ========================= */
 
 .hidden {
-
     display: none !important;
 }
-
 
 /* =========================
    ANIMAÇÕES
@@ -899,7 +713,6 @@ body {
 @keyframes pop {
 
     from {
-
         opacity: 0;
 
         transform:
@@ -908,7 +721,6 @@ body {
     }
 
     to {
-
         opacity: 1;
 
         transform:
@@ -917,13 +729,11 @@ body {
     }
 }
 
-
 @keyframes typing {
 
     0%,
     60%,
     100% {
-
         opacity: .3;
 
         transform:
@@ -931,14 +741,12 @@ body {
     }
 
     30% {
-
         opacity: 1;
 
         transform:
             translateY(-3px);
     }
 }
-
 
 /* =========================
    MOBILE
@@ -947,21 +755,16 @@ body {
 @media(max-width: 768px) {
 
     body {
-
         flex-direction: column;
     }
 
-
     .sidebar {
-
         width: 100%;
 
         height: auto;
-
         max-height: 190px;
 
         padding: 10px;
-
         gap: 8px;
 
         border-right: none;
@@ -971,96 +774,66 @@ body {
             rgba(255,255,255,0.08);
     }
 
-
     .logo {
-
         padding: 0;
-
     }
 
-
     .logo h2 {
-
         font-size: 19px;
     }
 
-
     .usuario {
-
         padding: 8px;
     }
 
-
     .plano {
-
         padding: 6px;
     }
 
-
     .nova-conversa {
-
         padding: 9px;
     }
 
-
     .conversas {
-
         display: none;
     }
 
-
     .logout {
-
         padding: 8px;
     }
 
-
     .main {
-
         height: calc(100vh - 190px);
     }
 
-
     .chat {
-
         padding: 13px;
     }
 
-
     .msg-user,
     .msg-bot {
-
         max-width: 91%;
     }
 
-
     .entrada {
-
         padding: 9px;
     }
 
-
     .entrada input {
-
         padding: 12px;
     }
 
-
     .entrada button {
-
         padding:
             12px 15px;
     }
-
 }
 
 </style>
 
 </head>
 
-
 <body>
-
 
 <!-- =========================
      SIDEBAR
@@ -1071,18 +844,16 @@ body {
     <div class="logo">
 
         <h2>
-            🤖 PedroGPT
+            🤖 Orion AI
         </h2>
 
     </div>
-
 
     <div class="usuario">
 
         Olá, {{ username }}
 
     </div>
-
 
     <div class="plano">
 
@@ -1098,7 +869,6 @@ body {
 
     </div>
 
-
     <button
         class="nova-conversa"
         onclick="novaConversa()"
@@ -1108,19 +878,16 @@ body {
 
     </button>
 
-
     <div class="lista-titulo">
 
         Suas conversas
 
     </div>
 
-
     <div
         id="conversas"
         class="conversas"
     ></div>
-
 
     <a
         href="/logout"
@@ -1133,22 +900,19 @@ body {
 
 </aside>
 
-
 <!-- =========================
      MAIN
 ========================= -->
 
 <main class="main">
 
-
     <header class="header">
 
         <span id="tituloConversa">
-            PedroGPT
+            Orion AI
         </span>
 
     </header>
-
 
     <div class="opcoes">
 
@@ -1166,14 +930,12 @@ body {
 
     </div>
 
-
     <!-- CHAT -->
 
     <div
         id="chat"
         class="chat"
     ></div>
-
 
     <!-- WELCOME -->
 
@@ -1183,16 +945,14 @@ body {
     >
 
         <h2>
-            🤖 PedroGPT
+            🤖 Orion AI
         </h2>
 
         <p>
             Como posso ajudar hoje?
         </p>
 
-
         <div class="quick-actions">
-
 
             <div
                 class="quick"
@@ -1203,7 +963,6 @@ body {
 
             </div>
 
-
             <div
                 class="quick"
                 onclick="atalho('Estudar')"
@@ -1212,7 +971,6 @@ body {
                 📚 Estudar
 
             </div>
-
 
             <div
                 class="quick"
@@ -1223,7 +981,6 @@ body {
 
             </div>
 
-
             <div
                 class="quick"
                 onclick="atalho('Tirar dúvidas')"
@@ -1233,11 +990,9 @@ body {
 
             </div>
 
-
         </div>
 
     </div>
-
 
     <!-- ENTRADA -->
 
@@ -1249,7 +1004,6 @@ body {
             placeholder="Digite sua mensagem..."
             autocomplete="off"
         >
-
 
         <button
             id="btnEnviar"
@@ -1263,7 +1017,6 @@ body {
     </div>
 
 </main>
-
 
 <script>
 
@@ -1283,7 +1036,6 @@ function atalho(texto) {
             "mensagem"
         );
 
-
     if (welcome) {
 
         welcome.classList.add(
@@ -1291,7 +1043,6 @@ function atalho(texto) {
         );
 
     }
-
 
     if (campo) {
 
@@ -1302,7 +1053,6 @@ function atalho(texto) {
     }
 
 }
-
 
 /* =========================
    ESCONDER WELCOME
@@ -1326,7 +1076,6 @@ function esconderWelcome() {
 }
 
 </script>
-
 
 <script src="/static/script.js"></script>
 
