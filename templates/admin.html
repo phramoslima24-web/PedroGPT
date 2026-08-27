@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 
 <html lang="pt-BR">
@@ -6,10 +7,12 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    <title>PedroGPT - Administração</title>
+    <title>Orion AI - Administração</title>
 
     <style>
 
@@ -22,16 +25,13 @@
 
         body {
             min-height: 100vh;
-
             background:
                 radial-gradient(
                     circle at top,
                     #172554,
                     #020617 65%
                 );
-
             color: white;
-
             padding: 30px;
         }
 
@@ -41,33 +41,26 @@
             margin: auto;
         }
 
-        /* HEADER */
-
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-
             margin-bottom: 30px;
-
             gap: 20px;
         }
 
         .logo-area {
             display: flex;
             align-items: center;
-
             gap: 14px;
         }
 
         .logo {
             width: 52px;
             height: 52px;
-
             display: flex;
             align-items: center;
             justify-content: center;
-
             border-radius: 15px;
 
             background:
@@ -96,42 +89,28 @@
 
         .logout {
             padding: 11px 18px;
-
-            border:
-                1px solid
-                rgba(255,255,255,.1);
-
+            border: 1px solid rgba(255,255,255,.1);
             border-radius: 10px;
-
-            background:
-                rgba(255,255,255,.06);
-
+            background: rgba(255,255,255,.06);
             color: white;
-
             cursor: pointer;
         }
 
         .logout:hover {
-            background:
-                rgba(255,255,255,.12);
+            background: rgba(255,255,255,.12);
         }
-
-        /* ESTATÍSTICAS */
 
         .stats {
             display: grid;
-
             grid-template-columns:
                 repeat(3, 1fr);
 
             gap: 18px;
-
             margin-bottom: 30px;
         }
 
         .stat {
             padding: 24px;
-
             border-radius: 18px;
 
             background:
@@ -141,15 +120,13 @@
                 1px solid
                 rgba(255,255,255,.08);
 
-            backdrop-filter:
-                blur(18px);
+            backdrop-filter: blur(18px);
 
             transition: .2s;
         }
 
         .stat:hover {
-            transform:
-                translateY(-2px);
+            transform: translateY(-2px);
 
             border-color:
                 rgba(255,255,255,.15);
@@ -157,9 +134,7 @@
 
         .stat-title {
             color: #94a3b8;
-
             font-size: 14px;
-
             margin-bottom: 10px;
         }
 
@@ -167,8 +142,6 @@
             font-size: 32px;
             font-weight: bold;
         }
-
-        /* PAINEL */
 
         .panel {
             background:
@@ -182,8 +155,7 @@
 
             overflow: hidden;
 
-            backdrop-filter:
-                blur(18px);
+            backdrop-filter: blur(18px);
         }
 
         .panel-header {
@@ -194,12 +166,8 @@
                 rgba(255,255,255,.08);
 
             display: flex;
-
-            justify-content:
-                space-between;
-
+            justify-content: space-between;
             align-items: center;
-
             gap: 15px;
         }
 
@@ -209,13 +177,9 @@
 
         .header-actions {
             display: flex;
-
             align-items: center;
-
             gap: 10px;
         }
-
-        /* PESQUISA */
 
         .search {
             width: 230px;
@@ -241,8 +205,7 @@
         }
 
         .search:focus {
-            border-color:
-                #6366f1;
+            border-color: #6366f1;
         }
 
         .refresh {
@@ -263,8 +226,6 @@
             opacity: .9;
         }
 
-        /* TABELA */
-
         .table-container {
             overflow-x: auto;
         }
@@ -277,7 +238,6 @@
         th,
         td {
             padding: 17px;
-
             text-align: left;
 
             border-bottom:
@@ -287,9 +247,7 @@
 
         th {
             color: #94a3b8;
-
             font-size: 13px;
-
             text-transform: uppercase;
         }
 
@@ -302,16 +260,13 @@
         }
 
         tbody tr {
-            transition:
-                background .15s;
+            transition: background .15s;
         }
 
         tbody tr:hover {
             background:
                 rgba(255,255,255,.025);
         }
-
-        /* BADGES */
 
         .badge {
             display: inline-block;
@@ -346,13 +301,9 @@
             color: #60a5fa;
         }
 
-        /* AÇÕES */
-
         .actions {
             display: flex;
-
             gap: 8px;
-
             flex-wrap: wrap;
         }
 
@@ -386,12 +337,8 @@
 
         .action:hover {
             opacity: .85;
-
-            transform:
-                translateY(-1px);
+            transform: translateY(-1px);
         }
-
-        /* MENSAGEM */
 
         #mensagem {
             position: fixed;
@@ -421,13 +368,9 @@
 
         .empty {
             padding: 40px;
-
             text-align: center;
-
             color: #94a3b8;
         }
-
-        /* RESPONSIVO */
 
         @media (max-width: 800px) {
 
@@ -445,7 +388,6 @@
 
             .panel-header {
                 flex-direction: column;
-
                 align-items: stretch;
             }
 
@@ -488,7 +430,6 @@
 
             .header-actions {
                 flex-direction: column;
-
                 align-items: stretch;
             }
 
@@ -511,14 +452,12 @@
 
 <div class="container">
 
-    <!-- HEADER -->
-
     <div class="header">
 
         <div class="logo-area">
 
             <div class="logo">
-                P
+                O
             </div>
 
             <div>
@@ -528,7 +467,7 @@
                 </h1>
 
                 <div class="subtitle">
-                    PedroGPT • {{ username }}
+                    Orion AI • {{ username }}
                 </div>
 
             </div>
@@ -544,8 +483,6 @@
 
     </div>
 
-
-    <!-- ESTATÍSTICAS -->
 
     <div class="stats">
 
@@ -598,8 +535,6 @@
 
     </div>
 
-
-    <!-- USUÁRIOS -->
 
     <div class="panel">
 
@@ -661,16 +596,14 @@
 
 </div>
 
+
 <div id="mensagem"></div>
+
 
 <script>
 
 let usuariosAtuais = [];
 
-
-/* ============================================================
-   MENSAGEM
-============================================================ */
 
 function mostrarMensagem(texto) {
 
@@ -689,14 +622,12 @@ function mostrarMensagem(texto) {
 }
 
 
-/* ============================================================
-   CARREGAR USUÁRIOS
-============================================================ */
-
 async function carregarUsuarios() {
 
     const tabela =
-        document.getElementById("listaUsuarios");
+        document.getElementById(
+            "listaUsuarios"
+        );
 
     tabela.innerHTML = `
         <tr>
@@ -709,7 +640,9 @@ async function carregarUsuarios() {
     try {
 
         const resposta =
-            await fetch("/api/admin/users");
+            await fetch(
+                "/api/admin/users"
+            );
 
         const dados =
             await resposta.json();
@@ -719,7 +652,7 @@ async function carregarUsuarios() {
             if (resposta.status === 403) {
 
                 window.location.href =
-                    "/admin/login";
+                    "/login";
 
                 return;
             }
@@ -769,20 +702,11 @@ async function carregarUsuarios() {
 }
 
 
-/* ============================================================
-   FILTRAR
-============================================================ */
-
 function filtrarUsuarios() {
 
     renderizarUsuarios();
-
 }
 
-
-/* ============================================================
-   RENDERIZAR
-============================================================ */
 
 function renderizarUsuarios() {
 
@@ -799,27 +723,19 @@ function renderizarUsuarios() {
             .toLowerCase();
 
     const usuariosFiltrados =
-        usuariosAtuais.filter(
-            usuario =>
-
-                String(usuario.id)
-                    .includes(pesquisa)
-
-                ||
-
-                usuario.username
-                    .toLowerCase()
-                    .includes(pesquisa)
+        usuariosAtuais.filter(usuario =>
+            String(usuario.id)
+                .includes(pesquisa) ||
+            usuario.username
+                .toLowerCase()
+                .includes(pesquisa)
         );
 
     if (!usuariosFiltrados.length) {
 
         tabela.innerHTML = `
             <tr>
-                <td
-                    colspan="4"
-                    class="empty"
-                >
+                <td colspan="4" class="empty">
                     Nenhum usuário encontrado.
                 </td>
             </tr>
@@ -829,126 +745,115 @@ function renderizarUsuarios() {
     }
 
     tabela.innerHTML =
-        usuariosFiltrados
-            .map(usuario => {
+        usuariosFiltrados.map(usuario => {
 
-                const isAdmin =
-                    usuario.admin === true;
+            const isAdmin =
+                usuario.username ===
+                "{{ username }}";
 
-                let planoHTML;
+            let planoHTML;
 
-                if (
-                    usuario.plan ===
-                    "premium"
-                ) {
+            if (usuario.plan === "premium") {
 
-                    planoHTML = `
-                        <span class="badge premium">
-                            ⭐ PREMIUM
-                        </span>
-                    `;
-
-                } else {
-
-                    planoHTML = `
-                        <span class="badge free">
-                            🆓 FREE
-                        </span>
-                    `;
-                }
-
-                let acoes;
-
-                if (isAdmin) {
-
-                    acoes = `
-                        <span
-                            class="badge admin-badge"
-                        >
-                            🔐 ADMIN
-                        </span>
-                    `;
-
-                } else {
-
-                    acoes = `
-                        <div class="actions">
-
-                            ${
-                                usuario.plan ===
-                                "premium"
-
-                                ? `
-                                    <button
-                                        class="action free-btn"
-                                        onclick="alterarPlano(
-                                            ${usuario.id},
-                                            'free'
-                                        )"
-                                    >
-                                        ⬇️ Free
-                                    </button>
-                                `
-
-                                : `
-                                    <button
-                                        class="action premium-btn"
-                                        onclick="alterarPlano(
-                                            ${usuario.id},
-                                            'premium'
-                                        )"
-                                    >
-                                        ⬆️ Premium
-                                    </button>
-                                `
-                            }
-
-                            <button
-                                class="action delete-btn"
-                                onclick="excluirUsuario(
-                                    ${usuario.id},
-                                    ${JSON.stringify(
-                                        usuario.username
-                                    )}
-                                )"
-                            >
-                                🗑️ Excluir
-                            </button>
-
-                        </div>
-                    `;
-                }
-
-                return `
-                    <tr>
-
-                        <td>
-                            #${usuario.id}
-                        </td>
-
-                        <td>
-                            ${usuario.username}
-                        </td>
-
-                        <td>
-                            ${planoHTML}
-                        </td>
-
-                        <td>
-                            ${acoes}
-                        </td>
-
-                    </tr>
+                planoHTML = `
+                    <span class="badge premium">
+                        ⭐ PREMIUM
+                    </span>
                 `;
 
-            })
-            .join("");
+            } else {
+
+                planoHTML = `
+                    <span class="badge free">
+                        🆓 FREE
+                    </span>
+                `;
+            }
+
+            let acoes;
+
+            if (isAdmin) {
+
+                acoes = `
+                    <span class="badge admin-badge">
+                        🔐 ADMIN
+                    </span>
+                `;
+
+            } else {
+
+                acoes = `
+                    <div class="actions">
+
+                        ${
+                            usuario.plan === "premium"
+
+                            ? `
+                                <button
+                                    class="action free-btn"
+                                    onclick="alterarPlano(
+                                        ${usuario.id},
+                                        'free'
+                                    )"
+                                >
+                                    ⬇️ Free
+                                </button>
+                            `
+
+                            : `
+                                <button
+                                    class="action premium-btn"
+                                    onclick="alterarPlano(
+                                        ${usuario.id},
+                                        'premium'
+                                    )"
+                                >
+                                    ⬆️ Premium
+                                </button>
+                            `
+                        }
+
+                        <button
+                            class="action delete-btn"
+                            onclick="excluirUsuario(
+                                ${usuario.id},
+                                ${JSON.stringify(
+                                    usuario.username
+                                )}
+                            )"
+                        >
+                            🗑️ Excluir
+                        </button>
+
+                    </div>
+                `;
+            }
+
+            return `
+                <tr>
+
+                    <td>
+                        #${usuario.id}
+                    </td>
+
+                    <td>
+                        ${usuario.username}
+                    </td>
+
+                    <td>
+                        ${planoHTML}
+                    </td>
+
+                    <td>
+                        ${acoes}
+                    </td>
+
+                </tr>
+            `;
+
+        }).join("");
 }
 
-
-/* ============================================================
-   ALTERAR PLANO
-============================================================ */
 
 async function alterarPlano(
     userId,
@@ -973,32 +878,23 @@ async function alterarPlano(
             await fetch(
                 `/api/admin/user/${userId}/plan`,
                 {
-
                     method: "POST",
 
                     headers: {
-
                         "Content-Type":
                             "application/json"
-
                     },
 
                     body: JSON.stringify({
-
                         plan: plano
-
                     })
-
                 }
             );
 
         const dados =
             await resposta.json();
 
-        if (
-            !resposta.ok ||
-            !dados.success
-        ) {
+        if (!resposta.ok || !dados.success) {
 
             mostrarMensagem(
                 dados.message ||
@@ -1025,10 +921,6 @@ async function alterarPlano(
 }
 
 
-/* ============================================================
-   EXCLUIR USUÁRIO
-============================================================ */
-
 async function excluirUsuario(
     userId,
     username
@@ -1047,19 +939,14 @@ async function excluirUsuario(
             await fetch(
                 `/api/admin/user/${userId}/delete`,
                 {
-
                     method: "DELETE"
-
                 }
             );
 
         const dados =
             await resposta.json();
 
-        if (
-            !resposta.ok ||
-            !dados.success
-        ) {
+        if (!resposta.ok || !dados.success) {
 
             mostrarMensagem(
                 dados.message ||
@@ -1086,21 +973,12 @@ async function excluirUsuario(
 }
 
 
-/* ============================================================
-   LOGOUT
-============================================================ */
-
 function logout() {
 
     window.location.href =
-        "/admin/logout";
-
+        "/logout";
 }
 
-
-/* ============================================================
-   INICIAR
-============================================================ */
 
 carregarUsuarios();
 
@@ -1109,3 +987,4 @@ carregarUsuarios();
 </body>
 
 </html>
+```
