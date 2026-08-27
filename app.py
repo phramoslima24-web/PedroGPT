@@ -1,6 +1,8 @@
 import os
-import sqlite3
 from datetime import datetime
+
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 from flask import (
     Flask,
@@ -35,8 +37,12 @@ app.secret_key = os.getenv(
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 ADMIN_USERNAME = os.getenv(
-    "ADMIN_USERNAME"
+    "ADMIN_USERNAME",
+    "admin"
 )
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
 
 client = Groq(
     api_key=GROQ_API_KEY
@@ -44,39 +50,31 @@ client = Groq(
 
 
 # ============================================================
-# VERSION
+# VERIFICAR DATABASE_URL
 # ============================================================
 
-@app.route("/version")
-def version():
+if not DATABASE_URL:
 
-    return jsonify({
-        "version": "1.2",
-        "apk_url": "https://drive.google.com/file/d/1mdpeCrIJNcU2DlHLabjgh17zvM2ha703/view?usp=drive_link"
-    })
+    print(
+        "AVISO: DATABASE_URL não está configurada."
+    )
 
 
 # ============================================================
-# BANCO DE DADOS
+# BANCO DE DADOS - POSTGRESQL
 # ============================================================
-
-DATABASE = "database.db"
-
 
 def get_db():
 
-    conn = sqlite3.connect(
-        DATABASE,
-        timeout=10,
-        check_same_thread=False
+    if not DATABASE_URL:
+        raise RuntimeError(
+            "DATABASE_URL não está configurada."
+        )
+
+    return psycopg2.connect(
+        DATABASE_URL,
+        cursor_factory=RealDictCursor
     )
-
-    conn.row_factory = sqlite3.Row
-
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA foreign_keys=ON")
-
-    return conn
 
 
 def init_db():
@@ -91,7 +89,7 @@ def init_db():
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 username TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
                 plan TEXT DEFAULT 'free'
@@ -104,7 +102,7 @@ def init_db():
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 username TEXT,
                 sender TEXT,
                 message TEXT
@@ -117,7 +115,7 @@ def init_db():
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS conversations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 username TEXT NOT NULL,
                 title TEXT DEFAULT 'Nova conversa',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -131,7 +129,7 @@ def init_db():
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS chat_messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 conversation_id INTEGER NOT NULL,
                 sender TEXT NOT NULL,
                 message TEXT NOT NULL,
@@ -147,6 +145,9 @@ def init_db():
 
         # ====================================================
         # MIGRAÇÃO DO HISTÓRICO ANTIGO
+        #
+        # Normalmente não haverá mensagens antigas porque
+        # estamos começando o PostgreSQL do zero.
         # ====================================================
 
         cursor.execute("""
@@ -165,7 +166,7 @@ def init_db():
             cursor.execute("""
                 SELECT id
                 FROM conversations
-                WHERE username = ?
+                WHERE username = %s
                 LIMIT 1
             """, (
                 username,
@@ -179,7 +180,7 @@ def init_db():
             cursor.execute("""
                 SELECT sender, message
                 FROM messages
-                WHERE username = ?
+                WHERE username = %s
                 ORDER BY id ASC
             """, (
                 username,
@@ -193,20 +194,21 @@ def init_db():
             cursor.execute("""
                 INSERT INTO conversations
                 (username, title)
-                VALUES (?, ?)
+                VALUES (%s, %s)
+                RETURNING id
             """, (
                 username,
                 "Conversa antiga"
             ))
 
-            conversation_id = cursor.lastrowid
+            conversation_id = cursor.fetchone()["id"]
 
             for mensagem in mensagens_antigas:
 
                 cursor.execute("""
                     INSERT INTO chat_messages
                     (conversation_id, sender, message)
-                    VALUES (?, ?, ?)
+                    VALUES (%s, %s, %s)
                 """, (
                     conversation_id,
                     mensagem["sender"],
@@ -216,7 +218,26 @@ def init_db():
         conn.commit()
 
 
-init_db()
+# ============================================================
+# INICIALIZAR BANCO
+# ============================================================
+
+if DATABASE_URL:
+
+    try:
+
+        init_db()
+
+        print(
+            "PostgreSQL conectado e banco inicializado."
+        )
+
+    except Exception as e:
+
+        print(
+            "ERRO AO INICIALIZAR POSTGRESQL:",
+            repr(e)
+        )
 
 
 # ============================================================
@@ -235,13 +256,14 @@ def criar_conversa(
         cursor.execute("""
             INSERT INTO conversations
             (username, title)
-            VALUES (?, ?)
+            VALUES (%s, %s)
+            RETURNING id
         """, (
             username,
             titulo
         ))
 
-        conversation_id = cursor.lastrowid
+        conversation_id = cursor.fetchone()["id"]
 
         conn.commit()
 
@@ -263,8 +285,8 @@ def verificar_conversa(
         cursor.execute("""
             SELECT id
             FROM conversations
-            WHERE id = ?
-            AND username = ?
+            WHERE id = %s
+            AND username = %s
         """, (
             conversation_id,
             username
@@ -331,7 +353,7 @@ def atualizar_titulo_se_necessario(
         cursor.execute("""
             SELECT title
             FROM conversations
-            WHERE id = ?
+            WHERE id = %s
         """, (
             conversation_id,
         ))
@@ -354,9 +376,9 @@ def atualizar_titulo_se_necessario(
 
         cursor.execute("""
             UPDATE conversations
-            SET title = ?,
+            SET title = %s,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
+            WHERE id = %s
         """, (
             novo_titulo,
             conversation_id
@@ -374,7 +396,7 @@ def obter_plan_usuario(username):
         cursor.execute("""
             SELECT plan
             FROM users
-            WHERE username = ?
+            WHERE username = %s
         """, (
             username,
         ))
@@ -400,6 +422,19 @@ def verificar_admin():
         return False
 
     return session["user"] == ADMIN_USERNAME
+
+
+# ============================================================
+# VERSION
+# ============================================================
+
+@app.route("/version")
+def version():
+
+    return jsonify({
+        "version": "1.2",
+        "apk_url": "https://drive.google.com/file/d/1mdpeCrIJNcU2DlHLabjgh17zvM2ha703/view?usp=drive_link"
+    })
 
 
 # ============================================================
@@ -590,7 +625,7 @@ def admin_change_plan(user_id):
                 id,
                 username
             FROM users
-            WHERE id = ?
+            WHERE id = %s
         """, (
             user_id,
         ))
@@ -605,7 +640,6 @@ def admin_change_plan(user_id):
                     "Usuário não encontrado."
             }), 404
 
-        # Nunca altera o próprio administrador.
         if usuario["username"] == ADMIN_USERNAME:
 
             return jsonify({
@@ -616,8 +650,8 @@ def admin_change_plan(user_id):
 
         cursor.execute("""
             UPDATE users
-            SET plan = ?
-            WHERE id = ?
+            SET plan = %s
+            WHERE id = %s
         """, (
             plan,
             user_id
@@ -661,7 +695,7 @@ def admin_delete_user(user_id):
         cursor.execute("""
             SELECT username
             FROM users
-            WHERE id = ?
+            WHERE id = %s
         """, (
             user_id,
         ))
@@ -676,7 +710,6 @@ def admin_delete_user(user_id):
                     "Usuário não encontrado."
             }), 404
 
-        # Nunca permite excluir o administrador.
         if usuario["username"] == ADMIN_USERNAME:
 
             return jsonify({
@@ -693,7 +726,7 @@ def admin_delete_user(user_id):
             WHERE conversation_id IN (
                 SELECT id
                 FROM conversations
-                WHERE username = ?
+                WHERE username = %s
             )
         """, (
             username,
@@ -702,7 +735,7 @@ def admin_delete_user(user_id):
         # Remove conversas.
         cursor.execute("""
             DELETE FROM conversations
-            WHERE username = ?
+            WHERE username = %s
         """, (
             username,
         ))
@@ -710,7 +743,7 @@ def admin_delete_user(user_id):
         # Remove histórico antigo.
         cursor.execute("""
             DELETE FROM messages
-            WHERE username = ?
+            WHERE username = %s
         """, (
             username,
         ))
@@ -718,7 +751,7 @@ def admin_delete_user(user_id):
         # Remove usuário.
         cursor.execute("""
             DELETE FROM users
-            WHERE id = ?
+            WHERE id = %s
         """, (
             user_id,
         ))
@@ -809,7 +842,7 @@ def api_register():
             cursor.execute("""
                 INSERT INTO users
                 (username, password, plan)
-                VALUES (?, ?, ?)
+                VALUES (%s, %s, %s)
             """, (
                 username,
                 password_hash,
@@ -824,7 +857,7 @@ def api_register():
                 "Conta criada com sucesso."
         })
 
-    except sqlite3.IntegrityError:
+    except psycopg2.errors.UniqueViolation:
 
         return jsonify({
             "success": False,
@@ -887,7 +920,7 @@ def api_login():
                 password,
                 plan
             FROM users
-            WHERE username = ?
+            WHERE username = %s
         """, (
             username,
         ))
@@ -933,8 +966,8 @@ def api_login():
 
                 cursor.execute("""
                     UPDATE users
-                    SET password = ?
-                    WHERE id = ?
+                    SET password = %s
+                    WHERE id = %s
                 """, (
                     nova_hash,
                     user["id"]
@@ -1060,17 +1093,17 @@ def chat():
                 INNER JOIN conversations c
                 ON cm.conversation_id = c.id
 
-                WHERE c.username = ?
+                WHERE c.username = %s
 
                 AND cm.sender = 'user'
 
-                AND date(cm.created_at)
-                    = date('now')
+                AND cm.created_at::date
+                    = CURRENT_DATE
             """, (
                 username,
             ))
 
-            total = cursor.fetchone()[0]
+            total = cursor.fetchone()["count"]
 
             if total >= 20:
 
@@ -1088,7 +1121,7 @@ def chat():
         cursor.execute("""
             INSERT INTO chat_messages
             (conversation_id, sender, message)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, %s)
         """, (
             conversation_id,
             "user",
@@ -1098,7 +1131,7 @@ def chat():
         cursor.execute("""
             UPDATE conversations
             SET updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
+            WHERE id = %s
         """, (
             conversation_id,
         ))
@@ -1396,7 +1429,7 @@ Antes de responder:
         cursor.execute("""
             SELECT sender, message
             FROM chat_messages
-            WHERE conversation_id = ?
+            WHERE conversation_id = %s
             ORDER BY id DESC
             LIMIT 20
         """, (
@@ -1481,7 +1514,7 @@ Antes de responder:
                     WHERE id = (
                         SELECT MAX(id)
                         FROM chat_messages
-                        WHERE conversation_id = ?
+                        WHERE conversation_id = %s
                         AND sender = 'user'
                     )
                 """, (
@@ -1514,7 +1547,7 @@ Antes de responder:
         cursor.execute("""
             INSERT INTO chat_messages
             (conversation_id, sender, message)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, %s)
         """, (
             conversation_id,
             "bot",
@@ -1524,7 +1557,7 @@ Antes de responder:
         cursor.execute("""
             UPDATE conversations
             SET updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
+            WHERE id = %s
         """, (
             conversation_id,
         ))
@@ -1571,7 +1604,7 @@ def conversations():
                 created_at,
                 updated_at
             FROM conversations
-            WHERE username = ?
+            WHERE username = %s
             ORDER BY updated_at DESC, id DESC
         """, (
             session["user"],
@@ -1643,7 +1676,7 @@ def open_conversation(
                 message,
                 created_at
             FROM chat_messages
-            WHERE conversation_id = ?
+            WHERE conversation_id = %s
             ORDER BY id ASC
         """, (
             conversation_id,
@@ -1657,8 +1690,8 @@ def open_conversation(
                 created_at,
                 updated_at
             FROM conversations
-            WHERE id = ?
-            AND username = ?
+            WHERE id = %s
+            AND username = %s
         """, (
             conversation_id,
             session["user"]
@@ -1732,7 +1765,7 @@ def history():
                 message,
                 created_at
             FROM chat_messages
-            WHERE conversation_id = ?
+            WHERE conversation_id = %s
             ORDER BY id ASC
         """, (
             conversation_id,
@@ -1853,10 +1886,10 @@ def rename_conversation(
 
         cursor.execute("""
             UPDATE conversations
-            SET title = ?,
+            SET title = %s,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-            AND username = ?
+            WHERE id = %s
+            AND username = %s
         """, (
             title,
             conversation_id,
@@ -1911,8 +1944,8 @@ def delete_conversation(
 
         cursor.execute("""
             DELETE FROM conversations
-            WHERE id = ?
-            AND username = ?
+            WHERE id = %s
+            AND username = %s
         """, (
             conversation_id,
             session["user"]
