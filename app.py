@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 import psycopg2
-from psycopg2.extras import RealDictCursor
+import psycopg2.extras
 
 from flask import (
     Flask,
@@ -36,13 +36,16 @@ app.secret_key = os.getenv(
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
+DATABASE_URL = os.getenv("DATABASE_URL")
+
 ADMIN_USERNAME = os.getenv(
     "ADMIN_USERNAME",
     "admin"
 )
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-
+ADMIN_PASSWORD = os.getenv(
+    "ADMIN_PASSWORD"
+)
 
 client = Groq(
     api_key=GROQ_API_KEY
@@ -50,38 +53,35 @@ client = Groq(
 
 
 # ============================================================
-# VERIFICAR DATABASE_URL
-# ============================================================
-
-if not DATABASE_URL:
-
-    print(
-        "AVISO: DATABASE_URL não está configurada."
-    )
-
-
-# ============================================================
-# BANCO DE DADOS - POSTGRESQL
+# BANCO DE DADOS POSTGRESQL
 # ============================================================
 
 def get_db():
 
     if not DATABASE_URL:
+
         raise RuntimeError(
-            "DATABASE_URL não está configurada."
+            "DATABASE_URL não está configurada no servidor."
         )
 
-    return psycopg2.connect(
-        DATABASE_URL,
-        cursor_factory=RealDictCursor
+    conn = psycopg2.connect(
+        DATABASE_URL
     )
 
+    return conn
+
+
+# ============================================================
+# INICIALIZAR BANCO
+# ============================================================
 
 def init_db():
 
     with get_db() as conn:
 
-        cursor = conn.cursor()
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
 
         # ====================================================
         # USUÁRIOS
@@ -144,100 +144,44 @@ def init_db():
         conn.commit()
 
         # ====================================================
-        # MIGRAÇÃO DO HISTÓRICO ANTIGO
-        #
-        # Normalmente não haverá mensagens antigas porque
-        # estamos começando o PostgreSQL do zero.
+        # GARANTE COLUNA PLAN
         # ====================================================
 
         cursor.execute("""
-            SELECT username
-            FROM messages
-            WHERE username IS NOT NULL
-            GROUP BY username
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'free'
         """)
-
-        usuarios_antigos = cursor.fetchall()
-
-        for usuario in usuarios_antigos:
-
-            username = usuario["username"]
-
-            cursor.execute("""
-                SELECT id
-                FROM conversations
-                WHERE username = %s
-                LIMIT 1
-            """, (
-                username,
-            ))
-
-            conversa = cursor.fetchone()
-
-            if conversa:
-                continue
-
-            cursor.execute("""
-                SELECT sender, message
-                FROM messages
-                WHERE username = %s
-                ORDER BY id ASC
-            """, (
-                username,
-            ))
-
-            mensagens_antigas = cursor.fetchall()
-
-            if not mensagens_antigas:
-                continue
-
-            cursor.execute("""
-                INSERT INTO conversations
-                (username, title)
-                VALUES (%s, %s)
-                RETURNING id
-            """, (
-                username,
-                "Conversa antiga"
-            ))
-
-            conversation_id = cursor.fetchone()["id"]
-
-            for mensagem in mensagens_antigas:
-
-                cursor.execute("""
-                    INSERT INTO chat_messages
-                    (conversation_id, sender, message)
-                    VALUES (%s, %s, %s)
-                """, (
-                    conversation_id,
-                    mensagem["sender"],
-                    mensagem["message"]
-                ))
 
         conn.commit()
 
 
+try:
+
+    init_db()
+
+except Exception as e:
+
+    print(
+        "ERRO AO INICIALIZAR BANCO:",
+        repr(e)
+    )
+
+
 # ============================================================
-# INICIALIZAR BANCO
+# VERSION
 # ============================================================
 
-if DATABASE_URL:
+@app.route("/version")
+def version():
 
-    try:
+    return jsonify({
 
-        init_db()
+        "version": "1.2",
 
-        print(
-            "PostgreSQL conectado e banco inicializado."
-        )
+        "apk_url":
+            "https://drive.google.com/file/d/1mdpeCrIJNcU2DlHLabjgh17zvM2ha703/view?usp=drive_link"
 
-    except Exception as e:
-
-        print(
-            "ERRO AO INICIALIZAR POSTGRESQL:",
-            repr(e)
-        )
+    })
 
 
 # ============================================================
@@ -263,7 +207,7 @@ def criar_conversa(
             titulo
         ))
 
-        conversation_id = cursor.fetchone()["id"]
+        conversation_id = cursor.fetchone()[0]
 
         conn.commit()
 
@@ -312,6 +256,7 @@ def conversa_atual():
             username,
             conversation_id
         ):
+
             return conversation_id
 
     conversation_id = criar_conversa(
@@ -336,7 +281,12 @@ def gerar_titulo(mensagem):
         return "Nova conversa"
 
     if len(titulo) > 45:
-        titulo = titulo[:45].rstrip() + "..."
+
+        titulo = (
+            titulo[:45]
+            .rstrip()
+            + "..."
+        )
 
     return titulo
 
@@ -348,7 +298,9 @@ def atualizar_titulo_se_necessario(
 
     with get_db() as conn:
 
-        cursor = conn.cursor()
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
 
         cursor.execute("""
             SELECT title
@@ -391,7 +343,9 @@ def obter_plan_usuario(username):
 
     with get_db() as conn:
 
-        cursor = conn.cursor()
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
 
         cursor.execute("""
             SELECT plan
@@ -415,26 +369,10 @@ def obter_plan_usuario(username):
 
 def verificar_admin():
 
-    if "user" not in session:
-        return False
-
-    if not ADMIN_USERNAME:
-        return False
-
-    return session["user"] == ADMIN_USERNAME
-
-
-# ============================================================
-# VERSION
-# ============================================================
-
-@app.route("/version")
-def version():
-
-    return jsonify({
-        "version": "1.2",
-        "apk_url": "https://drive.google.com/file/d/1mdpeCrIJNcU2DlHLabjgh17zvM2ha703/view?usp=drive_link"
-    })
+    return (
+        session.get("admin") is True
+        and session.get("user") == ADMIN_USERNAME
+    )
 
 
 # ============================================================
@@ -445,7 +383,10 @@ def version():
 def home():
 
     if "user" not in session:
-        return redirect(url_for("login"))
+
+        return redirect(
+            url_for("login")
+        )
 
     conversa_atual()
 
@@ -467,7 +408,10 @@ def home():
 def login():
 
     if "user" in session:
-        return redirect(url_for("home"))
+
+        return redirect(
+            url_for("home")
+        )
 
     return render_template(
         "login.html"
@@ -478,7 +422,10 @@ def login():
 def register():
 
     if "user" in session:
-        return redirect(url_for("home"))
+
+        return redirect(
+            url_for("home")
+        )
 
     return render_template(
         "register.html"
@@ -496,28 +443,124 @@ def logout():
 
 
 # ============================================================
-# PAINEL ADMINISTRADOR
+# LOGIN ADMIN
+# ============================================================
+
+@app.route(
+    "/admin/login",
+    methods=["GET", "POST"]
+)
+def admin_login():
+
+    if request.method == "GET":
+
+        if verificar_admin():
+
+            return redirect(
+                url_for("admin_dashboard")
+            )
+
+        return render_template(
+            "admin_login.html"
+        )
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    username = (
+        data.get("username") or ""
+    ).strip()
+
+    password = (
+        data.get("password") or ""
+    )
+
+    if not username or not password:
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Preencha usuário e senha."
+        }), 400
+
+    if not ADMIN_USERNAME or not ADMIN_PASSWORD:
+
+        print(
+            "ERRO: ADMIN_USERNAME ou ADMIN_PASSWORD "
+            "não configurado."
+        )
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Login administrativo não configurado."
+        }), 500
+
+    if (
+        username != ADMIN_USERNAME
+        or password != ADMIN_PASSWORD
+    ):
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Usuário ou senha administrativos incorretos."
+        }), 401
+
+    session.clear()
+
+    session["admin"] = True
+
+    session["user"] = ADMIN_USERNAME
+
+    session["plan"] = "premium"
+
+    return jsonify({
+        "success": True,
+        "message":
+            "Login administrativo realizado com sucesso."
+    })
+
+
+# ============================================================
+# PAINEL ADMIN
 # ============================================================
 
 @app.route("/admin")
 def admin():
 
-    if "user" not in session:
+    return redirect(
+        url_for("admin_login")
+    )
 
-        return redirect(
-            url_for("login")
-        )
+
+@app.route("/admin/dashboard")
+def admin_dashboard():
 
     if not verificar_admin():
 
-        return jsonify({
-            "success": False,
-            "message": "Acesso negado."
-        }), 403
+        return redirect(
+            url_for("admin_login")
+        )
 
     return render_template(
         "admin.html",
-        username=session["user"]
+        username=ADMIN_USERNAME
+    )
+
+
+# ============================================================
+# LOGOUT ADMIN
+# ============================================================
+
+@app.route("/admin/logout")
+def admin_logout():
+
+    session.clear()
+
+    return redirect(
+        url_for("admin_login")
     )
 
 
@@ -532,12 +575,15 @@ def admin_users():
 
         return jsonify({
             "success": False,
-            "message": "Acesso negado."
+            "message":
+                "Acesso negado."
         }), 403
 
     with get_db() as conn:
 
-        cursor = conn.cursor()
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
 
         cursor.execute("""
             SELECT
@@ -565,19 +611,32 @@ def admin_users():
         "success": True,
 
         "stats": {
+
             "total": total,
+
             "free": free,
+
             "premium": premium
+
         },
 
         "users": [
+
             {
-                "id": usuario["id"],
-                "username": usuario["username"],
-                "plan": usuario["plan"] or "free"
+                "id":
+                    usuario["id"],
+
+                "username":
+                    usuario["username"],
+
+                "plan":
+                    usuario["plan"] or "free"
             }
+
             for usuario in usuarios
+
         ]
+
     })
 
 
@@ -595,7 +654,8 @@ def admin_change_plan(user_id):
 
         return jsonify({
             "success": False,
-            "message": "Acesso negado."
+            "message":
+                "Acesso negado."
         }), 403
 
     data = request.get_json(
@@ -613,12 +673,15 @@ def admin_change_plan(user_id):
 
         return jsonify({
             "success": False,
-            "message": "Plano inválido."
+            "message":
+                "Plano inválido."
         }), 400
 
     with get_db() as conn:
 
-        cursor = conn.cursor()
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
 
         cursor.execute("""
             SELECT
@@ -668,6 +731,7 @@ def admin_change_plan(user_id):
 
         "plan":
             plan
+
     })
 
 
@@ -685,12 +749,15 @@ def admin_delete_user(user_id):
 
         return jsonify({
             "success": False,
-            "message": "Acesso negado."
+            "message":
+                "Acesso negado."
         }), 403
 
     with get_db() as conn:
 
-        cursor = conn.cursor()
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
 
         cursor.execute("""
             SELECT username
@@ -720,7 +787,10 @@ def admin_delete_user(user_id):
 
         username = usuario["username"]
 
-        # Remove mensagens das conversas.
+        # ====================================================
+        # REMOVE MENSAGENS DAS CONVERSAS
+        # ====================================================
+
         cursor.execute("""
             DELETE FROM chat_messages
             WHERE conversation_id IN (
@@ -732,7 +802,10 @@ def admin_delete_user(user_id):
             username,
         ))
 
-        # Remove conversas.
+        # ====================================================
+        # REMOVE CONVERSAS
+        # ====================================================
+
         cursor.execute("""
             DELETE FROM conversations
             WHERE username = %s
@@ -740,7 +813,10 @@ def admin_delete_user(user_id):
             username,
         ))
 
-        # Remove histórico antigo.
+        # ====================================================
+        # REMOVE HISTÓRICO ANTIGO
+        # ====================================================
+
         cursor.execute("""
             DELETE FROM messages
             WHERE username = %s
@@ -748,7 +824,10 @@ def admin_delete_user(user_id):
             username,
         ))
 
-        # Remove usuário.
+        # ====================================================
+        # REMOVE USUÁRIO
+        # ====================================================
+
         cursor.execute("""
             DELETE FROM users
             WHERE id = %s
@@ -764,6 +843,7 @@ def admin_delete_user(user_id):
 
         "message":
             "Usuário excluído com sucesso."
+
     })
 
 
@@ -857,7 +937,7 @@ def api_register():
                 "Conta criada com sucesso."
         })
 
-    except psycopg2.errors.UniqueViolation:
+    except psycopg2.IntegrityError:
 
         return jsonify({
             "success": False,
@@ -911,7 +991,9 @@ def api_login():
 
     with get_db() as conn:
 
-        cursor = conn.cursor()
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
 
         cursor.execute("""
             SELECT
@@ -991,6 +1073,10 @@ def api_login():
 
         session["user"] = user["username"]
 
+        session["admin"] = (
+            user["username"] == ADMIN_USERNAME
+        )
+
         session["plan"] = (
             user["plan"] or "free"
         )
@@ -1013,6 +1099,7 @@ def api_login():
 
             "conversation_id":
                 conversation_id
+
         })
 
 
@@ -1029,9 +1116,12 @@ def chat():
     if "user" not in session:
 
         return jsonify({
+
             "reply":
                 "Faça login primeiro.",
+
             "success": False
+
         }), 401
 
     data = request.get_json(
@@ -1045,17 +1135,23 @@ def chat():
     if not mensagem:
 
         return jsonify({
+
             "reply":
                 "Digite uma mensagem.",
+
             "success": False
+
         }), 400
 
     if len(mensagem) > 12000:
 
         return jsonify({
+
             "reply":
                 "Sua mensagem é muito grande. Tente enviar uma mensagem menor.",
+
             "success": False
+
         }), 400
 
     username = session["user"]
@@ -1071,9 +1167,12 @@ def chat():
     if not conversation_id:
 
         return jsonify({
+
             "reply":
                 "Não foi possível abrir a conversa.",
+
             "success": False
+
         }), 500
 
     # ========================================================
@@ -1097,21 +1196,25 @@ def chat():
 
                 AND cm.sender = 'user'
 
-                AND cm.created_at::date
+                AND DATE(cm.created_at)
                     = CURRENT_DATE
             """, (
                 username,
             ))
 
-            total = cursor.fetchone()["count"]
+            total = cursor.fetchone()[0]
 
             if total >= 20:
 
                 return jsonify({
+
                     "reply":
                         "❌ Limite diário do plano FREE atingido (20 mensagens).",
+
                     "limit_reached": True,
+
                     "plan": plan
+
                 }), 429
 
         # ====================================================
@@ -1196,6 +1299,7 @@ o usuário a entender.
     mensagens_ia = [
 
         {
+
             "role": "system",
 
             "content": f"""
@@ -1416,6 +1520,7 @@ Antes de responder:
 6. Evite informações inventadas.
 """
         }
+
     ]
 
     # ========================================================
@@ -1424,7 +1529,9 @@ Antes de responder:
 
     with get_db() as conn:
 
-        cursor = conn.cursor()
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
 
         cursor.execute("""
             SELECT sender, message
@@ -1448,10 +1555,12 @@ Antes de responder:
 
         mensagens_ia.append({
 
-            "role": role,
+            "role":
+                role,
 
             "content":
                 item["message"]
+
         })
 
     # ========================================================
@@ -1461,9 +1570,12 @@ Antes de responder:
     if client is None:
 
         return jsonify({
+
             "reply":
                 "❌ A chave GROQ_API_KEY não está configurada no servidor.",
+
             "success": False
+
         }), 500
 
     # ========================================================
@@ -1481,6 +1593,7 @@ Antes de responder:
             temperature=0.7,
 
             max_completion_tokens=2048
+
         )
 
         texto = (
@@ -1531,9 +1644,12 @@ Antes de responder:
             )
 
         return jsonify({
+
             "reply":
                 "❌ Ocorreu um erro ao conectar com a IA. Tente novamente.",
+
             "success": False
+
         }), 500
 
     # ========================================================
@@ -1580,6 +1696,7 @@ Antes de responder:
 
         "plan":
             plan
+
     })
 
 
@@ -1591,11 +1708,14 @@ Antes de responder:
 def conversations():
 
     if "user" not in session:
+
         return jsonify([]), 401
 
     with get_db() as conn:
 
-        cursor = conn.cursor()
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
 
         cursor.execute("""
             SELECT
@@ -1615,6 +1735,7 @@ def conversations():
     return jsonify([
 
         {
+
             "id":
                 item["id"],
 
@@ -1626,9 +1747,11 @@ def conversations():
 
             "updated_at":
                 item["updated_at"]
+
         }
 
         for item in lista
+
     ])
 
 
@@ -1646,9 +1769,12 @@ def open_conversation(
     if "user" not in session:
 
         return jsonify({
+
             "success": False,
+
             "message":
                 "Faça login primeiro."
+
         }), 401
 
     if not verificar_conversa(
@@ -1657,9 +1783,12 @@ def open_conversation(
     ):
 
         return jsonify({
+
             "success": False,
+
             "message":
                 "Conversa não encontrada."
+
         }), 404
 
     session["conversation_id"] = (
@@ -1668,7 +1797,9 @@ def open_conversation(
 
     with get_db() as conn:
 
-        cursor = conn.cursor()
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
 
         cursor.execute("""
             SELECT
@@ -1727,6 +1858,7 @@ def open_conversation(
         "messages": [
 
             {
+
                 "sender":
                     item["sender"],
 
@@ -1735,10 +1867,13 @@ def open_conversation(
 
                 "created_at":
                     item["created_at"]
+
             }
 
             for item in mensagens
+
         ]
+
     })
 
 
@@ -1757,7 +1892,9 @@ def history():
 
     with get_db() as conn:
 
-        cursor = conn.cursor()
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
 
         cursor.execute("""
             SELECT
@@ -1776,6 +1913,7 @@ def history():
     return jsonify([
 
         {
+
             "sender":
                 item["sender"],
 
@@ -1784,9 +1922,11 @@ def history():
 
             "created_at":
                 item["created_at"]
+
         }
 
         for item in mensagens
+
     ])
 
 
@@ -1803,14 +1943,20 @@ def new_chat():
     if "user" not in session:
 
         return jsonify({
+
             "success": False,
+
             "message":
                 "Faça login primeiro."
+
         }), 401
 
     conversation_id = criar_conversa(
+
         session["user"],
+
         "Nova conversa"
+
     )
 
     session["conversation_id"] = (
@@ -1826,6 +1972,7 @@ def new_chat():
 
         "title":
             "Nova conversa"
+
     })
 
 
@@ -1844,20 +1991,29 @@ def rename_conversation(
     if "user" not in session:
 
         return jsonify({
+
             "success": False,
+
             "message":
                 "Faça login primeiro."
+
         }), 401
 
     if not verificar_conversa(
+
         session["user"],
+
         conversation_id
+
     ):
 
         return jsonify({
+
             "success": False,
+
             "message":
                 "Conversa não encontrada."
+
         }), 404
 
     data = request.get_json(
@@ -1871,9 +2027,12 @@ def rename_conversation(
     if not title:
 
         return jsonify({
+
             "success": False,
+
             "message":
                 "Digite um nome para a conversa."
+
         }), 400
 
     if len(title) > 100:
@@ -1904,6 +2063,7 @@ def rename_conversation(
 
         "title":
             title
+
     })
 
 
@@ -1922,20 +2082,29 @@ def delete_conversation(
     if "user" not in session:
 
         return jsonify({
+
             "success": False,
+
             "message":
                 "Faça login primeiro."
+
         }), 401
 
     if not verificar_conversa(
+
         session["user"],
+
         conversation_id
+
     ):
 
         return jsonify({
+
             "success": False,
+
             "message":
                 "Conversa não encontrada."
+
         }), 404
 
     with get_db() as conn:
@@ -1958,8 +2127,11 @@ def delete_conversation(
     ) == conversation_id:
 
         nova_conversa = criar_conversa(
+
             session["user"],
+
             "Nova conversa"
+
         )
 
         session["conversation_id"] = (
@@ -1974,6 +2146,7 @@ def delete_conversation(
             session.get(
                 "conversation_id"
             )
+
     })
 
 
@@ -1987,9 +2160,12 @@ def api_plan():
     if "user" not in session:
 
         return jsonify({
+
             "success": False,
+
             "message":
                 "Faça login primeiro."
+
         }), 401
 
     plan = obter_plan_usuario(
@@ -2004,6 +2180,7 @@ def api_plan():
 
         "plan":
             plan
+
     })
 
 
@@ -2017,7 +2194,9 @@ def api_status():
     if "user" not in session:
 
         return jsonify({
+
             "logged": False
+
         })
 
     return jsonify({
@@ -2035,7 +2214,11 @@ def api_status():
         "conversation_id":
             session.get(
                 "conversation_id"
-            )
+            ),
+
+        "admin":
+            verificar_admin()
+
     })
 
 
@@ -2053,7 +2236,11 @@ if __name__ == "__main__":
     )
 
     app.run(
+
         host="0.0.0.0",
+
         port=port,
+
         debug=False
+
     )
