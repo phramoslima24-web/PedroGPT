@@ -1,504 +1,429 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+```
+<title>PedroGPT - Administração</title>
 
-    <title>PedroGPT - Administração</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: Arial, sans-serif;
+    }
 
-    <style>
+    body {
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at top, #172554, #020617 65%);
+        color: white;
+        padding: 30px;
+    }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
+    .container {
+        width: 100%;
+        max-width: 1200px;
+        margin: auto;
+    }
+
+    /* HEADER */
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        gap: 20px;
+    }
+
+    .logo-area {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .logo {
+        width: 52px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 15px;
+
+        background:
+            linear-gradient(135deg, #2563eb, #7c3aed);
+
+        font-size: 25px;
+        font-weight: bold;
+
+        box-shadow: 0 10px 30px rgba(37, 99, 235, .25);
+    }
+
+    h1 {
+        font-size: 28px;
+    }
+
+    .subtitle {
+        color: #94a3b8;
+        margin-top: 4px;
+    }
+
+    .logout {
+        padding: 11px 18px;
+        border: 1px solid rgba(255,255,255,.1);
+        border-radius: 10px;
+        background: rgba(255,255,255,.06);
+        color: white;
+        cursor: pointer;
+    }
+
+    .logout:hover {
+        background: rgba(255,255,255,.12);
+    }
+
+    /* ESTATÍSTICAS */
+
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+        margin-bottom: 30px;
+    }
+
+    .stat {
+        padding: 24px;
+        border-radius: 18px;
+
+        background: rgba(15,23,42,.75);
+
+        border: 1px solid rgba(255,255,255,.08);
+
+        backdrop-filter: blur(18px);
+
+        transition: .2s;
+    }
+
+    .stat:hover {
+        transform: translateY(-2px);
+        border-color: rgba(255,255,255,.15);
+    }
+
+    .stat-title {
+        color: #94a3b8;
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    .stat-number {
+        font-size: 32px;
+        font-weight: bold;
+    }
+
+    /* PAINEL */
+
+    .panel {
+        background: rgba(15,23,42,.75);
+
+        border: 1px solid rgba(255,255,255,.08);
+
+        border-radius: 20px;
+
+        overflow: hidden;
+
+        backdrop-filter: blur(18px);
+    }
+
+    .panel-header {
+        padding: 22px;
+
+        border-bottom:
+            1px solid rgba(255,255,255,.08);
+
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .panel-header h2 {
+        font-size: 20px;
+    }
+
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* PESQUISA */
+
+    .search {
+        width: 230px;
+
+        padding: 10px 13px;
+
+        border-radius: 10px;
+
+        border:
+            1px solid rgba(255,255,255,.1);
+
+        outline: none;
+
+        background:
+            rgba(255,255,255,.06);
+
+        color: white;
+    }
+
+    .search::placeholder {
+        color: #64748b;
+    }
+
+    .search:focus {
+        border-color: #6366f1;
+    }
+
+    .refresh {
+        padding: 10px 15px;
+
+        border: none;
+
+        border-radius: 9px;
+
+        background: #2563eb;
+
+        color: white;
+
+        cursor: pointer;
+    }
+
+    .refresh:hover {
+        opacity: .9;
+    }
+
+    /* TABELA */
+
+    .table-container {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th,
+    td {
+        padding: 17px;
+        text-align: left;
+
+        border-bottom:
+            1px solid rgba(255,255,255,.06);
+    }
+
+    th {
+        color: #94a3b8;
+        font-size: 13px;
+        text-transform: uppercase;
+    }
+
+    td {
+        font-size: 14px;
+    }
+
+    tr:last-child td {
+        border-bottom: none;
+    }
+
+    tbody tr {
+        transition: background .15s;
+    }
+
+    tbody tr:hover {
+        background: rgba(255,255,255,.025);
+    }
+
+    /* BADGES */
+
+    .badge {
+        display: inline-block;
+
+        padding: 6px 11px;
+
+        border-radius: 20px;
+
+        font-size: 12px;
+
+        font-weight: bold;
+    }
+
+    .free {
+        background: rgba(148,163,184,.15);
+        color: #cbd5e1;
+    }
+
+    .premium {
+        background: rgba(250,204,21,.15);
+        color: #facc15;
+    }
+
+    .admin-badge {
+        background: rgba(96,165,250,.15);
+        color: #60a5fa;
+    }
+
+    /* AÇÕES */
+
+    .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .action {
+        padding: 8px 11px;
+
+        border: none;
+
+        border-radius: 8px;
+
+        color: white;
+
+        cursor: pointer;
+
+        font-size: 12px;
+
+        transition: .15s;
+    }
+
+    .premium-btn {
+        background: #7c3aed;
+    }
+
+    .free-btn {
+        background: #475569;
+    }
+
+    .delete-btn {
+        background: #dc2626;
+    }
+
+    .action:hover {
+        opacity: .85;
+        transform: translateY(-1px);
+    }
+
+    /* MENSAGEM */
+
+    #mensagem {
+        position: fixed;
+
+        right: 25px;
+        bottom: 25px;
+
+        padding: 14px 20px;
+
+        border-radius: 12px;
+
+        background: rgba(15,23,42,.95);
+
+        border:
+            1px solid rgba(255,255,255,.1);
+
+        display: none;
+
+        z-index: 999;
+
+        box-shadow:
+            0 15px 40px rgba(0,0,0,.35);
+    }
+
+    .empty {
+        padding: 40px;
+        text-align: center;
+        color: #94a3b8;
+    }
+
+    /* RESPONSIVO */
+
+    @media (max-width: 800px) {
 
         body {
-
-            min-height: 100vh;
-
-            background:
-                radial-gradient(
-                    circle at top,
-                    #172554,
-                    #020617 65%
-                );
-
-            color: white;
-
-            padding: 30px;
+            padding: 15px;
         }
-
-        .container {
-
-            width: 100%;
-            max-width: 1200px;
-
-            margin: auto;
-        }
-
-        /* HEADER */
 
         .header {
-
-            display: flex;
-
-            justify-content: space-between;
-            align-items: center;
-
-            margin-bottom: 30px;
+            align-items: flex-start;
         }
-
-        .logo-area {
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 14px;
-        }
-
-        .logo {
-
-            width: 52px;
-            height: 52px;
-
-            display: flex;
-
-            align-items: center;
-            justify-content: center;
-
-            border-radius: 15px;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #2563eb,
-                    #7c3aed
-                );
-
-            font-size: 25px;
-
-            font-weight: bold;
-        }
-
-        h1 {
-
-            font-size: 28px;
-        }
-
-        .subtitle {
-
-            color: #94a3b8;
-
-            margin-top: 4px;
-        }
-
-        .logout {
-
-            padding: 11px 18px;
-
-            border:
-                1px solid rgba(
-                    255,
-                    255,
-                    255,
-                    0.1
-                );
-
-            border-radius: 10px;
-
-            background:
-                rgba(
-                    255,
-                    255,
-                    255,
-                    0.06
-                );
-
-            color: white;
-
-            cursor: pointer;
-        }
-
-        .logout:hover {
-
-            background:
-                rgba(
-                    255,
-                    255,
-                    255,
-                    0.12
-                );
-        }
-
-
-        /* ESTATÍSTICAS */
 
         .stats {
-
-            display: grid;
-
-            grid-template-columns:
-                repeat(3, 1fr);
-
-            gap: 18px;
-
-            margin-bottom: 30px;
-        }
-
-        .stat {
-
-            padding: 24px;
-
-            border-radius: 18px;
-
-            background:
-                rgba(
-                    15,
-                    23,
-                    42,
-                    0.75
-                );
-
-            border:
-                1px solid rgba(
-                    255,
-                    255,
-                    255,
-                    0.08
-                );
-
-            backdrop-filter: blur(18px);
-        }
-
-        .stat-title {
-
-            color: #94a3b8;
-
-            font-size: 14px;
-
-            margin-bottom: 10px;
-        }
-
-        .stat-number {
-
-            font-size: 32px;
-
-            font-weight: bold;
-        }
-
-
-        /* PAINEL */
-
-        .panel {
-
-            background:
-                rgba(
-                    15,
-                    23,
-                    42,
-                    0.75
-                );
-
-            border:
-                1px solid rgba(
-                    255,
-                    255,
-                    255,
-                    0.08
-                );
-
-            border-radius: 20px;
-
-            overflow: hidden;
-
-            backdrop-filter: blur(18px);
+            grid-template-columns: 1fr;
         }
 
         .panel-header {
-
-            padding: 22px;
-
-            border-bottom:
-                1px solid rgba(
-                    255,
-                    255,
-                    255,
-                    0.08
-                );
-
-            display: flex;
-
-            justify-content: space-between;
-
-            align-items: center;
+            flex-direction: column;
+            align-items: stretch;
         }
 
-        .panel-header h2 {
+        .header-actions {
+            width: 100%;
+        }
 
-            font-size: 20px;
+        .search {
+            width: 100%;
+            flex: 1;
         }
 
         .refresh {
+            white-space: nowrap;
+        }
+    }
 
-            padding: 9px 15px;
+    @media (max-width: 550px) {
 
-            border: none;
-
-            border-radius: 9px;
-
-            background: #2563eb;
-
-            color: white;
-
-            cursor: pointer;
+        .header {
+            flex-direction: column;
         }
 
-        .refresh:hover {
-
-            opacity: .9;
-        }
-
-
-        /* TABELA */
-
-        .table-container {
-
-            overflow-x: auto;
-        }
-
-        table {
-
+        .header > .logout {
             width: 100%;
+        }
 
-            border-collapse: collapse;
+        .logo {
+            width: 46px;
+            height: 46px;
+        }
+
+        h1 {
+            font-size: 21px;
+        }
+
+        .subtitle {
+            font-size: 13px;
+        }
+
+        .header-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .search,
+        .refresh {
+            width: 100%;
         }
 
         th,
         td {
-
-            padding: 17px;
-
-            text-align: left;
-
-            border-bottom:
-                1px solid rgba(
-                    255,
-                    255,
-                    255,
-                    0.06
-                );
+            padding: 13px 10px;
         }
-
-        th {
-
-            color: #94a3b8;
-
-            font-size: 13px;
-
-            text-transform: uppercase;
-        }
-
-        td {
-
-            font-size: 14px;
-        }
-
-        tr:last-child td {
-
-            border-bottom: none;
-        }
-
-
-        /* BADGES */
-
-        .badge {
-
-            display: inline-block;
-
-            padding: 6px 11px;
-
-            border-radius: 20px;
-
-            font-size: 12px;
-
-            font-weight: bold;
-        }
-
-        .free {
-
-            background:
-                rgba(
-                    148,
-                    163,
-                    184,
-                    0.15
-                );
-
-            color: #cbd5e1;
-        }
-
-        .premium {
-
-            background:
-                rgba(
-                    250,
-                    204,
-                    21,
-                    0.15
-                );
-
-            color: #facc15;
-        }
-
-        .admin-badge {
-
-            background:
-                rgba(
-                    96,
-                    165,
-                    250,
-                    0.15
-                );
-
-            color: #60a5fa;
-        }
-
-
-        /* AÇÕES */
-
-        .actions {
-
-            display: flex;
-
-            gap: 8px;
-
-            flex-wrap: wrap;
-        }
-
-        .action {
-
-            padding: 8px 11px;
-
-            border: none;
-
-            border-radius: 8px;
-
-            color: white;
-
-            cursor: pointer;
-
-            font-size: 12px;
-        }
-
-        .premium-btn {
-
-            background: #7c3aed;
-        }
-
-        .free-btn {
-
-            background: #475569;
-        }
-
-        .delete-btn {
-
-            background: #dc2626;
-        }
-
-        .action:hover {
-
-            opacity: .85;
-        }
-
-
-        /* MENSAGEM */
-
-        #mensagem {
-
-            position: fixed;
-
-            right: 25px;
-            bottom: 25px;
-
-            padding: 14px 20px;
-
-            border-radius: 12px;
-
-            background:
-                rgba(
-                    15,
-                    23,
-                    42,
-                    0.95
-                );
-
-            border:
-                1px solid rgba(
-                    255,
-                    255,
-                    255,
-                    0.1
-                );
-
-            display: none;
-
-            z-index: 999;
-        }
-
-        .empty {
-
-            padding: 40px;
-
-            text-align: center;
-
-            color: #94a3b8;
-        }
-
-
-        /* RESPONSIVO */
-
-        @media (max-width: 700px) {
-
-            body {
-
-                padding: 15px;
-            }
-
-            .header {
-
-                align-items: flex-start;
-
-                gap: 15px;
-            }
-
-            .stats {
-
-                grid-template-columns: 1fr;
-            }
-
-            .header h1 {
-
-                font-size: 22px;
-            }
-
-            .logout {
-
-                padding: 9px 12px;
-            }
-
-        }
-
-    </style>
+    }
+</style>
+```
 
 </head>
 
@@ -506,116 +431,114 @@
 
 <div class="container">
 
+```
+<!-- HEADER -->
 
-    <!-- HEADER -->
+<div class="header">
 
-    <div class="header">
+    <div class="logo-area">
 
-        <div class="logo-area">
+        <div class="logo">
+            P
+        </div>
 
-            <div class="logo">
-                P
-            </div>
+        <div>
 
-            <div>
+            <h1>
+                Painel Administrativo
+            </h1>
 
-                <h1>
-                    Painel Administrativo
-                </h1>
-
-                <div class="subtitle">
-
-                    PedroGPT • {{ username }}
-
-                </div>
-
+            <div class="subtitle">
+                PedroGPT • {{ username }}
             </div>
 
         </div>
 
+    </div>
 
-        <button
-            class="logout"
-            onclick="logout()"
+    <button
+        class="logout"
+        onclick="logout()"
+    >
+        Sair
+    </button>
+
+</div>
+
+
+<!-- ESTATÍSTICAS -->
+
+<div class="stats">
+
+    <div class="stat">
+
+        <div class="stat-title">
+            👥 Total de usuários
+        </div>
+
+        <div
+            class="stat-number"
+            id="totalUsuarios"
         >
-            Sair
-        </button>
+            0
+        </div>
 
     </div>
 
 
-    <!-- ESTATÍSTICAS -->
+    <div class="stat">
 
-    <div class="stats">
-
-
-        <div class="stat">
-
-            <div class="stat-title">
-
-                👥 Total de usuários
-
-            </div>
-
-            <div
-                class="stat-number"
-                id="totalUsuarios"
-            >
-                0
-            </div>
-
+        <div class="stat-title">
+            ⭐ Usuários Premium
         </div>
 
-
-        <div class="stat">
-
-            <div class="stat-title">
-
-                ⭐ Usuários Premium
-
-            </div>
-
-            <div
-                class="stat-number"
-                id="totalPremium"
-            >
-                0
-            </div>
-
+        <div
+            class="stat-number"
+            id="totalPremium"
+        >
+            0
         </div>
-
-
-        <div class="stat">
-
-            <div class="stat-title">
-
-                🆓 Usuários Free
-
-            </div>
-
-            <div
-                class="stat-number"
-                id="totalFree"
-            >
-                0
-            </div>
-
-        </div>
-
 
     </div>
 
 
-    <!-- USUÁRIOS -->
+    <div class="stat">
 
-    <div class="panel">
+        <div class="stat-title">
+            🆓 Usuários Free
+        </div>
+
+        <div
+            class="stat-number"
+            id="totalFree"
+        >
+            0
+        </div>
+
+    </div>
+
+</div>
 
 
-        <div class="panel-header">
+<!-- USUÁRIOS -->
 
-            <h2>
-                👥 Usuários
-            </h2>
+<div class="panel">
+
+    <div class="panel-header">
+
+        <h2>
+            👥 Usuários
+        </h2>
+
+        <div class="header-actions">
+
+            <input
+                type="text"
+                id="pesquisa"
+                class="search"
+                placeholder="🔎 Pesquisar usuário..."
+                oninput="filtrarUsuarios()"
+            >
 
             <button
                 class="refresh"
@@ -626,53 +549,45 @@
 
         </div>
 
-
-        <div class="table-container">
-
-            <table>
-
-                <thead>
-
-                    <tr>
-
-                        <th>
-                            ID
-                        </th>
-
-                        <th>
-                            Usuário
-                        </th>
-
-                        <th>
-                            Plano
-                        </th>
-
-                        <th>
-                            Ações
-                        </th>
-
-                    </tr>
-
-                </thead>
+    </div>
 
 
-                <tbody id="listaUsuarios">
+    <div class="table-container">
 
-                </tbody>
+        <table>
 
-            </table>
+            <thead>
 
-        </div>
+                <tr>
+
+                    <th>ID</th>
+
+                    <th>Usuário</th>
+
+                    <th>Plano</th>
+
+                    <th>Ações</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="listaUsuarios"></tbody>
+
+        </table>
 
     </div>
 
 </div>
+```
 
+</div>
 
 <div id="mensagem"></div>
 
-
 <script>
+
+let usuariosAtuais = [];
 
 
 /* ============================================================
@@ -682,22 +597,16 @@
 function mostrarMensagem(texto) {
 
     const mensagem =
-        document.getElementById(
-            "mensagem"
-        );
+        document.getElementById("mensagem");
 
     mensagem.textContent = texto;
 
     mensagem.style.display = "block";
 
-
     setTimeout(() => {
-
         mensagem.style.display = "none";
-
     }, 2500);
 }
-
 
 
 /* ============================================================
@@ -707,54 +616,31 @@ function mostrarMensagem(texto) {
 async function carregarUsuarios() {
 
     const tabela =
-        document.getElementById(
-            "listaUsuarios"
-        );
-
+        document.getElementById("listaUsuarios");
 
     tabela.innerHTML = `
-
         <tr>
-
-            <td
-                colspan="4"
-                class="empty"
-            >
+            <td colspan="4" class="empty">
                 Carregando usuários...
             </td>
-
         </tr>
-
     `;
-
 
     try {
 
         const resposta =
-            await fetch(
-                "/api/admin/users"
-            );
-
+            await fetch("/api/admin/users");
 
         const dados =
             await resposta.json();
 
+        if (!resposta.ok || !dados.success) {
 
-        if (
-            !resposta.ok ||
-            !dados.success
-        ) {
+            if (resposta.status === 403) {
 
-            if (
-                resposta.status === 403
-            ) {
-
-                window.location.href =
-                    "/login";
-
+                window.location.href = "/login";
                 return;
             }
-
 
             throw new Error(
                 dados.message ||
@@ -762,225 +648,33 @@ async function carregarUsuarios() {
             );
         }
 
-
-        /* ESTATÍSTICAS */
+        usuariosAtuais = dados.users || [];
 
         document.getElementById(
             "totalUsuarios"
-        ).textContent =
-            dados.stats.total;
-
+        ).textContent = dados.stats.total;
 
         document.getElementById(
             "totalPremium"
-        ).textContent =
-            dados.stats.premium;
-
+        ).textContent = dados.stats.premium;
 
         document.getElementById(
             "totalFree"
-        ).textContent =
-            dados.stats.free;
+        ).textContent = dados.stats.free;
 
-
-
-        /* TABELA */
-
-        if (
-            !dados.users.length
-        ) {
-
-            tabela.innerHTML = `
-
-                <tr>
-
-                    <td
-                        colspan="4"
-                        class="empty"
-                    >
-                        Nenhum usuário cadastrado.
-                    </td>
-
-                </tr>
-
-            `;
-
-            return;
-        }
-
-
-        tabela.innerHTML =
-            dados.users.map(
-                usuario => {
-
-
-                const isAdmin =
-                    usuario.username ===
-                    "{{ username }}";
-
-
-                let planoHTML;
-
-
-                if (
-                    usuario.plan ===
-                    "premium"
-                ) {
-
-                    planoHTML = `
-
-                        <span
-                            class="badge premium"
-                        >
-                            ⭐ PREMIUM
-                        </span>
-
-                    `;
-
-                } else {
-
-                    planoHTML = `
-
-                        <span
-                            class="badge free"
-                        >
-                            🆓 FREE
-                        </span>
-
-                    `;
-                }
-
-
-
-                let acoes;
-
-
-                if (isAdmin) {
-
-                    acoes = `
-
-                        <span
-                            class="badge admin-badge"
-                        >
-                            🔐 ADMIN
-                        </span>
-
-                    `;
-
-                } else {
-
-                    acoes = `
-
-                        <div class="actions">
-
-
-                            ${
-                                usuario.plan ===
-                                "premium"
-
-                                ? `
-
-                                    <button
-                                        class="action free-btn"
-                                        onclick="
-                                            alterarPlano(
-                                                ${usuario.id},
-                                                'free'
-                                            )
-                                        "
-                                    >
-                                        ⬇️ Free
-                                    </button>
-
-                                `
-
-                                : `
-
-                                    <button
-                                        class="action premium-btn"
-                                        onclick="
-                                            alterarPlano(
-                                                ${usuario.id},
-                                                'premium'
-                                            )
-                                        "
-                                    >
-                                        ⬆️ Premium
-                                    </button>
-
-                                `
-                            }
-
-
-                            <button
-                                class="action delete-btn"
-                                onclick="
-                                    excluirUsuario(
-                                        ${usuario.id},
-                                        '${usuario.username.replace(
-                                            /'/g,
-                                            "\\'"
-                                        )}'
-                                    )
-                                "
-                            >
-                                🗑️ Excluir
-                            </button>
-
-
-                        </div>
-
-                    `;
-                }
-
-
-                return `
-
-                    <tr>
-
-                        <td>
-                            #${usuario.id}
-                        </td>
-
-                        <td>
-                            ${usuario.username}
-                        </td>
-
-                        <td>
-                            ${planoHTML}
-                        </td>
-
-                        <td>
-                            ${acoes}
-                        </td>
-
-                    </tr>
-
-                `;
-
-            }).join("");
-
+        renderizarUsuarios();
 
     } catch (erro) {
 
         console.error(erro);
 
-
         tabela.innerHTML = `
-
             <tr>
-
-                <td
-                    colspan="4"
-                    class="empty"
-                >
+                <td colspan="4" class="empty">
                     ❌ Erro ao carregar usuários.
                 </td>
-
             </tr>
-
         `;
-
 
         mostrarMensagem(
             "Erro ao conectar com o servidor."
@@ -988,6 +682,161 @@ async function carregarUsuarios() {
     }
 }
 
+
+/* ============================================================
+   FILTRAR
+============================================================ */
+
+function filtrarUsuarios() {
+
+    renderizarUsuarios();
+}
+
+
+/* ============================================================
+   RENDERIZAR
+============================================================ */
+
+function renderizarUsuarios() {
+
+    const tabela =
+        document.getElementById("listaUsuarios");
+
+    const pesquisa =
+        document
+            .getElementById("pesquisa")
+            .value
+            .trim()
+            .toLowerCase();
+
+    const usuariosFiltrados =
+        usuariosAtuais.filter(usuario =>
+            String(usuario.id).includes(pesquisa) ||
+            usuario.username
+                .toLowerCase()
+                .includes(pesquisa)
+        );
+
+    if (!usuariosFiltrados.length) {
+
+        tabela.innerHTML = `
+            <tr>
+                <td colspan="4" class="empty">
+                    Nenhum usuário encontrado.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    tabela.innerHTML =
+        usuariosFiltrados.map(usuario => {
+
+            const isAdmin =
+                usuario.username ===
+                "{{ username }}";
+
+            let planoHTML;
+
+            if (usuario.plan === "premium") {
+
+                planoHTML = `
+                    <span class="badge premium">
+                        ⭐ PREMIUM
+                    </span>
+                `;
+
+            } else {
+
+                planoHTML = `
+                    <span class="badge free">
+                        🆓 FREE
+                    </span>
+                `;
+            }
+
+            let acoes;
+
+            if (isAdmin) {
+
+                acoes = `
+                    <span class="badge admin-badge">
+                        🔐 ADMIN
+                    </span>
+                `;
+
+            } else {
+
+                acoes = `
+                    <div class="actions">
+
+                        ${
+                            usuario.plan === "premium"
+
+                            ? `
+                                <button
+                                    class="action free-btn"
+                                    onclick="alterarPlano(
+                                        ${usuario.id},
+                                        'free'
+                                    )"
+                                >
+                                    ⬇️ Free
+                                </button>
+                            `
+
+                            : `
+                                <button
+                                    class="action premium-btn"
+                                    onclick="alterarPlano(
+                                        ${usuario.id},
+                                        'premium'
+                                    )"
+                                >
+                                    ⬆️ Premium
+                                </button>
+                            `
+                        }
+
+                        <button
+                            class="action delete-btn"
+                            onclick="excluirUsuario(
+                                ${usuario.id},
+                                ${JSON.stringify(usuario.username)}
+                            )"
+                        >
+                            🗑️ Excluir
+                        </button>
+
+                    </div>
+                `;
+            }
+
+            return `
+                <tr>
+
+                    <td>
+                        #${usuario.id}
+                    </td>
+
+                    <td>
+                        ${usuario.username}
+                    </td>
+
+                    <td>
+                        ${planoHTML}
+                    </td>
+
+                    <td>
+                        ${acoes}
+                    </td>
+
+                </tr>
+            `;
+
+        }).join("");
+}
 
 
 /* ============================================================
@@ -999,24 +848,16 @@ async function alterarPlano(
     plano
 ) {
 
-
     const nomePlano =
         plano === "premium"
             ? "PREMIUM"
             : "FREE";
 
-
-    const confirmar =
-        confirm(
-            `Alterar este usuário para ${nomePlano}?`
-        );
-
-
-    if (!confirmar) {
-
+    if (!confirm(
+        `Alterar este usuário para ${nomePlano}?`
+    )) {
         return;
     }
-
 
     try {
 
@@ -1024,35 +865,23 @@ async function alterarPlano(
             await fetch(
                 `/api/admin/user/${userId}/plan`,
                 {
-
                     method: "POST",
 
                     headers: {
-
                         "Content-Type":
                             "application/json"
-
                     },
 
-                    body:
-                        JSON.stringify({
-
-                            plan: plano
-
-                        })
-
+                    body: JSON.stringify({
+                        plan: plano
+                    })
                 }
             );
-
 
         const dados =
             await resposta.json();
 
-
-        if (
-            !resposta.ok ||
-            !dados.success
-        ) {
+        if (!resposta.ok || !dados.success) {
 
             mostrarMensagem(
                 dados.message ||
@@ -1062,26 +891,21 @@ async function alterarPlano(
             return;
         }
 
-
         mostrarMensagem(
             "Plano atualizado com sucesso!"
         );
 
-
         carregarUsuarios();
-
 
     } catch (erro) {
 
         console.error(erro);
-
 
         mostrarMensagem(
             "Erro ao conectar com o servidor."
         );
     }
 }
-
 
 
 /* ============================================================
@@ -1093,18 +917,11 @@ async function excluirUsuario(
     username
 ) {
 
-
-    const confirmar =
-        confirm(
-            `Tem certeza que deseja excluir o usuário "${username}"?\n\nEssa ação não pode ser desfeita.`
-        );
-
-
-    if (!confirmar) {
-
+    if (!confirm(
+        `Tem certeza que deseja excluir o usuário "${username}"?\n\nEssa ação não pode ser desfeita.`
+    )) {
         return;
     }
-
 
     try {
 
@@ -1112,21 +929,14 @@ async function excluirUsuario(
             await fetch(
                 `/api/admin/user/${userId}/delete`,
                 {
-
                     method: "DELETE"
-
                 }
             );
-
 
         const dados =
             await resposta.json();
 
-
-        if (
-            !resposta.ok ||
-            !dados.success
-        ) {
+        if (!resposta.ok || !dados.success) {
 
             mostrarMensagem(
                 dados.message ||
@@ -1136,19 +946,15 @@ async function excluirUsuario(
             return;
         }
 
-
         mostrarMensagem(
             "Usuário excluído com sucesso!"
         );
 
-
         carregarUsuarios();
-
 
     } catch (erro) {
 
         console.error(erro);
-
 
         mostrarMensagem(
             "Erro ao conectar com o servidor."
@@ -1157,17 +963,14 @@ async function excluirUsuario(
 }
 
 
-
 /* ============================================================
    LOGOUT
 ============================================================ */
 
 function logout() {
 
-    window.location.href =
-        "/logout";
+    window.location.href = "/logout";
 }
-
 
 
 /* ============================================================
