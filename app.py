@@ -318,6 +318,14 @@ def atualizar_titulo_se_necessario(
 
 def obter_plan_usuario(username):
 
+    # --------------------------------------------------------
+    # ADMIN SEMPRE É PREMIUM
+    # --------------------------------------------------------
+
+    if username == ADMIN_USERNAME:
+
+        return "premium"
+
     with get_db() as conn:
 
         cursor = conn.cursor(
@@ -429,10 +437,6 @@ def logout():
 )
 def admin_login():
 
-    # --------------------------------------------------------
-    # ABRIR LOGIN
-    # --------------------------------------------------------
-
     if request.method == "GET":
 
         if verificar_admin():
@@ -444,10 +448,6 @@ def admin_login():
         return render_template(
             "admin_login.html"
         )
-
-    # --------------------------------------------------------
-    # RECEBER LOGIN
-    # --------------------------------------------------------
 
     data = request.get_json(
         silent=True
@@ -461,10 +461,6 @@ def admin_login():
         data.get("password") or ""
     )
 
-    # --------------------------------------------------------
-    # CAMPOS VAZIOS
-    # --------------------------------------------------------
-
     if not username or not password:
 
         return jsonify({
@@ -475,10 +471,6 @@ def admin_login():
                 "Preencha usuário e senha."
 
         }), 400
-
-    # --------------------------------------------------------
-    # VERIFICAR CONFIGURAÇÃO
-    # --------------------------------------------------------
 
     if not ADMIN_USERNAME:
 
@@ -510,10 +502,6 @@ def admin_login():
 
         }), 500
 
-    # --------------------------------------------------------
-    # VERIFICAR CREDENCIAIS
-    # --------------------------------------------------------
-
     if username != ADMIN_USERNAME:
 
         return jsonify({
@@ -535,10 +523,6 @@ def admin_login():
                 "Usuário ou senha administrativos incorretos."
 
         }), 401
-
-    # --------------------------------------------------------
-    # LOGIN ADMINISTRATIVO
-    # --------------------------------------------------------
 
     session.clear()
 
@@ -652,15 +636,81 @@ def admin_users():
 
         }), 500
 
-    total = len(usuarios)
+    usuarios_lista = [
 
-    premium = sum(
-        1
+        {
+
+            "id":
+                usuario["id"],
+
+            "username":
+                usuario["username"],
+
+            "plan":
+                usuario["plan"] or "free",
+
+            "admin":
+                usuario["username"] == ADMIN_USERNAME
+
+        }
+
         for usuario in usuarios
-        if (usuario["plan"] or "free") == "premium"
+
+    ]
+
+    admin_existe = any(
+
+        usuario["username"] == ADMIN_USERNAME
+
+        for usuario in usuarios_lista
+
     )
 
-    free = total - premium
+    if not admin_existe:
+
+        usuarios_lista.insert(
+
+            0,
+
+            {
+
+                "id":
+                    0,
+
+                "username":
+                    ADMIN_USERNAME,
+
+                "plan":
+                    "premium",
+
+                "admin":
+                    True
+
+            }
+
+        )
+
+    total = len(usuarios_lista)
+
+    premium = sum(
+
+        1
+
+        for usuario in usuarios_lista
+
+        if usuario["plan"] == "premium"
+
+    )
+
+    free = sum(
+
+        1
+
+        for usuario in usuarios_lista
+
+        if usuario["plan"] == "free"
+
+    )
 
     return jsonify({
 
@@ -668,32 +718,19 @@ def admin_users():
 
         "stats": {
 
-            "total": total,
+            "total":
+                total,
 
-            "free": free,
+            "free":
+                free,
 
-            "premium": premium
+            "premium":
+                premium
 
         },
 
-        "users": [
-
-            {
-
-                "id":
-                    usuario["id"],
-
-                "username":
-                    usuario["username"],
-
-                "plan":
-                    usuario["plan"] or "free"
-
-            }
-
-            for usuario in usuarios
-
-        ]
+        "users":
+            usuarios_lista
 
     })
 
@@ -1023,8 +1060,6 @@ def api_register():
 
         }), 400
 
-    # Impede criação de conta com o mesmo nome do admin
-
     if username == ADMIN_USERNAME:
 
         return jsonify({
@@ -1128,8 +1163,6 @@ def api_login():
 
         }), 400
 
-    # Admin deve entrar pelo login administrativo
-
     if username == ADMIN_USERNAME:
 
         return jsonify({
@@ -1187,10 +1220,6 @@ def api_login():
 
                 senha_correta = False
 
-            # ------------------------------------------------
-            # MIGRAÇÃO DE SENHAS ANTIGAS
-            # ------------------------------------------------
-
             if not senha_correta:
 
                 senha_antiga = user["password"]
@@ -1224,10 +1253,6 @@ def api_login():
                         "Usuário ou senha incorretos."
 
                 }), 401
-
-            # ------------------------------------------------
-            # LOGIN OK
-            # ------------------------------------------------
 
             session.clear()
 
@@ -1348,10 +1373,6 @@ def chat():
             "success": False
 
         }), 500
-
-    # ========================================================
-    # LIMITE FREE
-    # ========================================================
 
     with get_db() as conn:
 
@@ -1515,10 +1536,6 @@ PLANO:
 
     ]
 
-    # ========================================================
-    # HISTÓRICO
-    # ========================================================
-
     with get_db() as conn:
 
         cursor = conn.cursor(
@@ -1555,10 +1572,6 @@ PLANO:
 
         })
 
-    # ========================================================
-    # VERIFICA API
-    # ========================================================
-
     if client is None:
 
         return jsonify({
@@ -1570,10 +1583,6 @@ PLANO:
                 False
 
         }), 500
-
-    # ========================================================
-    # GROQ
-    # ========================================================
 
     try:
 
@@ -1645,10 +1654,6 @@ PLANO:
                 False
 
         }), 500
-
-    # ========================================================
-    # SALVA RESPOSTA
-    # ========================================================
 
     with get_db() as conn:
 
