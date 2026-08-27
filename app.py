@@ -1,3 +1,4 @@
+```python
 import os
 from datetime import datetime
 
@@ -31,7 +32,7 @@ app = Flask(__name__)
 
 app.secret_key = os.getenv(
     "FLASK_SECRET_KEY",
-    "pedrogpt_secret_key"
+    "orion_ai_secret_key"
 )
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -317,14 +318,6 @@ def atualizar_titulo_se_necessario(
 
 
 def obter_plan_usuario(username):
-
-    # --------------------------------------------------------
-    # ADMIN SEMPRE É PREMIUM
-    # --------------------------------------------------------
-
-    if username == ADMIN_USERNAME:
-
-        return "premium"
 
     with get_db() as conn:
 
@@ -636,81 +629,15 @@ def admin_users():
 
         }), 500
 
-    usuarios_lista = [
-
-        {
-
-            "id":
-                usuario["id"],
-
-            "username":
-                usuario["username"],
-
-            "plan":
-                usuario["plan"] or "free",
-
-            "admin":
-                usuario["username"] == ADMIN_USERNAME
-
-        }
-
-        for usuario in usuarios
-
-    ]
-
-    admin_existe = any(
-
-        usuario["username"] == ADMIN_USERNAME
-
-        for usuario in usuarios_lista
-
-    )
-
-    if not admin_existe:
-
-        usuarios_lista.insert(
-
-            0,
-
-            {
-
-                "id":
-                    0,
-
-                "username":
-                    ADMIN_USERNAME,
-
-                "plan":
-                    "premium",
-
-                "admin":
-                    True
-
-            }
-
-        )
-
-    total = len(usuarios_lista)
+    total = len(usuarios)
 
     premium = sum(
-
         1
-
-        for usuario in usuarios_lista
-
-        if usuario["plan"] == "premium"
-
+        for usuario in usuarios
+        if (usuario["plan"] or "free") == "premium"
     )
 
-    free = sum(
-
-        1
-
-        for usuario in usuarios_lista
-
-        if usuario["plan"] == "free"
-
-    )
+    free = total - premium
 
     return jsonify({
 
@@ -718,19 +645,32 @@ def admin_users():
 
         "stats": {
 
-            "total":
-                total,
+            "total": total,
 
-            "free":
-                free,
+            "free": free,
 
-            "premium":
-                premium
+            "premium": premium
 
         },
 
-        "users":
-            usuarios_lista
+        "users": [
+
+            {
+
+                "id":
+                    usuario["id"],
+
+                "username":
+                    usuario["username"],
+
+                "plan":
+                    usuario["plan"] or "free"
+
+            }
+
+            for usuario in usuarios
+
+        ]
 
     })
 
@@ -1476,7 +1416,7 @@ o usuário a entender.
                 "system",
 
             "content": f"""
-Você é o PedroGPT, um assistente
+Você é o Orion AI, um assistente
 virtual brasileiro inteligente, útil,
 natural e amigável.
 
@@ -2250,3 +2190,4 @@ if __name__ == "__main__":
         debug=False
 
     )
+```
