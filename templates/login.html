@@ -1,5 +1,5 @@
-```html
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 
 <head>
@@ -82,6 +82,10 @@ body{
     position:relative;
 }
 
+.password-box input{
+    padding-right:48px;
+}
+
 .password-box button{
     position:absolute;
     right:12px;
@@ -142,6 +146,10 @@ body{
     text-decoration:none;
 }
 
+.footer a:hover{
+    text-decoration:underline;
+}
+
 </style>
 
 </head>
@@ -150,150 +158,148 @@ body{
 
 <div class="card">
 
-    <div class="logo">
+```
+<div class="logo">
 
-        <h1>🤖 Orion AI</h1>
+    <h1>🤖 Orion AI</h1>
 
-        <p>
-            Entre na sua conta
-        </p>
+    <p>
+        Entre na sua conta
+    </p>
 
-    </div>
+</div>
 
+<div class="input-group">
 
-    <div class="input-group">
+    <label for="username">
+        Usuário
+    </label>
 
-        <label>
-            Usuário
-        </label>
+    <input
+        type="text"
+        id="username"
+        placeholder="Digite seu usuário"
+        autocomplete="username"
+    >
+
+</div>
+
+<div class="input-group">
+
+    <label for="password">
+        Senha
+    </label>
+
+    <div class="password-box">
 
         <input
-            id="username"
-            placeholder="Digite seu usuário"
+            type="password"
+            id="password"
+            placeholder="Digite sua senha"
+            autocomplete="current-password"
         >
 
-    </div>
-
-
-    <div class="input-group">
-
-        <label>
-            Senha
-        </label>
-
-        <div class="password-box">
-
-            <input
-                type="password"
-                id="password"
-                placeholder="Digite sua senha"
-            >
-
-            <button
-                type="button"
-                onclick="toggleSenha()"
-                id="eye"
-            >
-                👁️
-            </button>
-
-        </div>
-
-    </div>
-
-
-    <button
-        class="login-btn"
-        onclick="login()"
-        id="btnLogin"
-    >
-        Entrar
-    </button>
-
-
-    <div
-        id="msg"
-        class="msg"
-    ></div>
-
-
-    <div class="footer">
-
-        Não possui conta?<br>
-
-        <a href="/register">
-            Criar conta
-        </a>
+        <button
+            type="button"
+            onclick="toggleSenha()"
+            id="eye"
+            aria-label="Mostrar senha"
+        >
+            👁️
+        </button>
 
     </div>
 
 </div>
 
+<button
+    class="login-btn"
+    onclick="login()"
+    id="btnLogin"
+    type="button"
+>
+    Entrar
+</button>
+
+<div
+    id="msg"
+    class="msg"
+></div>
+
+<div class="footer">
+
+    Não possui conta?<br>
+
+    <a href="/register">
+        Criar conta
+    </a>
+
+</div>
+```
+
+</div>
 
 <script>
 
-function mostrarMensagem(
-    texto,
-    tipo="error"
-){
+function mostrarMensagem(texto, tipo = "error") {
 
-    const msg =
-        document.getElementById("msg");
+    const msg = document.getElementById("msg");
 
-    msg.className =
-        `msg ${tipo}`;
+    if (!msg) {
+        return;
+    }
 
-    msg.textContent =
-        texto;
+    msg.className = `msg ${tipo}`;
+
+    msg.textContent = texto;
 }
 
 
-function toggleSenha(){
+function toggleSenha() {
 
-    const senha =
-        document.getElementById("password");
+    const senha = document.getElementById("password");
+    const eye = document.getElementById("eye");
 
-    const eye =
-        document.getElementById("eye");
+    if (!senha || !eye) {
+        return;
+    }
 
-
-    if(
-        senha.type === "password"
-    ){
+    if (senha.type === "password") {
 
         senha.type = "text";
-
         eye.textContent = "🙈";
 
-    }else{
+    } else {
 
         senha.type = "password";
-
         eye.textContent = "👁️";
 
     }
 }
 
 
-async function login(){
+async function login() {
+
+    const usernameElement =
+        document.getElementById("username");
+
+    const passwordElement =
+        document.getElementById("password");
+
+    const btn =
+        document.getElementById("btnLogin");
+
+    if (!usernameElement || !passwordElement || !btn) {
+        return;
+    }
 
     const username =
-        document
-            .getElementById("username")
-            .value
-            .trim();
+        usernameElement.value.trim();
 
     const password =
-        document
-            .getElementById("password")
-            .value
-            .trim();
+        passwordElement.value.trim();
 
-
-    if(
-        !username ||
-        !password
-    ){
+    if (!username || !password) {
 
         mostrarMensagem(
             "Preencha usuário e senha."
@@ -302,117 +308,131 @@ async function login(){
         return;
     }
 
-
-    const btn =
-        document.getElementById(
-            "btnLogin"
-        );
-
-
     btn.disabled = true;
-
-    btn.textContent =
-        "Entrando...";
-
+    btn.textContent = "Entrando...";
 
     mostrarMensagem("");
 
+    try {
 
-    try{
+        const res = await fetch(
+            "/api/login",
+            {
+                method: "POST",
 
-        const res =
-            await fetch(
-                "/api/login",
-                {
-                    method:"POST",
+                headers: {
+                    "Content-Type":
+                        "application/json",
 
-                    headers:{
-                        "Content-Type":
-                            "application/json"
-                    },
+                    "Accept":
+                        "application/json"
+                },
 
-                    body:JSON.stringify({
-                        username,
-                        password
+                credentials:
+                    "same-origin",
+
+                body:
+                    JSON.stringify({
+                        username: username,
+                        password: password
                     })
-                }
-            );
+            }
+        );
 
+        let data = {};
 
-        const data =
-            await res.json();
+        try {
+            data = await res.json();
+        } catch (jsonError) {
+            data = {};
+        }
 
-
-        if(data.success){
+        if (res.ok && data.success) {
 
             mostrarMensagem(
                 "Login realizado com sucesso!",
                 "success"
             );
 
-
             setTimeout(
-                ()=>{
-                    window.location.href="/";
+                function () {
+                    window.location.href = "/";
                 },
                 600
             );
 
-        }else{
-
-            mostrarMensagem(
-                data.message ||
-                "Usuário ou senha incorretos."
-            );
-
+            return;
         }
 
-    }catch(e){
+        mostrarMensagem(
+            data.message ||
+            "Usuário ou senha incorretos."
+        );
+
+    } catch (e) {
+
+        console.error(
+            "Erro no login:",
+            e
+        );
 
         mostrarMensagem(
             "Erro ao conectar ao servidor."
         );
 
+    } finally {
+
+        btn.disabled = false;
+        btn.textContent = "Entrar";
     }
-
-
-    btn.disabled = false;
-
-    btn.textContent =
-        "Entrar";
 }
 
 
-document
-    .getElementById("password")
-    .addEventListener(
-        "keydown",
-        e => {
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
 
-            if(e.key === "Enter"){
-                login();
-            }
+        const password =
+            document.getElementById("password");
+
+        const username =
+            document.getElementById("username");
+
+        if (password) {
+
+            password.addEventListener(
+                "keydown",
+                function (e) {
+
+                    if (e.key === "Enter") {
+                        login();
+                    }
+
+                }
+            );
 
         }
-    );
 
+        if (username) {
 
-document
-    .getElementById("username")
-    .addEventListener(
-        "keydown",
-        e => {
+            username.addEventListener(
+                "keydown",
+                function (e) {
 
-            if(e.key === "Enter"){
-                login();
-            }
+                    if (e.key === "Enter") {
+                        login();
+                    }
+
+                }
+            );
 
         }
-    );
+
+    }
+);
 
 </script>
 
 </body>
 
 </html>
-```
