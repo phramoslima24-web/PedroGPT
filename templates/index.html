@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 
@@ -41,14 +42,11 @@ body {
     width: 280px;
     flex-shrink: 0;
 
-    background:
-        rgba(255,255,255,0.035);
+    background: rgba(255,255,255,0.035);
 
     backdrop-filter: blur(18px);
 
-    border-right:
-        1px solid
-        rgba(255,255,255,0.08);
+    border-right: 1px solid rgba(255,255,255,0.08);
 
     padding: 18px;
 
@@ -72,12 +70,9 @@ body {
     padding: 12px;
     border-radius: 12px;
 
-    background:
-        rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.05);
 
-    border:
-        1px solid
-        rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.07);
 
     text-align: center;
     font-size: 14px;
@@ -100,12 +95,9 @@ body {
     font-size: 12px;
     font-weight: bold;
 
-    background:
-        rgba(124,58,237,0.15);
+    background: rgba(124,58,237,0.15);
 
-    border:
-        1px solid
-        rgba(124,58,237,0.25);
+    border: 1px solid rgba(124,58,237,0.25);
 
     color: #c4b5fd;
 }
@@ -169,9 +161,7 @@ body {
 }
 
 .conversas::-webkit-scrollbar-thumb {
-    background:
-        rgba(255,255,255,0.15);
-
+    background: rgba(255,255,255,0.15);
     border-radius: 10px;
 }
 
@@ -183,8 +173,7 @@ body {
 
     border: 1px solid transparent;
 
-    background:
-        rgba(255,255,255,0.035);
+    background: rgba(255,255,255,0.035);
 
     color: white;
 
@@ -199,16 +188,13 @@ body {
 }
 
 .conversa-item:hover {
-    background:
-        rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.08);
 }
 
 .conversa-item.ativa {
-    background:
-        rgba(124,58,237,0.18);
+    background: rgba(124,58,237,0.18);
 
-    border-color:
-        rgba(124,58,237,0.35);
+    border-color: rgba(124,58,237,0.35);
 }
 
 /* =========================
@@ -221,8 +207,7 @@ body {
     text-decoration: none;
     color: white;
 
-    background:
-        rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.07);
 
     padding: 11px;
     border-radius: 10px;
@@ -233,8 +218,7 @@ body {
 }
 
 .logout:hover {
-    background:
-        rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.12);
 }
 
 /* =========================
@@ -249,6 +233,8 @@ body {
     flex-direction: column;
 
     height: 100vh;
+
+    position: relative;
 }
 
 /* =========================
@@ -265,16 +251,16 @@ body {
 
     padding: 0 18px;
 
-    border-bottom:
-        1px solid
-        rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
 
-    background:
-        rgba(255,255,255,0.025);
+    background: rgba(255,255,255,0.025);
 
     backdrop-filter: blur(12px);
 
     font-weight: bold;
+
+    position: relative;
+    z-index: 20;
 }
 
 /* =========================
@@ -284,14 +270,16 @@ body {
 .opcoes {
     padding: 9px 18px;
 
-    border-bottom:
-        1px solid
-        rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
 
     font-size: 13px;
 
-    color:
-        rgba(255,255,255,0.75);
+    color: rgba(255,255,255,0.75);
+
+    flex-shrink: 0;
+
+    position: relative;
+    z-index: 20;
 }
 
 .opcoes label {
@@ -305,11 +293,30 @@ body {
 }
 
 /* =========================
+   ÁREA DO CHAT
+========================= */
+
+.chat-area {
+    position: relative;
+
+    flex: 1;
+
+    min-height: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+}
+
+/* =========================
    CHAT
 ========================= */
 
 .chat {
     flex: 1;
+
+    min-height: 0;
 
     overflow-y: auto;
 
@@ -320,6 +327,9 @@ body {
     gap: 13px;
 
     scroll-behavior: smooth;
+
+    position: relative;
+    z-index: 1;
 }
 
 .chat::-webkit-scrollbar {
@@ -327,8 +337,7 @@ body {
 }
 
 .chat::-webkit-scrollbar-thumb {
-    background:
-        rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.15);
 
     border-radius: 10px;
 }
@@ -343,8 +352,7 @@ body {
 
     padding: 12px 14px;
 
-    animation:
-        pop 0.15s ease;
+    animation: pop 0.15s ease;
 
     box-shadow:
         0 8px 22px
@@ -384,8 +392,7 @@ body {
         1px solid
         rgba(255,255,255,0.08);
 
-    backdrop-filter:
-        blur(10px);
+    backdrop-filter: blur(10px);
 }
 
 /* =========================
@@ -465,8 +472,7 @@ body {
 
     border-radius: 10px;
 
-    background:
-        rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.5);
 
     border:
         1px solid
@@ -496,6 +502,10 @@ body {
    TYPING
 ========================= */
 
+.typing-message {
+    opacity: 0.9;
+}
+
 .typing-dots {
     display: inline-flex;
     gap: 4px;
@@ -510,8 +520,7 @@ body {
 
     background: #c4b5fd;
 
-    animation:
-        typing 1.2s infinite;
+    animation: typing 1.2s infinite;
 }
 
 .typing-dots span:nth-child(2) {
@@ -520,95 +529,6 @@ body {
 
 .typing-dots span:nth-child(3) {
     animation-delay: .3s;
-}
-
-/* =========================
-   ENTRADA
-========================= */
-
-.entrada {
-    flex-shrink: 0;
-
-    display: flex;
-    gap: 10px;
-
-    padding: 14px;
-
-    border-top:
-        1px solid
-        rgba(255,255,255,0.06);
-
-    background:
-        rgba(0,0,0,0.25);
-
-    backdrop-filter:
-        blur(14px);
-}
-
-.entrada input {
-    flex: 1;
-    min-width: 0;
-
-    padding: 14px;
-
-    border-radius: 13px;
-
-    border:
-        1px solid
-        rgba(255,255,255,0.1);
-
-    background:
-        rgba(255,255,255,0.06);
-
-    color: white;
-
-    outline: none;
-}
-
-.entrada input:focus {
-    border-color: #7c3aed;
-
-    box-shadow:
-        0 0 0 3px
-        rgba(124,58,237,0.12);
-}
-
-.entrada input::placeholder {
-    color:
-        rgba(255,255,255,0.45);
-}
-
-.entrada button {
-    padding:
-        14px 20px;
-
-    border-radius: 13px;
-    border: none;
-
-    cursor: pointer;
-
-    background:
-        linear-gradient(
-            135deg,
-            #7c3aed,
-            #4f46e5
-        );
-
-    color: white;
-
-    font-weight: bold;
-
-    transition: 0.2s;
-}
-
-.entrada button:hover {
-    transform: translateY(-1px);
-}
-
-.entrada button:disabled {
-    opacity: .55;
-    cursor: not-allowed;
-    transform: none;
 }
 
 /* =========================
@@ -641,7 +561,9 @@ body {
 
     text-align: center;
 
-    z-index: 10;
+    z-index: 5;
+
+    pointer-events: auto;
 }
 
 .welcome h2 {
@@ -649,8 +571,7 @@ body {
 }
 
 .welcome p {
-    color:
-        rgba(255,255,255,0.6);
+    color: rgba(255,255,255,0.6);
 }
 
 /* =========================
@@ -672,13 +593,11 @@ body {
 }
 
 .quick {
-    padding:
-        11px 15px;
+    padding: 11px 15px;
 
     border-radius: 11px;
 
-    background:
-        rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.07);
 
     border:
         1px solid
@@ -694,8 +613,101 @@ body {
 .quick:hover {
     transform: translateY(-2px);
 
+    background: rgba(255,255,255,0.13);
+}
+
+/* =========================
+   ENTRADA
+========================= */
+
+.entrada {
+    flex-shrink: 0;
+
+    display: flex;
+    gap: 10px;
+
+    padding: 14px;
+
+    border-top:
+        1px solid
+        rgba(255,255,255,0.06);
+
     background:
-        rgba(255,255,255,0.13);
+        rgba(0,0,0,0.25);
+
+    backdrop-filter:
+        blur(14px);
+
+    position: relative;
+
+    z-index: 30;
+}
+
+.entrada input {
+    flex: 1;
+    min-width: 0;
+
+    padding: 14px;
+
+    border-radius: 13px;
+
+    border:
+        1px solid
+        rgba(255,255,255,0.1);
+
+    background:
+        rgba(255,255,255,0.06);
+
+    color: white;
+
+    outline: none;
+}
+
+.entrada input:focus {
+    border-color: #7c3aed;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(124,58,237,0.12);
+}
+
+.entrada input::placeholder {
+    color: rgba(255,255,255,0.45);
+}
+
+.entrada button {
+    padding: 14px 20px;
+
+    border-radius: 13px;
+
+    border: none;
+
+    cursor: pointer;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #4f46e5
+        );
+
+    color: white;
+
+    font-weight: bold;
+
+    transition: 0.2s;
+}
+
+.entrada button:hover {
+    transform: translateY(-1px);
+}
+
+.entrada button:disabled {
+    opacity: .55;
+
+    cursor: not-allowed;
+
+    transform: none;
 }
 
 /* =========================
@@ -824,8 +836,7 @@ body {
     }
 
     .entrada button {
-        padding:
-            12px 15px;
+        padding: 12px 15px;
     }
 }
 
@@ -900,6 +911,7 @@ body {
 
 </aside>
 
+
 <!-- =========================
      MAIN
 ========================= -->
@@ -913,6 +925,7 @@ body {
         </span>
 
     </header>
+
 
     <div class="opcoes">
 
@@ -930,63 +943,73 @@ body {
 
     </div>
 
-    <!-- CHAT -->
 
-    <div
-        id="chat"
-        class="chat"
-    ></div>
+    <!-- =========================
+         ÁREA DO CHAT
+    ========================= -->
 
-    <!-- WELCOME -->
+    <div class="chat-area">
 
-    <div
-        id="welcome"
-        class="welcome"
-    >
+        <!-- CHAT -->
 
-        <h2>
-            🤖 Orion AI
-        </h2>
+        <div
+            id="chat"
+            class="chat"
+        ></div>
 
-        <p>
-            Como posso ajudar hoje?
-        </p>
 
-        <div class="quick-actions">
+        <!-- WELCOME -->
 
-            <div
-                class="quick"
-                onclick="atalho('Criar código')"
-            >
+        <div
+            id="welcome"
+            class="welcome"
+        >
 
-                💻 Criar código
+            <h2>
+                🤖 Orion AI
+            </h2>
 
-            </div>
+            <p>
+                Como posso ajudar hoje?
+            </p>
 
-            <div
-                class="quick"
-                onclick="atalho('Estudar')"
-            >
+            <div class="quick-actions">
 
-                📚 Estudar
+                <div
+                    class="quick"
+                    onclick="atalho('Criar código')"
+                >
 
-            </div>
+                    💻 Criar código
 
-            <div
-                class="quick"
-                onclick="atalho('Fazer resumo')"
-            >
+                </div>
 
-                📝 Fazer resumo
+                <div
+                    class="quick"
+                    onclick="atalho('Estudar')"
+                >
 
-            </div>
+                    📚 Estudar
 
-            <div
-                class="quick"
-                onclick="atalho('Tirar dúvidas')"
-            >
+                </div>
 
-                ❓ Tirar dúvidas
+                <div
+                    class="quick"
+                    onclick="atalho('Fazer resumo')"
+                >
+
+                    📝 Fazer resumo
+
+                </div>
+
+                <div
+                    class="quick"
+                    onclick="atalho('Tirar dúvidas')"
+                >
+
+                    ❓ Tirar dúvidas
+
+                </div>
 
             </div>
 
@@ -994,7 +1017,10 @@ body {
 
     </div>
 
-    <!-- ENTRADA -->
+
+    <!-- =========================
+         ENTRADA
+    ========================= -->
 
     <div class="entrada">
 
@@ -1007,6 +1033,7 @@ body {
 
         <button
             id="btnEnviar"
+            type="button"
             onclick="enviar()"
         >
 
@@ -1018,29 +1045,24 @@ body {
 
 </main>
 
-<script>
 
-/* =========================
-   ATALHOS
-========================= */
+<!-- =========================
+     FUNÇÕES AUXILIARES
+========================= -->
+
+<script>
 
 function atalho(texto) {
 
     const welcome =
-        document.getElementById(
-            "welcome"
-        );
+        document.getElementById("welcome");
 
     const campo =
-        document.getElementById(
-            "mensagem"
-        );
+        document.getElementById("mensagem");
 
     if (welcome) {
 
-        welcome.classList.add(
-            "hidden"
-        );
+        welcome.classList.add("hidden");
 
     }
 
@@ -1054,22 +1076,15 @@ function atalho(texto) {
 
 }
 
-/* =========================
-   ESCONDER WELCOME
-========================= */
 
 function esconderWelcome() {
 
     const welcome =
-        document.getElementById(
-            "welcome"
-        );
+        document.getElementById("welcome");
 
     if (welcome) {
 
-        welcome.classList.add(
-            "hidden"
-        );
+        welcome.classList.add("hidden");
 
     }
 
@@ -1077,8 +1092,12 @@ function esconderWelcome() {
 
 </script>
 
+
+<!-- SCRIPT PRINCIPAL -->
+
 <script src="/static/script.js"></script>
 
 </body>
 
 </html>
+```
