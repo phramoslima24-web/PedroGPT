@@ -1,4 +1,3 @@
-````javascript
 // ============================================================
 // ORION AI - SCRIPT.JS
 // ============================================================
@@ -30,10 +29,10 @@ function escaparHTML(texto) {
 
 
 // ============================================================
-// LIMPAR RESPOSTA
+// LIMPAR ASPAS TRIPLAS
 // ============================================================
 
-function limparResposta(texto) {
+function limparAspasTriplas(texto) {
 
     if (!texto) {
         return "";
@@ -41,16 +40,9 @@ function limparResposta(texto) {
 
     let resultado = String(texto);
 
-    // Remove cercas de código Python/SQL/etc. com '''
-    resultado = resultado.replace(/^\s*'''[a-zA-Z0-9_+#.-]*\s*\n?/i, "");
-    resultado = resultado.replace(/\n?\s*'''\s*$/i, "");
-
-    // Remove linhas isoladas contendo apenas '''
+    resultado = resultado.replace(/^\s*'''(?:\w+)?\s*/, "");
+    resultado = resultado.replace(/\s*'''\s*$/, "");
     resultado = resultado.replace(/^\s*'''\s*$/gm, "");
-
-    // Remove cercas ``` que tenham sobrado
-    resultado = resultado.replace(/^```[a-zA-Z0-9_+#.-]*\s*$/gm, "");
-    resultado = resultado.replace(/^```\s*$/gm, "");
 
     return resultado.trim();
 }
@@ -66,14 +58,14 @@ function formatarResposta(texto) {
         return "";
     }
 
-    texto = limparResposta(texto);
+    texto = limparAspasTriplas(texto);
 
     let protegido = escaparHTML(texto);
 
     const blocosCodigo = [];
 
     // ========================================================
-    // BLOCOS DE CÓDIGO MARKDOWN
+    // BLOCOS DE CÓDIGO
     // ========================================================
 
     protegido = protegido.replace(
@@ -82,12 +74,11 @@ function formatarResposta(texto) {
 
             const id = blocosCodigo.length;
 
-            let codigoSeguro = codigo.trim();
-
-            // Remove ''' caso apareça dentro do bloco
-            codigoSeguro = codigoSeguro
-                .replace(/^\s*'''[a-zA-Z0-9_+#.-]*\s*\n?/i, "")
-                .replace(/\n?\s*'''\s*$/i, "");
+            const codigoSeguro = codigo
+                .trim()
+                .replace(/^\s*'''/g, "")
+                .replace(/'''\s*$/g, "")
+                .trim();
 
             blocosCodigo.push(
                 `<pre class="codigo-pedrogpt"><code>${codigoSeguro}</code></pre>`
@@ -97,6 +88,14 @@ function formatarResposta(texto) {
         }
     );
 
+    // ========================================================
+    // REMOVE ASPAS TRIPLAS RESTANTES
+    // ========================================================
+
+    protegido = protegido.replace(
+        /^\s*'''\s*$/gm,
+        ""
+    );
 
     // ========================================================
     // NEGRITO
@@ -107,7 +106,6 @@ function formatarResposta(texto) {
         "<strong>$1</strong>"
     );
 
-
     // ========================================================
     // ITÁLICO
     // ========================================================
@@ -116,7 +114,6 @@ function formatarResposta(texto) {
         /(?<!\*)\*([^*\n]+)\*(?!\*)/g,
         "<em>$1</em>"
     );
-
 
     // ========================================================
     // TÍTULOS
@@ -137,11 +134,6 @@ function formatarResposta(texto) {
         "<h2>$1</h2>"
     );
 
-
-    // ========================================================
-    // LINHAS
-    // ========================================================
-
     const linhas = protegido.split("\n");
 
     let resultado = "";
@@ -149,27 +141,22 @@ function formatarResposta(texto) {
     let listaAberta = false;
     let listaNumeradaAberta = false;
 
+    // ========================================================
+    // PROCESSAR LINHAS
+    // ========================================================
 
     linhas.forEach(function (linha) {
 
         const trim = linha.trim();
 
-
-        // ----------------------------------------------------
-        // IGNORA CERCAS DE CÓDIGO ISOLADAS
-        // ----------------------------------------------------
-
-        if (
-            trim === "'''" ||
-            trim === "```"
-        ) {
+        // Ignora linha vazia de aspas triplas
+        if (trim === "'''") {
             return;
         }
 
-
-        // ----------------------------------------------------
+        // ====================================================
         // LISTA
-        // ----------------------------------------------------
+        // ====================================================
 
         if (/^[-•*]\s+/.test(trim)) {
 
@@ -193,10 +180,9 @@ function formatarResposta(texto) {
             return;
         }
 
-
-        // ----------------------------------------------------
+        // ====================================================
         // LISTA NUMERADA
-        // ----------------------------------------------------
+        // ====================================================
 
         if (/^\d+[.)]\s+/.test(trim)) {
 
@@ -220,10 +206,9 @@ function formatarResposta(texto) {
             return;
         }
 
-
-        // ----------------------------------------------------
+        // ====================================================
         // FECHAR LISTAS
-        // ----------------------------------------------------
+        // ====================================================
 
         if (listaAberta) {
             resultado += "</ul>";
@@ -235,10 +220,9 @@ function formatarResposta(texto) {
             listaNumeradaAberta = false;
         }
 
-
-        // ----------------------------------------------------
+        // ====================================================
         // LINHA VAZIA
-        // ----------------------------------------------------
+        // ====================================================
 
         if (!trim) {
 
@@ -248,15 +232,9 @@ function formatarResposta(texto) {
             return;
         }
 
-
-        // ----------------------------------------------------
-        // LINHA NORMAL
-        // ----------------------------------------------------
-
         resultado +=
             `<div class="linha-resposta">${linha}</div>`;
     });
-
 
     // ========================================================
     // FECHAR LISTAS
@@ -270,21 +248,18 @@ function formatarResposta(texto) {
         resultado += "</ol>";
     }
 
-
     // ========================================================
     // INSERIR CÓDIGOS
     // ========================================================
 
-    blocosCodigo.forEach(
-        function (codigo, index) {
+    blocosCodigo.forEach(function (codigo, index) {
 
-            resultado = resultado.replace(
-                `___CODIGO_${index}___`,
-                codigo
-            );
-        }
-    );
+        resultado = resultado.replace(
+            `___CODIGO_${index}___`,
+            codigo
+        );
 
+    });
 
     return resultado;
 }
@@ -355,7 +330,6 @@ function addMensagem(texto, tipo) {
             : "msg-bot"
     );
 
-
     // ========================================================
     // DIGITANDO
     // ========================================================
@@ -383,7 +357,6 @@ function addMensagem(texto, tipo) {
         return div;
     }
 
-
     // ========================================================
     // HORA
     // ========================================================
@@ -391,16 +364,11 @@ function addMensagem(texto, tipo) {
     const agora = new Date();
 
     const hora =
-        agora.getHours()
-            .toString()
-            .padStart(2, "0")
+        agora.getHours().toString().padStart(2, "0")
         +
         ":"
         +
-        agora.getMinutes()
-            .toString()
-            .padStart(2, "0");
-
+        agora.getMinutes().toString().padStart(2, "0");
 
     // ========================================================
     // CONTEÚDO
@@ -410,16 +378,13 @@ function addMensagem(texto, tipo) {
 
     if (ehUsuario) {
 
-        conteudo =
-            escaparHTML(texto)
-                .replace(/\n/g, "<br>");
+        conteudo = escaparHTML(texto)
+            .replace(/\n/g, "<br>");
 
     } else {
 
-        conteudo =
-            formatarResposta(texto);
+        conteudo = formatarResposta(texto);
     }
-
 
     // ========================================================
     // HTML
@@ -472,15 +437,19 @@ async function carregarHistorico() {
         );
 
         if (resposta.status === 401) {
-            console.warn("Usuário não está autenticado.");
+            console.warn(
+                "Usuário não autenticado."
+            );
             return;
         }
 
         if (!resposta.ok) {
+
             console.warn(
                 "Erro ao carregar histórico:",
                 resposta.status
             );
+
             return;
         }
 
@@ -500,6 +469,7 @@ async function carregarHistorico() {
         ) {
 
             mostrarWelcome();
+
             return;
         }
 
@@ -539,6 +509,8 @@ async function carregarHistorico() {
 
 async function enviar() {
 
+    console.log("Orion AI: botão enviar acionado.");
+
     if (enviando) {
         return;
     }
@@ -547,20 +519,30 @@ async function enviar() {
     const botao = elemento("btnEnviar");
 
     if (!campo) {
-        console.error("Campo mensagem não encontrado.");
+
+        console.error(
+            "Campo #mensagem não encontrado."
+        );
+
         return;
     }
 
     const texto = campo.value.trim();
 
     if (!texto) {
+
         campo.focus();
+
         return;
     }
 
     enviando = true;
 
     esconderWelcome();
+
+    // ========================================================
+    // MOSTRA MENSAGEM DO USUÁRIO
+    // ========================================================
 
     addMensagem(
         texto,
@@ -569,23 +551,39 @@ async function enviar() {
 
     campo.value = "";
 
+    // ========================================================
+    // DESABILITA BOTÃO
+    // ========================================================
+
     if (botao) {
+
         botao.disabled = true;
-        botao.textContent = "Enviando...";
+
+        botao.textContent =
+            "Enviando...";
     }
+
+    // ========================================================
+    // MOSTRA DIGITANDO
+    // ========================================================
 
     const typing = addMensagem(
         "",
         "bot typing"
     );
 
-
     try {
+
+        console.log(
+            "Orion AI: enviando para /chat..."
+        );
 
         const resposta = await fetch(
             "/chat",
             {
                 method: "POST",
+
+                credentials: "same-origin",
 
                 headers: {
                     "Content-Type":
@@ -595,34 +593,34 @@ async function enviar() {
                         "application/json"
                 },
 
-                credentials:
-                    "same-origin",
-
-                body:
-                    JSON.stringify({
-                        message: texto
-                    })
+                body: JSON.stringify({
+                    message: texto
+                })
             }
         );
 
+        console.log(
+            "Orion AI: resposta do servidor:",
+            resposta.status
+        );
 
         if (typing) {
             typing.remove();
         }
 
-
         let data = {};
 
         try {
+
             data = await resposta.json();
+
         } catch (erroJSON) {
 
             console.error(
-                "Resposta não é JSON:",
+                "Servidor não retornou JSON:",
                 erroJSON
             );
         }
-
 
         // ====================================================
         // ERRO
@@ -634,55 +632,53 @@ async function enviar() {
                 "Erro ao conectar com o servidor.";
 
             if (data.reply) {
-                mensagemErro = data.reply;
-            }
-            else if (data.message) {
-                mensagemErro = data.message;
-            }
-            else if (data.error) {
-                mensagemErro = data.error;
+
+                mensagemErro =
+                    data.reply;
+
+            } else if (data.message) {
+
+                mensagemErro =
+                    data.message;
+
+            } else if (data.error) {
+
+                mensagemErro =
+                    data.error;
             }
 
             addMensagem(
-                limparResposta(mensagemErro),
+                mensagemErro,
                 "bot"
             );
 
             return;
         }
 
-
         // ====================================================
         // RESPOSTA DA IA
         // ====================================================
 
         const textoResposta =
-            limparResposta(
+            limparAspasTriplas(
                 data.reply ||
                 data.response ||
                 "Não recebi uma resposta da IA."
             );
-
 
         addMensagem(
             textoResposta,
             "bot"
         );
 
-
         falarResposta(
             textoResposta
         );
 
-
-        // Atualiza a lista de conversas,
-        // se ela existir
-        await carregarConversas();
-
     } catch (erro) {
 
         console.error(
-            "Erro no chat:",
+            "Erro no envio:",
             erro
         );
 
@@ -691,7 +687,7 @@ async function enviar() {
         }
 
         addMensagem(
-            "❌ Erro ao conectar com o servidor. Verifique os logs do servidor.",
+            "❌ Erro ao conectar com o servidor. Verifique se o servidor está funcionando.",
             "bot"
         );
 
@@ -700,8 +696,11 @@ async function enviar() {
         enviando = false;
 
         if (botao) {
+
             botao.disabled = false;
-            botao.textContent = "Enviar";
+
+            botao.textContent =
+                "Enviar";
         }
 
         campo.focus();
@@ -715,7 +714,8 @@ async function enviar() {
 
 function falarResposta(texto) {
 
-    const opcaoVoz = elemento("voz");
+    const opcaoVoz =
+        elemento("voz");
 
     if (
         !opcaoVoz ||
@@ -733,13 +733,17 @@ function falarResposta(texto) {
     speechSynthesis.cancel();
 
     const voz =
-        new SpeechSynthesisUtterance(texto);
+        new SpeechSynthesisUtterance(
+            texto
+        );
 
     voz.lang = "pt-BR";
     voz.rate = 1;
     voz.pitch = 1;
 
-    speechSynthesis.speak(voz);
+    speechSynthesis.speak(
+        voz
+    );
 }
 
 
@@ -749,7 +753,10 @@ function falarResposta(texto) {
 
 function atalho(texto) {
 
-    const campo = elemento("mensagem");
+    esconderWelcome();
+
+    const campo =
+        elemento("mensagem");
 
     if (!campo) {
         return;
@@ -794,19 +801,20 @@ async function novaConversa() {
                 }
             );
 
-
         let data = {};
 
         try {
-            data = await resposta.json();
+
+            data =
+                await resposta.json();
+
         } catch (erroJSON) {
 
             console.error(
-                "Erro ao interpretar nova conversa:",
+                "Erro JSON:",
                 erroJSON
             );
         }
-
 
         if (
             !resposta.ok ||
@@ -821,31 +829,33 @@ async function novaConversa() {
             return;
         }
 
-
-        const chat = elemento("chat");
+        const chat =
+            elemento("chat");
 
         if (chat) {
             chat.innerHTML = "";
         }
 
-
         mostrarWelcome();
 
+        if (
+            "speechSynthesis" in window
+        ) {
 
-        if ("speechSynthesis" in window) {
             speechSynthesis.cancel();
         }
-
 
         const titulo =
             elemento("tituloConversa");
 
         if (titulo) {
-            titulo.textContent = "Orion AI";
+
+            titulo.textContent =
+                "Orion AI";
         }
 
-
         await carregarHistorico();
+
         await carregarConversas();
 
     } catch (erro) {
@@ -896,11 +906,9 @@ async function carregarConversas() {
                 }
             );
 
-
         if (resposta.status === 401) {
             return;
         }
-
 
         if (!resposta.ok) {
 
@@ -912,13 +920,10 @@ async function carregarConversas() {
             return;
         }
 
-
         const conversas =
             await resposta.json();
 
-
         lista.innerHTML = "";
-
 
         if (
             !Array.isArray(conversas) ||
@@ -927,10 +932,8 @@ async function carregarConversas() {
             return;
         }
 
-
         const conversaAtual =
             await obterConversaAtual();
-
 
         conversas.forEach(
             function (conversa) {
@@ -938,7 +941,8 @@ async function carregarConversas() {
                 const item =
                     document.createElement("button");
 
-                item.type = "button";
+                item.type =
+                    "button";
 
                 item.className =
                     "conversa-item";
@@ -950,7 +954,6 @@ async function carregarConversas() {
                     conversa.title ||
                     "Nova conversa";
 
-
                 if (
                     String(conversa.id) ===
                     String(conversaAtual)
@@ -961,7 +964,6 @@ async function carregarConversas() {
                     );
                 }
 
-
                 item.addEventListener(
                     "click",
                     function () {
@@ -971,7 +973,6 @@ async function carregarConversas() {
                         );
                     }
                 );
-
 
                 lista.appendChild(item);
             }
@@ -1009,15 +1010,12 @@ async function obterConversaAtual() {
                 }
             );
 
-
         if (!resposta.ok) {
             return null;
         }
 
-
         const data =
             await resposta.json();
-
 
         return data.conversation_id ?? null;
 
@@ -1064,11 +1062,13 @@ async function abrirConversa(id) {
                 }
             );
 
-
         let data = {};
 
         try {
-            data = await resposta.json();
+
+            data =
+                await resposta.json();
+
         } catch (erroJSON) {
 
             console.error(
@@ -1076,7 +1076,6 @@ async function abrirConversa(id) {
                 erroJSON
             );
         }
-
 
         if (
             !resposta.ok ||
@@ -1091,7 +1090,6 @@ async function abrirConversa(id) {
             return;
         }
 
-
         const chat =
             elemento("chat");
 
@@ -1099,9 +1097,7 @@ async function abrirConversa(id) {
             return;
         }
 
-
         chat.innerHTML = "";
-
 
         const titulo =
             elemento("tituloConversa");
@@ -1113,12 +1109,12 @@ async function abrirConversa(id) {
                 "Orion AI";
         }
 
-
         const mensagens =
             data.messages || [];
 
-
-        if (mensagens.length === 0) {
+        if (
+            mensagens.length === 0
+        ) {
 
             mostrarWelcome();
 
@@ -1139,7 +1135,6 @@ async function abrirConversa(id) {
             );
         }
 
-
         document
             .querySelectorAll(
                 ".conversa-item"
@@ -1154,7 +1149,6 @@ async function abrirConversa(id) {
                     );
                 }
             );
-
 
         scrollBottom();
 
@@ -1184,7 +1178,6 @@ function configurarEnter() {
     if (!campo) {
         return;
     }
-
 
     campo.addEventListener(
         "keydown",
@@ -1217,7 +1210,6 @@ function configurarVoz() {
         return;
     }
 
-
     opcaoVoz.addEventListener(
         "change",
         function () {
@@ -1247,7 +1239,6 @@ function configurarFormulario() {
         return;
     }
 
-
     campo.addEventListener(
         "input",
         function () {
@@ -1268,9 +1259,8 @@ document.addEventListener(
     async function () {
 
         console.log(
-            "Orion AI: script carregado."
+            "Orion AI: script carregado corretamente."
         );
-
 
         await carregarHistorico();
 
@@ -1283,4 +1273,3 @@ document.addEventListener(
         configurarFormulario();
     }
 );
-````
