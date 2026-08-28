@@ -20,7 +20,6 @@ function elemento(id) {
 // ============================================================
 
 function escaparHTML(texto) {
-
     return String(texto ?? "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -31,10 +30,10 @@ function escaparHTML(texto) {
 
 
 // ============================================================
-// LIMPAR ASPAS TRIPLAS
+// LIMPAR RESPOSTA
 // ============================================================
 
-function limparAspasTriplas(texto) {
+function limparResposta(texto) {
 
     if (!texto) {
         return "";
@@ -42,22 +41,16 @@ function limparAspasTriplas(texto) {
 
     let resultado = String(texto);
 
-    // Remove ''' do começo e do final
-    resultado = resultado.replace(
-        /^\s*'''(?:\w+)?\s*/,
-        ""
-    );
+    // Remove cercas de código Python/SQL/etc. com '''
+    resultado = resultado.replace(/^\s*'''[a-zA-Z0-9_+#.-]*\s*\n?/i, "");
+    resultado = resultado.replace(/\n?\s*'''\s*$/i, "");
 
-    resultado = resultado.replace(
-        /\s*'''\s*$/,
-        ""
-    );
+    // Remove linhas isoladas contendo apenas '''
+    resultado = resultado.replace(/^\s*'''\s*$/gm, "");
 
-    // Remove linhas que contenham somente '''
-    resultado = resultado.replace(
-        /^\s*'''\s*$/gm,
-        ""
-    );
+    // Remove cercas ``` que tenham sobrado
+    resultado = resultado.replace(/^```[a-zA-Z0-9_+#.-]*\s*$/gm, "");
+    resultado = resultado.replace(/^```\s*$/gm, "");
 
     return resultado.trim();
 }
@@ -73,16 +66,14 @@ function formatarResposta(texto) {
         return "";
     }
 
-    // Limpa ''' antes de formatar
-    texto = limparAspasTriplas(texto);
+    texto = limparResposta(texto);
 
     let protegido = escaparHTML(texto);
 
     const blocosCodigo = [];
 
-
     // ========================================================
-    // CÓDIGO MARKDOWN
+    // BLOCOS DE CÓDIGO MARKDOWN
     // ========================================================
 
     protegido = protegido.replace(
@@ -91,13 +82,12 @@ function formatarResposta(texto) {
 
             const id = blocosCodigo.length;
 
-            const codigoSeguro =
-                codigo
-                    .trim()
-                    .replace(
-                        /^\s*'''[\s\S]*?$/,
-                        ""
-                    );
+            let codigoSeguro = codigo.trim();
+
+            // Remove ''' caso apareça dentro do bloco
+            codigoSeguro = codigoSeguro
+                .replace(/^\s*'''[a-zA-Z0-9_+#.-]*\s*\n?/i, "")
+                .replace(/\n?\s*'''\s*$/i, "");
 
             blocosCodigo.push(
                 `<pre class="codigo-pedrogpt"><code>${codigoSeguro}</code></pre>`
@@ -148,131 +138,106 @@ function formatarResposta(texto) {
     );
 
 
-    const linhas =
-        protegido.split("\n");
-
-    let resultado = "";
-
-    let listaAberta = false;
-
-    let listaNumeradaAberta = false;
-
-
     // ========================================================
     // LINHAS
     // ========================================================
 
+    const linhas = protegido.split("\n");
+
+    let resultado = "";
+
+    let listaAberta = false;
+    let listaNumeradaAberta = false;
+
+
     linhas.forEach(function (linha) {
 
-        const trim =
-            linha.trim();
+        const trim = linha.trim();
 
 
         // ----------------------------------------------------
-        // Ignora linha com '''
+        // IGNORA CERCAS DE CÓDIGO ISOLADAS
         // ----------------------------------------------------
 
-        if (trim === "'''") {
+        if (
+            trim === "'''" ||
+            trim === "```"
+        ) {
             return;
         }
 
 
         // ----------------------------------------------------
-        // Lista com -
+        // LISTA
         // ----------------------------------------------------
 
         if (/^[-•*]\s+/.test(trim)) {
 
             if (listaNumeradaAberta) {
-
                 resultado += "</ol>";
-
                 listaNumeradaAberta = false;
             }
 
-
             if (!listaAberta) {
-
                 resultado += "<ul>";
-
                 listaAberta = true;
             }
 
+            const item = trim.replace(
+                /^[-•*]\s+/,
+                ""
+            );
 
-            const item =
-                trim.replace(
-                    /^[-•*]\s+/,
-                    ""
-                );
-
-
-            resultado +=
-                `<li>${item}</li>`;
-
+            resultado += `<li>${item}</li>`;
 
             return;
         }
 
 
         // ----------------------------------------------------
-        // Lista numerada
+        // LISTA NUMERADA
         // ----------------------------------------------------
 
         if (/^\d+[.)]\s+/.test(trim)) {
 
             if (listaAberta) {
-
                 resultado += "</ul>";
-
                 listaAberta = false;
             }
 
-
             if (!listaNumeradaAberta) {
-
                 resultado += "<ol>";
-
                 listaNumeradaAberta = true;
             }
 
+            const item = trim.replace(
+                /^\d+[.)]\s+/,
+                ""
+            );
 
-            const item =
-                trim.replace(
-                    /^\d+[.)]\s+/,
-                    ""
-                );
-
-
-            resultado +=
-                `<li>${item}</li>`;
-
+            resultado += `<li>${item}</li>`;
 
             return;
         }
 
 
         // ----------------------------------------------------
-        // Fecha listas
+        // FECHAR LISTAS
         // ----------------------------------------------------
 
         if (listaAberta) {
-
             resultado += "</ul>";
-
             listaAberta = false;
         }
 
-
         if (listaNumeradaAberta) {
-
             resultado += "</ol>";
-
             listaNumeradaAberta = false;
         }
 
 
         // ----------------------------------------------------
-        // Linha vazia
+        // LINHA VAZIA
         // ----------------------------------------------------
 
         if (!trim) {
@@ -284,13 +249,17 @@ function formatarResposta(texto) {
         }
 
 
+        // ----------------------------------------------------
+        // LINHA NORMAL
+        // ----------------------------------------------------
+
         resultado +=
             `<div class="linha-resposta">${linha}</div>`;
     });
 
 
     // ========================================================
-    // FECHA LISTAS RESTANTES
+    // FECHAR LISTAS
     // ========================================================
 
     if (listaAberta) {
@@ -303,17 +272,16 @@ function formatarResposta(texto) {
 
 
     // ========================================================
-    // INSERE CÓDIGOS
+    // INSERIR CÓDIGOS
     // ========================================================
 
     blocosCodigo.forEach(
         function (codigo, index) {
 
-            resultado =
-                resultado.replace(
-                    `___CODIGO_${index}___`,
-                    codigo
-                );
+            resultado = resultado.replace(
+                `___CODIGO_${index}___`,
+                codigo
+            );
         }
     );
 
@@ -328,8 +296,7 @@ function formatarResposta(texto) {
 
 function esconderWelcome() {
 
-    const welcome =
-        elemento("welcome");
+    const welcome = elemento("welcome");
 
     if (welcome) {
         welcome.classList.add("hidden");
@@ -339,8 +306,7 @@ function esconderWelcome() {
 
 function mostrarWelcome() {
 
-    const welcome =
-        elemento("welcome");
+    const welcome = elemento("welcome");
 
     if (welcome) {
         welcome.classList.remove("hidden");
@@ -354,17 +320,14 @@ function mostrarWelcome() {
 
 function scrollBottom() {
 
-    const chat =
-        elemento("chat");
+    const chat = elemento("chat");
 
     if (!chat) {
         return;
     }
 
     requestAnimationFrame(function () {
-
-        chat.scrollTop =
-            chat.scrollHeight;
+        chat.scrollTop = chat.scrollHeight;
     });
 }
 
@@ -375,25 +338,16 @@ function scrollBottom() {
 
 function addMensagem(texto, tipo) {
 
-    const chat =
-        elemento("chat");
+    const chat = elemento("chat");
 
     if (!chat) {
         return null;
     }
 
+    const div = document.createElement("div");
 
-    const div =
-        document.createElement("div");
-
-
-    const ehUsuario =
-        tipo === "user";
-
-
-    const ehTyping =
-        tipo.includes("typing");
-
+    const ehUsuario = tipo === "user";
+    const ehTyping = tipo.includes("typing");
 
     div.classList.add(
         ehUsuario
@@ -408,29 +362,19 @@ function addMensagem(texto, tipo) {
 
     if (ehTyping) {
 
-        div.classList.add(
-            "typing-message"
-        );
-
+        div.classList.add("typing-message");
 
         div.innerHTML = `
             <div class="conteudo-mensagem">
-
-                <span>
-                    🤖 Orion AI está digitando
-                </span>
+                <span>🤖 Orion AI está digitando</span>
 
                 <span class="typing-dots">
-
                     <span></span>
                     <span></span>
                     <span></span>
-
                 </span>
-
             </div>
         `;
-
 
         chat.appendChild(div);
 
@@ -444,9 +388,7 @@ function addMensagem(texto, tipo) {
     // HORA
     // ========================================================
 
-    const agora =
-        new Date();
-
+    const agora = new Date();
 
     const hora =
         agora.getHours()
@@ -466,15 +408,11 @@ function addMensagem(texto, tipo) {
 
     let conteudo;
 
-
     if (ehUsuario) {
 
         conteudo =
             escaparHTML(texto)
-                .replace(
-                    /\n/g,
-                    "<br>"
-                );
+                .replace(/\n/g, "<br>");
 
     } else {
 
@@ -488,7 +426,6 @@ function addMensagem(texto, tipo) {
     // ========================================================
 
     div.innerHTML = `
-
         <div class="conteudo-mensagem">
             ${conteudo}
         </div>
@@ -504,14 +441,11 @@ function addMensagem(texto, tipo) {
         >
             ${hora}
         </div>
-
     `;
-
 
     chat.appendChild(div);
 
     scrollBottom();
-
 
     return div;
 }
@@ -525,53 +459,40 @@ async function carregarHistorico() {
 
     try {
 
-        const resposta =
-            await fetch(
-                "/history",
-                {
-                    method: "GET",
-                    credentials: "same-origin",
-                    cache: "no-store"
+        const resposta = await fetch(
+            "/history",
+            {
+                method: "GET",
+                credentials: "same-origin",
+                cache: "no-store",
+                headers: {
+                    "Accept": "application/json"
                 }
-            );
-
+            }
+        );
 
         if (resposta.status === 401) {
-
-            console.warn(
-                "Usuário não está autenticado."
-            );
-
+            console.warn("Usuário não está autenticado.");
             return;
         }
 
-
         if (!resposta.ok) {
-
             console.warn(
                 "Erro ao carregar histórico:",
                 resposta.status
             );
-
             return;
         }
 
+        const historico = await resposta.json();
 
-        const historico =
-            await resposta.json();
-
-
-        const chat =
-            elemento("chat");
-
+        const chat = elemento("chat");
 
         if (!chat) {
             return;
         }
 
-
         chat.innerHTML = "";
-
 
         if (
             !Array.isArray(historico) ||
@@ -579,23 +500,18 @@ async function carregarHistorico() {
         ) {
 
             mostrarWelcome();
-
             return;
         }
 
-
         esconderWelcome();
-
 
         historico.forEach(function (item) {
 
             const sender =
                 item?.sender ?? "bot";
 
-
             const message =
                 item?.message ?? "";
-
 
             addMensagem(
                 message,
@@ -605,9 +521,7 @@ async function carregarHistorico() {
             );
         });
 
-
         scrollBottom();
-
 
     } catch (erro) {
 
@@ -629,88 +543,67 @@ async function enviar() {
         return;
     }
 
-
-    const campo =
-        elemento("mensagem");
-
-
-    const botao =
-        elemento("btnEnviar");
-
+    const campo = elemento("mensagem");
+    const botao = elemento("btnEnviar");
 
     if (!campo) {
+        console.error("Campo mensagem não encontrado.");
         return;
     }
 
-
-    const texto =
-        campo.value.trim();
-
+    const texto = campo.value.trim();
 
     if (!texto) {
-
         campo.focus();
-
         return;
     }
-
 
     enviando = true;
 
-
     esconderWelcome();
-
 
     addMensagem(
         texto,
         "user"
     );
 
-
     campo.value = "";
 
-
     if (botao) {
-
         botao.disabled = true;
-
-        botao.textContent =
-            "Enviando...";
+        botao.textContent = "Enviando...";
     }
 
-
-    const typing =
-        addMensagem(
-            "",
-            "bot typing"
-        );
+    const typing = addMensagem(
+        "",
+        "bot typing"
+    );
 
 
     try {
 
-        const resposta =
-            await fetch(
-                "/chat",
-                {
-                    method: "POST",
+        const resposta = await fetch(
+            "/chat",
+            {
+                method: "POST",
 
-                    headers: {
-                        "Content-Type":
-                            "application/json",
+                headers: {
+                    "Content-Type":
+                        "application/json",
 
-                        "Accept":
-                            "application/json"
-                    },
+                    "Accept":
+                        "application/json"
+                },
 
-                    credentials:
-                        "same-origin",
+                credentials:
+                    "same-origin",
 
-                    body:
-                        JSON.stringify({
-                            message: texto
-                        })
-                }
-            );
+                body:
+                    JSON.stringify({
+                        message: texto
+                    })
+            }
+        );
 
 
         if (typing) {
@@ -720,12 +613,8 @@ async function enviar() {
 
         let data = {};
 
-
         try {
-
-            data =
-                await resposta.json();
-
+            data = await resposta.json();
         } catch (erroJSON) {
 
             console.error(
@@ -735,26 +624,27 @@ async function enviar() {
         }
 
 
+        // ====================================================
+        // ERRO
+        // ====================================================
+
         if (!resposta.ok) {
 
             let mensagemErro =
                 "Erro ao conectar com o servidor.";
 
-
             if (data.reply) {
-
-                mensagemErro =
-                    data.reply;
-
-            } else if (data.message) {
-
-                mensagemErro =
-                    data.message;
+                mensagemErro = data.reply;
+            }
+            else if (data.message) {
+                mensagemErro = data.message;
+            }
+            else if (data.error) {
+                mensagemErro = data.error;
             }
 
-
             addMensagem(
-                mensagemErro,
+                limparResposta(mensagemErro),
                 "bot"
             );
 
@@ -767,8 +657,9 @@ async function enviar() {
         // ====================================================
 
         const textoResposta =
-            limparAspasTriplas(
+            limparResposta(
                 data.reply ||
+                data.response ||
                 "Não recebi uma resposta da IA."
             );
 
@@ -784,6 +675,10 @@ async function enviar() {
         );
 
 
+        // Atualiza a lista de conversas,
+        // se ela existir
+        await carregarConversas();
+
     } catch (erro) {
 
         console.error(
@@ -791,31 +686,23 @@ async function enviar() {
             erro
         );
 
-
         if (typing) {
             typing.remove();
         }
-
 
         addMensagem(
             "❌ Erro ao conectar com o servidor. Verifique os logs do servidor.",
             "bot"
         );
 
-
     } finally {
 
         enviando = false;
 
-
         if (botao) {
-
             botao.disabled = false;
-
-            botao.textContent =
-                "Enviar";
+            botao.textContent = "Enviar";
         }
-
 
         campo.focus();
     }
@@ -828,9 +715,7 @@ async function enviar() {
 
 function falarResposta(texto) {
 
-    const opcaoVoz =
-        elemento("voz");
-
+    const opcaoVoz = elemento("voz");
 
     if (
         !opcaoVoz ||
@@ -839,38 +724,22 @@ function falarResposta(texto) {
         return;
     }
 
-
     if (
         !("speechSynthesis" in window)
     ) {
         return;
     }
 
-
     speechSynthesis.cancel();
 
-
     const voz =
-        new SpeechSynthesisUtterance(
-            texto
-        );
+        new SpeechSynthesisUtterance(texto);
 
+    voz.lang = "pt-BR";
+    voz.rate = 1;
+    voz.pitch = 1;
 
-    voz.lang =
-        "pt-BR";
-
-
-    voz.rate =
-        1;
-
-
-    voz.pitch =
-        1;
-
-
-    speechSynthesis.speak(
-        voz
-    );
+    speechSynthesis.speak(voz);
 }
 
 
@@ -880,18 +749,13 @@ function falarResposta(texto) {
 
 function atalho(texto) {
 
-    const campo =
-        elemento("mensagem");
-
+    const campo = elemento("mensagem");
 
     if (!campo) {
         return;
     }
 
-
-    campo.value =
-        texto;
-
+    campo.value = texto;
 
     campo.focus();
 }
@@ -911,7 +775,6 @@ async function novaConversa() {
 
         return;
     }
-
 
     try {
 
@@ -934,12 +797,8 @@ async function novaConversa() {
 
         let data = {};
 
-
         try {
-
-            data =
-                await resposta.json();
-
+            data = await resposta.json();
         } catch (erroJSON) {
 
             console.error(
@@ -963,12 +822,9 @@ async function novaConversa() {
         }
 
 
-        const chat =
-            elemento("chat");
-
+        const chat = elemento("chat");
 
         if (chat) {
-
             chat.innerHTML = "";
         }
 
@@ -976,10 +832,7 @@ async function novaConversa() {
         mostrarWelcome();
 
 
-        if (
-            "speechSynthesis" in window
-        ) {
-
+        if ("speechSynthesis" in window) {
             speechSynthesis.cancel();
         }
 
@@ -987,16 +840,13 @@ async function novaConversa() {
         const titulo =
             elemento("tituloConversa");
 
-
         if (titulo) {
-
-            titulo.textContent =
-                "Orion AI";
+            titulo.textContent = "Orion AI";
         }
 
 
         await carregarHistorico();
-
+        await carregarConversas();
 
     } catch (erro) {
 
@@ -1005,6 +855,315 @@ async function novaConversa() {
             erro
         );
 
+        alert(
+            "Erro ao conectar com o servidor."
+        );
+    }
+}
+
+
+// ============================================================
+// CARREGAR CONVERSAS
+// ============================================================
+
+async function carregarConversas() {
+
+    const lista =
+        elemento("conversas");
+
+    if (!lista) {
+        return;
+    }
+
+    try {
+
+        const resposta =
+            await fetch(
+                "/conversations",
+                {
+                    method: "GET",
+
+                    credentials:
+                        "same-origin",
+
+                    cache:
+                        "no-store",
+
+                    headers: {
+                        "Accept":
+                            "application/json"
+                    }
+                }
+            );
+
+
+        if (resposta.status === 401) {
+            return;
+        }
+
+
+        if (!resposta.ok) {
+
+            console.warn(
+                "Erro ao carregar conversas:",
+                resposta.status
+            );
+
+            return;
+        }
+
+
+        const conversas =
+            await resposta.json();
+
+
+        lista.innerHTML = "";
+
+
+        if (
+            !Array.isArray(conversas) ||
+            conversas.length === 0
+        ) {
+            return;
+        }
+
+
+        const conversaAtual =
+            await obterConversaAtual();
+
+
+        conversas.forEach(
+            function (conversa) {
+
+                const item =
+                    document.createElement("button");
+
+                item.type = "button";
+
+                item.className =
+                    "conversa-item";
+
+                item.dataset.id =
+                    conversa.id;
+
+                item.textContent =
+                    conversa.title ||
+                    "Nova conversa";
+
+
+                if (
+                    String(conversa.id) ===
+                    String(conversaAtual)
+                ) {
+
+                    item.classList.add(
+                        "ativa"
+                    );
+                }
+
+
+                item.addEventListener(
+                    "click",
+                    function () {
+
+                        abrirConversa(
+                            conversa.id
+                        );
+                    }
+                );
+
+
+                lista.appendChild(item);
+            }
+        );
+
+    } catch (erro) {
+
+        console.error(
+            "Erro ao carregar conversas:",
+            erro
+        );
+    }
+}
+
+
+// ============================================================
+// OBTER CONVERSA ATUAL
+// ============================================================
+
+async function obterConversaAtual() {
+
+    try {
+
+        const resposta =
+            await fetch(
+                "/api/status",
+                {
+                    method: "GET",
+
+                    credentials:
+                        "same-origin",
+
+                    cache:
+                        "no-store"
+                }
+            );
+
+
+        if (!resposta.ok) {
+            return null;
+        }
+
+
+        const data =
+            await resposta.json();
+
+
+        return data.conversation_id ?? null;
+
+    } catch (erro) {
+
+        console.error(
+            "Erro ao obter conversa atual:",
+            erro
+        );
+
+        return null;
+    }
+}
+
+
+// ============================================================
+// ABRIR CONVERSA
+// ============================================================
+
+async function abrirConversa(id) {
+
+    if (enviando) {
+        return;
+    }
+
+    try {
+
+        const resposta =
+            await fetch(
+                `/conversation/${encodeURIComponent(id)}`,
+                {
+                    method: "GET",
+
+                    credentials:
+                        "same-origin",
+
+                    cache:
+                        "no-store",
+
+                    headers: {
+                        "Accept":
+                            "application/json"
+                    }
+                }
+            );
+
+
+        let data = {};
+
+        try {
+            data = await resposta.json();
+        } catch (erroJSON) {
+
+            console.error(
+                "Erro JSON:",
+                erroJSON
+            );
+        }
+
+
+        if (
+            !resposta.ok ||
+            !data.success
+        ) {
+
+            alert(
+                data.message ||
+                "Não foi possível abrir a conversa."
+            );
+
+            return;
+        }
+
+
+        const chat =
+            elemento("chat");
+
+        if (!chat) {
+            return;
+        }
+
+
+        chat.innerHTML = "";
+
+
+        const titulo =
+            elemento("tituloConversa");
+
+        if (titulo) {
+
+            titulo.textContent =
+                data.title ||
+                "Orion AI";
+        }
+
+
+        const mensagens =
+            data.messages || [];
+
+
+        if (mensagens.length === 0) {
+
+            mostrarWelcome();
+
+        } else {
+
+            esconderWelcome();
+
+            mensagens.forEach(
+                function (item) {
+
+                    addMensagem(
+                        item.message,
+                        item.sender === "user"
+                            ? "user"
+                            : "bot"
+                    );
+                }
+            );
+        }
+
+
+        document
+            .querySelectorAll(
+                ".conversa-item"
+            )
+            .forEach(
+                function (item) {
+
+                    item.classList.toggle(
+                        "ativa",
+                        String(item.dataset.id) ===
+                        String(id)
+                    );
+                }
+            );
+
+
+        scrollBottom();
+
+    } catch (erro) {
+
+        console.error(
+            "Erro ao abrir conversa:",
+            erro
+        );
 
         alert(
             "Erro ao conectar com o servidor."
@@ -1021,7 +1180,6 @@ function configurarEnter() {
 
     const campo =
         elemento("mensagem");
-
 
     if (!campo) {
         return;
@@ -1055,7 +1213,6 @@ function configurarVoz() {
     const opcaoVoz =
         elemento("voz");
 
-
     if (!opcaoVoz) {
         return;
     }
@@ -1085,7 +1242,6 @@ function configurarFormulario() {
 
     const campo =
         elemento("mensagem");
-
 
     if (!campo) {
         return;
@@ -1118,22 +1274,13 @@ document.addEventListener(
 
         await carregarHistorico();
 
+        await carregarConversas();
 
         configurarEnter();
 
-
         configurarVoz();
-
 
         configurarFormulario();
     }
 );
 ````
-
-**Git:**
-
-```bash
-git add .
-git commit -m "Corrige aspas triplas nas respostas da IA"
-git push
-```
