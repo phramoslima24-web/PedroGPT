@@ -1,4 +1,3 @@
-
 import os
 from datetime import datetime
 
@@ -36,7 +35,6 @@ app.secret_key = os.getenv(
 )
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 ADMIN_USERNAME = os.getenv(
@@ -55,13 +53,12 @@ client = Groq(
 
 
 # ============================================================
-# BANCO DE DADOS POSTGRESQL
+# BANCO DE DADOS
 # ============================================================
 
 def get_db():
 
     if not DATABASE_URL:
-
         raise RuntimeError(
             "DATABASE_URL não está configurada no servidor."
         )
@@ -79,9 +76,7 @@ def init_db():
 
     with get_db() as conn:
 
-        cursor = conn.cursor(
-            cursor_factory=psycopg2.extras.RealDictCursor
-        )
+        cursor = conn.cursor()
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
@@ -134,7 +129,6 @@ def init_db():
 
 
 try:
-
     init_db()
 
 except Exception as e:
@@ -467,10 +461,6 @@ def admin_login():
 
     if not ADMIN_USERNAME:
 
-        print(
-            "ERRO: ADMIN_USERNAME não configurado."
-        )
-
         return jsonify({
 
             "success": False,
@@ -481,10 +471,6 @@ def admin_login():
         }), 500
 
     if not ADMIN_PASSWORD:
-
-        print(
-            "ERRO: ADMIN_PASSWORD não configurado."
-        )
 
         return jsonify({
 
@@ -520,9 +506,7 @@ def admin_login():
     session.clear()
 
     session["admin"] = True
-
     session["user"] = ADMIN_USERNAME
-
     session["plan"] = "premium"
 
     return jsonify({
@@ -646,9 +630,7 @@ def admin_users():
         "stats": {
 
             "total": total,
-
             "free": free,
-
             "premium": premium
 
         },
@@ -978,14 +960,28 @@ def api_register():
 
         }), 400
 
-    if len(password) < 4:
+    if len(password) < 6:
 
         return jsonify({
 
             "success": False,
 
             "message":
-                "A senha precisa ter pelo menos 4 caracteres."
+                "A senha precisa ter pelo menos 6 caracteres."
+
+        }), 400
+
+    if not any(
+        caractere.isdigit()
+        for caractere in password
+    ):
+
+        return jsonify({
+
+            "success": False,
+
+            "message":
+                "A senha precisa ter pelo menos 1 número."
 
         }), 400
 
@@ -1090,7 +1086,7 @@ def api_login():
 
     password = str(
         data.get("password") or ""
-    ).strip()
+    )
 
     if not username or not password:
 
@@ -1197,12 +1193,8 @@ def api_login():
             session.clear()
 
             session["user"] = user["username"]
-
             session["admin"] = False
-
-            session["plan"] = (
-                user["plan"] or "free"
-            )
+            session["plan"] = user["plan"] or "free"
 
             conversation_id = criar_conversa(
                 user["username"],
@@ -2190,4 +2182,3 @@ if __name__ == "__main__":
         debug=False
 
     )
-```
