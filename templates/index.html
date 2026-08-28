@@ -1,5 +1,5 @@
-```html
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 
 <head>
@@ -852,65 +852,51 @@ body {
 
 <aside class="sidebar">
 
-    <div class="logo">
+```
+<div class="logo">
+    <h2>🤖 Orion AI</h2>
+</div>
 
-        <h2>
-            🤖 Orion AI
-        </h2>
+<div class="usuario">
+    Olá, {{ username }}
+</div>
 
-    </div>
+<div class="plano">
 
-    <div class="usuario">
+    {% if plan == "premium" %}
+        ⭐ Plano PREMIUM
+    {% else %}
+        🆓 Plano FREE
+    {% endif %}
 
-        Olá, {{ username }}
+</div>
 
-    </div>
+<button
+    class="nova-conversa"
+    type="button"
+    onclick="novaConversa()"
+>
+    🆕 Nova conversa
+</button>
 
-    <div class="plano">
+<div class="lista-titulo">
+    Suas conversas
+</div>
 
-        {% if plan == "premium" %}
+<div
+    id="conversas"
+    class="conversas"
+></div>
 
-            ⭐ Plano PREMIUM
-
-        {% else %}
-
-            🆓 Plano FREE
-
-        {% endif %}
-
-    </div>
-
-    <button
-        class="nova-conversa"
-        onclick="novaConversa()"
-    >
-
-        🆕 Nova conversa
-
-    </button>
-
-    <div class="lista-titulo">
-
-        Suas conversas
-
-    </div>
-
-    <div
-        id="conversas"
-        class="conversas"
-    ></div>
-
-    <a
-        href="/logout"
-        class="logout"
-    >
-
-        🚪 Sair
-
-    </a>
+<a
+    href="/logout"
+    class="logout"
+>
+    🚪 Sair
+</a>
+```
 
 </aside>
-
 
 <!-- =========================
      MAIN
@@ -918,180 +904,118 @@ body {
 
 <main class="main">
 
-    <header class="header">
+```
+<header class="header">
 
-        <span id="tituloConversa">
-            Orion AI
-        </span>
+    <span id="tituloConversa">
+        Orion AI
+    </span>
 
-    </header>
+</header>
 
+<div class="opcoes">
 
-    <div class="opcoes">
+    <label>
 
-        <label>
-
-            <input
-                type="checkbox"
-                id="voz"
-                checked
-            >
-
-            🔊 Ouvir respostas
-
-        </label>
-
-    </div>
-
-
-    <!-- =========================
-         ÁREA DO CHAT
-    ========================= -->
-
-    <div class="chat-area">
-
-        <!-- CHAT -->
-
-        <div
-            id="chat"
-            class="chat"
-        ></div>
-
-
-        <!-- WELCOME -->
-
-        <div
-            id="welcome"
-            class="welcome"
+        <input
+            type="checkbox"
+            id="voz"
+            checked
         >
 
-            <h2>
-                🤖 Orion AI
-            </h2>
+        🔊 Ouvir respostas
 
-            <p>
-                Como posso ajudar hoje?
-            </p>
+    </label>
 
-            <div class="quick-actions">
+</div>
 
-                <div
-                    class="quick"
-                    onclick="atalho('Criar código')"
-                >
+<!-- =========================
+     ÁREA DO CHAT
+========================= -->
 
-                    💻 Criar código
+<div class="chat-area">
 
-                </div>
+    <div
+        id="chat"
+        class="chat"
+    ></div>
 
-                <div
-                    class="quick"
-                    onclick="atalho('Estudar')"
-                >
+    <!-- WELCOME -->
 
-                    📚 Estudar
+    <div
+        id="welcome"
+        class="welcome"
+    >
 
-                </div>
+        <h2>
+            🤖 Orion AI
+        </h2>
 
-                <div
-                    class="quick"
-                    onclick="atalho('Fazer resumo')"
-                >
+        <p>
+            Como posso ajudar hoje?
+        </p>
 
-                    📝 Fazer resumo
+        <div class="quick-actions">
 
-                </div>
+            <div
+                class="quick"
+                onclick="atalho('Criar código')"
+            >
+                💻 Criar código
+            </div>
 
-                <div
-                    class="quick"
-                    onclick="atalho('Tirar dúvidas')"
-                >
+            <div
+                class="quick"
+                onclick="atalho('Estudar')"
+            >
+                📚 Estudar
+            </div>
 
-                    ❓ Tirar dúvidas
+            <div
+                class="quick"
+                onclick="atalho('Fazer resumo')"
+            >
+                📝 Fazer resumo
+            </div>
 
-                </div>
-
+            <div
+                class="quick"
+                onclick="atalho('Tirar dúvidas')"
+            >
+                ❓ Tirar dúvidas
             </div>
 
         </div>
 
     </div>
 
-
-    <!-- =========================
-         ENTRADA
-    ========================= -->
-
-    <div class="entrada">
-
-        <input
-            type="text"
-            id="mensagem"
-            placeholder="Digite sua mensagem..."
-            autocomplete="off"
-        >
-
-        <button
-            id="btnEnviar"
-            type="button"
-            onclick="enviar()"
-        >
-
-            Enviar
-
-        </button>
-
-    </div>
-
-</main>
-
+</div>
 
 <!-- =========================
-     FUNÇÕES AUXILIARES
+     ENTRADA
 ========================= -->
 
-<script>
+<div class="entrada">
 
-function atalho(texto) {
+    <input
+        type="text"
+        id="mensagem"
+        placeholder="Digite sua mensagem..."
+        autocomplete="off"
+    >
 
-    const welcome =
-        document.getElementById("welcome");
+    <button
+        id="btnEnviar"
+        type="button"
+        onclick="enviar()"
+    >
+        Enviar
+    </button>
 
-    const campo =
-        document.getElementById("mensagem");
+</div>
+```
 
-    if (welcome) {
-
-        welcome.classList.add("hidden");
-
-    }
-
-    if (campo) {
-
-        campo.value = texto;
-
-        campo.focus();
-
-    }
-
-}
-
-
-function esconderWelcome() {
-
-    const welcome =
-        document.getElementById("welcome");
-
-    if (welcome) {
-
-        welcome.classList.add("hidden");
-
-    }
-
-}
-
-</script>
-
+</main>
 
 <!-- SCRIPT PRINCIPAL -->
 
@@ -1100,4 +1024,3 @@ function esconderWelcome() {
 </body>
 
 </html>
-```
