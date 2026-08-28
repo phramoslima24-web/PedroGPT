@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="pt-BR">
 
 <head>
@@ -884,154 +883,150 @@ body {
 
 <aside class="sidebar">
 
-```
-<div class="logo">
-    <h2>🤖 Orion AI</h2>
-</div>
+    <div class="logo">
+        <h2>🤖 Orion AI</h2>
+    </div>
 
-<div class="usuario">
-    Olá, {{ username }}
-</div>
+    <div class="usuario">
+        Olá, {{ username }}
+    </div>
 
-<div class="plano">
+    <div class="plano">
 
-    {% if plan == "premium" %}
-        ⭐ Plano PREMIUM
-    {% else %}
-        🆓 Plano FREE
-    {% endif %}
+        {% if plan == "premium" %}
+            ⭐ Plano PREMIUM
+        {% else %}
+            🆓 Plano FREE
+        {% endif %}
 
-</div>
+    </div>
 
-<button
-    class="nova-conversa"
-    type="button"
-    onclick="novaConversa()"
->
-    🆕 Nova conversa
-</button>
+    <button
+        class="nova-conversa"
+        type="button"
+        onclick="novaConversa()"
+    >
+        🆕 Nova conversa
+    </button>
 
-<div class="lista-titulo">
-    Suas conversas
-</div>
+    <div class="lista-titulo">
+        Suas conversas
+    </div>
 
-<div
-    id="conversas"
-    class="conversas"
-></div>
+    <div
+        id="conversas"
+        class="conversas"
+    ></div>
 
-<a
-    href="/logout"
-    class="logout"
->
-    🚪 Sair
-</a>
-```
+    <a
+        href="/logout"
+        class="logout"
+    >
+        🚪 Sair
+    </a>
 
 </aside>
 
 <main class="main">
 
-```
-<header class="header">
+    <header class="header">
 
-    <span id="tituloConversa">
-        Orion AI
-    </span>
+        <span id="tituloConversa">
+            Orion AI
+        </span>
 
-</header>
+    </header>
 
-<div class="opcoes">
+    <div class="opcoes">
 
-    <label>
+        <label>
 
-        <input
-            type="checkbox"
-            id="voz"
-            checked
+            <input
+                type="checkbox"
+                id="voz"
+                checked
+            >
+
+            🔊 Ouvir respostas
+
+        </label>
+
+    </div>
+
+    <div class="chat-area">
+
+        <div
+            id="chat"
+            class="chat"
+        ></div>
+
+        <div
+            id="welcome"
+            class="welcome"
         >
 
-        🔊 Ouvir respostas
+            <h2>
+                🤖 Orion AI
+            </h2>
 
-    </label>
+            <p>
+                Como posso ajudar hoje?
+            </p>
 
-</div>
+            <div class="quick-actions">
 
-<div class="chat-area">
+                <div
+                    class="quick"
+                    onclick="atalho('Criar código')"
+                >
+                    💻 Criar código
+                </div>
 
-    <div
-        id="chat"
-        class="chat"
-    ></div>
+                <div
+                    class="quick"
+                    onclick="atalho('Estudar')"
+                >
+                    📚 Estudar
+                </div>
 
-    <div
-        id="welcome"
-        class="welcome"
-    >
+                <div
+                    class="quick"
+                    onclick="atalho('Fazer resumo')"
+                >
+                    📝 Fazer resumo
+                </div>
 
-        <h2>
-            🤖 Orion AI
-        </h2>
+                <div
+                    class="quick"
+                    onclick="atalho('Tirar dúvidas')"
+                >
+                    ❓ Tirar dúvidas
+                </div>
 
-        <p>
-            Como posso ajudar hoje?
-        </p>
-
-        <div class="quick-actions">
-
-            <div
-                class="quick"
-                onclick="atalho('Criar código')"
-            >
-                💻 Criar código
-            </div>
-
-            <div
-                class="quick"
-                onclick="atalho('Estudar')"
-            >
-                📚 Estudar
-            </div>
-
-            <div
-                class="quick"
-                onclick="atalho('Fazer resumo')"
-            >
-                📝 Fazer resumo
-            </div>
-
-            <div
-                class="quick"
-                onclick="atalho('Tirar dúvidas')"
-            >
-                ❓ Tirar dúvidas
             </div>
 
         </div>
 
     </div>
 
-</div>
+    <div class="entrada">
 
-<div class="entrada">
+        <input
+            type="text"
+            id="mensagem"
+            placeholder="Digite sua mensagem..."
+            autocomplete="off"
+        >
 
-    <input
-        type="text"
-        id="mensagem"
-        placeholder="Digite sua mensagem..."
-        autocomplete="off"
-    >
+        <button
+            id="btnEnviar"
+            type="button"
+            onclick="enviar()"
+        >
+            Enviar
+        </button>
 
-    <button
-        id="btnEnviar"
-        type="button"
-        onclick="enviar()"
-    >
-        Enviar
-    </button>
-
-</div>
-```
+    </div>
 
 </main>
 
