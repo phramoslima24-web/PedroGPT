@@ -1,11 +1,16 @@
+```html
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login - PedroGPT</title>
+
+<title>Login - Orion AI</title>
 
 <style>
+
 *{
     margin:0;
     padding:0;
@@ -118,8 +123,13 @@ body{
     min-height:20px;
 }
 
-.error{ color:#f87171; }
-.success{ color:#4ade80; }
+.error{
+    color:#f87171;
+}
+
+.success{
+    color:#4ade80;
+}
 
 .footer{
     text-align:center;
@@ -131,130 +141,278 @@ body{
     color:#a78bfa;
     text-decoration:none;
 }
+
 </style>
+
 </head>
+
 <body>
 
 <div class="card">
 
     <div class="logo">
-        <h1>🤖 PedroGPT</h1>
-        <p>Entre na sua conta</p>
+
+        <h1>🤖 Orion AI</h1>
+
+        <p>
+            Entre na sua conta
+        </p>
+
     </div>
 
-    <div class="input-group">
-        <label>Usuário</label>
-        <input id="username" placeholder="Digite seu usuário">
-    </div>
 
     <div class="input-group">
-        <label>Senha</label>
+
+        <label>
+            Usuário
+        </label>
+
+        <input
+            id="username"
+            placeholder="Digite seu usuário"
+        >
+
+    </div>
+
+
+    <div class="input-group">
+
+        <label>
+            Senha
+        </label>
 
         <div class="password-box">
-            <input type="password" id="password" placeholder="Digite sua senha">
-            <button type="button" onclick="toggleSenha()" id="eye">👁️</button>
+
+            <input
+                type="password"
+                id="password"
+                placeholder="Digite sua senha"
+            >
+
+            <button
+                type="button"
+                onclick="toggleSenha()"
+                id="eye"
+            >
+                👁️
+            </button>
+
         </div>
+
     </div>
 
-    <button class="login-btn" onclick="login()" id="btnLogin">
+
+    <button
+        class="login-btn"
+        onclick="login()"
+        id="btnLogin"
+    >
         Entrar
     </button>
 
-    <div id="msg" class="msg"></div>
+
+    <div
+        id="msg"
+        class="msg"
+    ></div>
+
 
     <div class="footer">
+
         Não possui conta?<br>
-        <a href="/register">Criar conta</a>
+
+        <a href="/register">
+            Criar conta
+        </a>
+
     </div>
 
 </div>
 
+
 <script>
 
-function mostrarMensagem(texto,tipo="error"){
-    const msg=document.getElementById("msg");
-    msg.className=`msg ${tipo}`;
-    msg.textContent=texto;
+function mostrarMensagem(
+    texto,
+    tipo="error"
+){
+
+    const msg =
+        document.getElementById("msg");
+
+    msg.className =
+        `msg ${tipo}`;
+
+    msg.textContent =
+        texto;
 }
+
 
 function toggleSenha(){
-    const senha=document.getElementById("password");
-    const eye=document.getElementById("eye");
 
-    if(senha.type==="password"){
-        senha.type="text";
-        eye.textContent="🙈";
+    const senha =
+        document.getElementById("password");
+
+    const eye =
+        document.getElementById("eye");
+
+
+    if(
+        senha.type === "password"
+    ){
+
+        senha.type = "text";
+
+        eye.textContent = "🙈";
+
     }else{
-        senha.type="password";
-        eye.textContent="👁️";
+
+        senha.type = "password";
+
+        eye.textContent = "👁️";
+
     }
 }
+
 
 async function login(){
 
-    const username=document.getElementById("username").value.trim();
-    const password=document.getElementById("password").value.trim();
+    const username =
+        document
+            .getElementById("username")
+            .value
+            .trim();
 
-    if(!username || !password){
-        mostrarMensagem("Preencha usuário e senha.");
+    const password =
+        document
+            .getElementById("password")
+            .value
+            .trim();
+
+
+    if(
+        !username ||
+        !password
+    ){
+
+        mostrarMensagem(
+            "Preencha usuário e senha."
+        );
+
         return;
     }
 
-    const btn=document.getElementById("btnLogin");
 
-    btn.disabled=true;
-    btn.textContent="Entrando...";
+    const btn =
+        document.getElementById(
+            "btnLogin"
+        );
+
+
+    btn.disabled = true;
+
+    btn.textContent =
+        "Entrando...";
+
 
     mostrarMensagem("");
 
+
     try{
 
-        const res=await fetch("/api/login",{
-            method:"POST",
-            headers:{
-                "Content-Type":"application/json"
-            },
-            body:JSON.stringify({
-                username,
-                password
-            })
-        });
+        const res =
+            await fetch(
+                "/api/login",
+                {
+                    method:"POST",
 
-        const data=await res.json();
+                    headers:{
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:JSON.stringify({
+                        username,
+                        password
+                    })
+                }
+            );
+
+
+        const data =
+            await res.json();
+
 
         if(data.success){
 
-            mostrarMensagem("Login realizado com sucesso!","success");
+            mostrarMensagem(
+                "Login realizado com sucesso!",
+                "success"
+            );
 
-            setTimeout(()=>{
-                window.location.href="/";
-            },600);
+
+            setTimeout(
+                ()=>{
+                    window.location.href="/";
+                },
+                600
+            );
 
         }else{
 
-            mostrarMensagem(data.message || "Usuário ou senha incorretos.");
+            mostrarMensagem(
+                data.message ||
+                "Usuário ou senha incorretos."
+            );
 
         }
 
     }catch(e){
 
-        mostrarMensagem("Erro ao conectar ao servidor.");
+        mostrarMensagem(
+            "Erro ao conectar ao servidor."
+        );
 
     }
 
-    btn.disabled=false;
-    btn.textContent="Entrar";
+
+    btn.disabled = false;
+
+    btn.textContent =
+        "Entrar";
 }
 
-document.getElementById("password").addEventListener("keydown",e=>{
-    if(e.key==="Enter") login();
-});
 
-document.getElementById("username").addEventListener("keydown",e=>{
-    if(e.key==="Enter") login();
-});
+document
+    .getElementById("password")
+    .addEventListener(
+        "keydown",
+        e => {
+
+            if(e.key === "Enter"){
+                login();
+            }
+
+        }
+    );
+
+
+document
+    .getElementById("username")
+    .addEventListener(
+        "keydown",
+        e => {
+
+            if(e.key === "Enter"){
+                login();
+            }
+
+        }
+    );
 
 </script>
 
 </body>
+
 </html>
+```
