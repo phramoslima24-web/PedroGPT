@@ -31,6 +31,39 @@ function escaparHTML(texto) {
 
 
 // ============================================================
+// LIMPAR ASPAS TRIPLAS
+// ============================================================
+
+function limparAspasTriplas(texto) {
+
+    if (!texto) {
+        return "";
+    }
+
+    let resultado = String(texto);
+
+    // Remove ''' do começo e do final
+    resultado = resultado.replace(
+        /^\s*'''(?:\w+)?\s*/,
+        ""
+    );
+
+    resultado = resultado.replace(
+        /\s*'''\s*$/,
+        ""
+    );
+
+    // Remove linhas que contenham somente '''
+    resultado = resultado.replace(
+        /^\s*'''\s*$/gm,
+        ""
+    );
+
+    return resultado.trim();
+}
+
+
+// ============================================================
 // FORMATAR RESPOSTA
 // ============================================================
 
@@ -40,9 +73,17 @@ function formatarResposta(texto) {
         return "";
     }
 
+    // Limpa ''' antes de formatar
+    texto = limparAspasTriplas(texto);
+
     let protegido = escaparHTML(texto);
 
     const blocosCodigo = [];
+
+
+    // ========================================================
+    // CÓDIGO MARKDOWN
+    // ========================================================
 
     protegido = protegido.replace(
         /```([a-zA-Z0-9_+#.-]*)\s*\n?([\s\S]*?)```/g,
@@ -50,7 +91,13 @@ function formatarResposta(texto) {
 
             const id = blocosCodigo.length;
 
-            const codigoSeguro = codigo.trim();
+            const codigoSeguro =
+                codigo
+                    .trim()
+                    .replace(
+                        /^\s*'''[\s\S]*?$/,
+                        ""
+                    );
 
             blocosCodigo.push(
                 `<pre class="codigo-pedrogpt"><code>${codigoSeguro}</code></pre>`
@@ -60,19 +107,31 @@ function formatarResposta(texto) {
         }
     );
 
-    // Negrito
+
+    // ========================================================
+    // NEGRITO
+    // ========================================================
+
     protegido = protegido.replace(
         /\*\*(.+?)\*\*/g,
         "<strong>$1</strong>"
     );
 
-    // Itálico
+
+    // ========================================================
+    // ITÁLICO
+    // ========================================================
+
     protegido = protegido.replace(
         /(?<!\*)\*([^*\n]+)\*(?!\*)/g,
         "<em>$1</em>"
     );
 
-    // Títulos
+
+    // ========================================================
+    // TÍTULOS
+    // ========================================================
+
     protegido = protegido.replace(
         /^### (.+)$/gm,
         "<h4>$1</h4>"
@@ -88,18 +147,40 @@ function formatarResposta(texto) {
         "<h2>$1</h2>"
     );
 
-    const linhas = protegido.split("\n");
+
+    const linhas =
+        protegido.split("\n");
 
     let resultado = "";
 
     let listaAberta = false;
+
     let listaNumeradaAberta = false;
+
+
+    // ========================================================
+    // LINHAS
+    // ========================================================
 
     linhas.forEach(function (linha) {
 
-        const trim = linha.trim();
+        const trim =
+            linha.trim();
 
+
+        // ----------------------------------------------------
+        // Ignora linha com '''
+        // ----------------------------------------------------
+
+        if (trim === "'''") {
+            return;
+        }
+
+
+        // ----------------------------------------------------
         // Lista com -
+        // ----------------------------------------------------
+
         if (/^[-•*]\s+/.test(trim)) {
 
             if (listaNumeradaAberta) {
@@ -109,6 +190,7 @@ function formatarResposta(texto) {
                 listaNumeradaAberta = false;
             }
 
+
             if (!listaAberta) {
 
                 resultado += "<ul>";
@@ -116,17 +198,26 @@ function formatarResposta(texto) {
                 listaAberta = true;
             }
 
-            const item = trim.replace(
-                /^[-•*]\s+/,
-                ""
-            );
 
-            resultado += `<li>${item}</li>`;
+            const item =
+                trim.replace(
+                    /^[-•*]\s+/,
+                    ""
+                );
+
+
+            resultado +=
+                `<li>${item}</li>`;
+
 
             return;
         }
 
+
+        // ----------------------------------------------------
         // Lista numerada
+        // ----------------------------------------------------
+
         if (/^\d+[.)]\s+/.test(trim)) {
 
             if (listaAberta) {
@@ -136,6 +227,7 @@ function formatarResposta(texto) {
                 listaAberta = false;
             }
 
+
             if (!listaNumeradaAberta) {
 
                 resultado += "<ol>";
@@ -143,23 +235,33 @@ function formatarResposta(texto) {
                 listaNumeradaAberta = true;
             }
 
-            const item = trim.replace(
-                /^\d+[.)]\s+/,
-                ""
-            );
 
-            resultado += `<li>${item}</li>`;
+            const item =
+                trim.replace(
+                    /^\d+[.)]\s+/,
+                    ""
+                );
+
+
+            resultado +=
+                `<li>${item}</li>`;
+
 
             return;
         }
 
+
+        // ----------------------------------------------------
         // Fecha listas
+        // ----------------------------------------------------
+
         if (listaAberta) {
 
             resultado += "</ul>";
 
             listaAberta = false;
         }
+
 
         if (listaNumeradaAberta) {
 
@@ -168,7 +270,11 @@ function formatarResposta(texto) {
             listaNumeradaAberta = false;
         }
 
+
+        // ----------------------------------------------------
         // Linha vazia
+        // ----------------------------------------------------
+
         if (!trim) {
 
             resultado +=
@@ -177,11 +283,16 @@ function formatarResposta(texto) {
             return;
         }
 
+
         resultado +=
             `<div class="linha-resposta">${linha}</div>`;
     });
 
-    // Fecha listas restantes
+
+    // ========================================================
+    // FECHA LISTAS RESTANTES
+    // ========================================================
+
     if (listaAberta) {
         resultado += "</ul>";
     }
@@ -190,16 +301,22 @@ function formatarResposta(texto) {
         resultado += "</ol>";
     }
 
-    // Insere blocos de código
+
+    // ========================================================
+    // INSERE CÓDIGOS
+    // ========================================================
+
     blocosCodigo.forEach(
         function (codigo, index) {
 
-            resultado = resultado.replace(
-                `___CODIGO_${index}___`,
-                codigo
-            );
+            resultado =
+                resultado.replace(
+                    `___CODIGO_${index}___`,
+                    codigo
+                );
         }
     );
+
 
     return resultado;
 }
@@ -211,7 +328,8 @@ function formatarResposta(texto) {
 
 function esconderWelcome() {
 
-    const welcome = elemento("welcome");
+    const welcome =
+        elemento("welcome");
 
     if (welcome) {
         welcome.classList.add("hidden");
@@ -221,7 +339,8 @@ function esconderWelcome() {
 
 function mostrarWelcome() {
 
-    const welcome = elemento("welcome");
+    const welcome =
+        elemento("welcome");
 
     if (welcome) {
         welcome.classList.remove("hidden");
@@ -235,7 +354,8 @@ function mostrarWelcome() {
 
 function scrollBottom() {
 
-    const chat = elemento("chat");
+    const chat =
+        elemento("chat");
 
     if (!chat) {
         return;
@@ -255,20 +375,25 @@ function scrollBottom() {
 
 function addMensagem(texto, tipo) {
 
-    const chat = elemento("chat");
+    const chat =
+        elemento("chat");
 
     if (!chat) {
         return null;
     }
 
+
     const div =
         document.createElement("div");
+
 
     const ehUsuario =
         tipo === "user";
 
+
     const ehTyping =
         tipo.includes("typing");
+
 
     div.classList.add(
         ehUsuario
@@ -286,6 +411,7 @@ function addMensagem(texto, tipo) {
         div.classList.add(
             "typing-message"
         );
+
 
         div.innerHTML = `
             <div class="conteudo-mensagem">
@@ -305,6 +431,7 @@ function addMensagem(texto, tipo) {
             </div>
         `;
 
+
         chat.appendChild(div);
 
         scrollBottom();
@@ -317,7 +444,9 @@ function addMensagem(texto, tipo) {
     // HORA
     // ========================================================
 
-    const agora = new Date();
+    const agora =
+        new Date();
+
 
     const hora =
         agora.getHours()
@@ -337,11 +466,15 @@ function addMensagem(texto, tipo) {
 
     let conteudo;
 
+
     if (ehUsuario) {
 
         conteudo =
             escaparHTML(texto)
-                .replace(/\n/g, "<br>");
+                .replace(
+                    /\n/g,
+                    "<br>"
+                );
 
     } else {
 
@@ -374,9 +507,11 @@ function addMensagem(texto, tipo) {
 
     `;
 
+
     chat.appendChild(div);
 
     scrollBottom();
+
 
     return div;
 }
@@ -429,6 +564,7 @@ async function carregarHistorico() {
         const chat =
             elemento("chat");
 
+
         if (!chat) {
             return;
         }
@@ -456,6 +592,7 @@ async function carregarHistorico() {
             const sender =
                 item?.sender ?? "bot";
 
+
             const message =
                 item?.message ?? "";
 
@@ -470,6 +607,7 @@ async function carregarHistorico() {
 
 
         scrollBottom();
+
 
     } catch (erro) {
 
@@ -494,6 +632,7 @@ async function enviar() {
 
     const campo =
         elemento("mensagem");
+
 
     const botao =
         elemento("btnEnviar");
@@ -522,7 +661,6 @@ async function enviar() {
     esconderWelcome();
 
 
-    // Mensagem do usuário
     addMensagem(
         texto,
         "user"
@@ -541,7 +679,6 @@ async function enviar() {
     }
 
 
-    // Digitando
     const typing =
         addMensagem(
             "",
@@ -598,10 +735,6 @@ async function enviar() {
         }
 
 
-        // ====================================================
-        // ERRO
-        // ====================================================
-
         if (!resposta.ok) {
 
             let mensagemErro =
@@ -634,8 +767,10 @@ async function enviar() {
         // ====================================================
 
         const textoResposta =
-            data.reply ||
-            "Não recebi uma resposta da IA.";
+            limparAspasTriplas(
+                data.reply ||
+                "Não recebi uma resposta da IA."
+            );
 
 
         addMensagem(
@@ -647,6 +782,7 @@ async function enviar() {
         falarResposta(
             textoResposta
         );
+
 
     } catch (erro) {
 
@@ -665,6 +801,7 @@ async function enviar() {
             "❌ Erro ao conectar com o servidor. Verifique os logs do servidor.",
             "bot"
         );
+
 
     } finally {
 
@@ -860,6 +997,7 @@ async function novaConversa() {
 
         await carregarHistorico();
 
+
     } catch (erro) {
 
         console.error(
@@ -992,10 +1130,10 @@ document.addEventListener(
 );
 ````
 
-### Git
+**Git:**
 
 ```bash
 git add .
-git commit -m "Remove sistema de conversas da interface"
+git commit -m "Corrige aspas triplas nas respostas da IA"
 git push
 ```
