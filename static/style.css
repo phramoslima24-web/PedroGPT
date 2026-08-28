@@ -105,6 +105,34 @@ body {
 
 
 /* =========================
+   PLANO
+========================= */
+
+.plano {
+
+    padding: 8px;
+
+    border-radius: 10px;
+
+    text-align: center;
+
+    font-size: 12px;
+
+    font-weight: bold;
+
+    background:
+        rgba(124,58,237,0.15);
+
+    border:
+        1px solid
+        rgba(124,58,237,0.25);
+
+    color: #c4b5fd;
+
+}
+
+
+/* =========================
    NOVA CONVERSA
 ========================= */
 
@@ -148,6 +176,150 @@ body {
 .nova-conversa:active {
 
     transform: scale(0.98);
+
+}
+
+
+/* =========================
+   LISTA DE CONVERSAS
+========================= */
+
+.lista-titulo {
+
+    width: 100%;
+
+    text-align: center;
+
+    font-size: 12px;
+
+    color:
+        rgba(255,255,255,0.5);
+
+    margin-top: 5px;
+
+}
+
+
+.conversas {
+
+    flex: 1;
+
+    width: 100%;
+
+    min-height: 0;
+
+    overflow-y: auto;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 2px 0;
+
+}
+
+
+.conversas::-webkit-scrollbar {
+
+    width: 5px;
+
+}
+
+
+.conversas::-webkit-scrollbar-track {
+
+    background: transparent;
+
+}
+
+
+.conversas::-webkit-scrollbar-thumb {
+
+    background:
+        rgba(255,255,255,0.15);
+
+    border-radius: 10px;
+
+}
+
+
+.conversas::-webkit-scrollbar-thumb:hover {
+
+    background:
+        rgba(255,255,255,0.25);
+
+}
+
+
+/* =========================
+   ITEM DA CONVERSA
+========================= */
+
+.conversa-item {
+
+    width: 100%;
+
+    min-height: 42px;
+
+    padding:
+        11px
+        12px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border:
+        1px solid
+        transparent;
+
+    border-radius: 10px;
+
+    background:
+        rgba(255,255,255,0.035);
+
+    color: white;
+
+    text-align: center;
+
+    font-size: 14px;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+
+}
+
+
+.conversa-item:hover {
+
+    background:
+        rgba(255,255,255,0.08);
+
+}
+
+
+.conversa-item.ativa {
+
+    background:
+        rgba(124,58,237,0.18);
+
+    border-color:
+        rgba(124,58,237,0.35);
 
 }
 
@@ -1126,6 +1298,13 @@ body {
     }
 
 
+    .conversas {
+
+        display: none;
+
+    }
+
+
     .main {
 
         width: 100%;
@@ -1249,12 +1428,4 @@ body {
     }
 
 }
-```
-
-**Git:**
-
-```bash
-git add .
-git commit -m "Atualiza estilo da interface e prepara anexos"
-git push
 ```
