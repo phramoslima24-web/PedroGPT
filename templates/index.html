@@ -179,12 +179,6 @@ body {
     border-radius: 10px;
 }
 
-/*
-   IMPORTANTE:
-   As conversas agora ficam como
-   texto simples, sem retângulos.
-*/
-
 .conversa-item {
     width: 92%;
 
@@ -1040,40 +1034,6 @@ body {
 ```
 
 </main>
-
-<script>
-
-function atalho(texto) {
-
-    const welcome =
-        document.getElementById("welcome");
-
-    const campo =
-        document.getElementById("mensagem");
-
-    if (welcome) {
-        welcome.classList.add("hidden");
-    }
-
-    if (campo) {
-        campo.value = texto;
-        campo.focus();
-    }
-
-}
-
-function esconderWelcome() {
-
-    const welcome =
-        document.getElementById("welcome");
-
-    if (welcome) {
-        welcome.classList.add("hidden");
-    }
-
-}
-
-</script>
 
 <script src="/static/script.js"></script>
 
