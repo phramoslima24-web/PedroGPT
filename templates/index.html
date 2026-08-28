@@ -137,14 +137,22 @@ body {
 }
 
 /* =========================
-   CONVERSAS
+   TÍTULO DAS CONVERSAS
 ========================= */
 
 .lista-titulo {
     font-size: 12px;
+
     color: rgba(255,255,255,0.5);
+
     margin-top: 5px;
+
+    text-align: center;
 }
+
+/* =========================
+   LISTA DE CONVERSAS
+========================= */
 
 .conversas {
     flex: 1;
@@ -152,49 +160,69 @@ body {
     overflow-y: auto;
 
     display: flex;
+
     flex-direction: column;
-    gap: 6px;
+
+    align-items: center;
+
+    gap: 4px;
+
+    padding: 2px 0;
 }
 
 .conversas::-webkit-scrollbar {
-    width: 5px;
+    width: 4px;
 }
 
 .conversas::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.12);
     border-radius: 10px;
 }
 
+/*
+   IMPORTANTE:
+   As conversas agora ficam como
+   texto simples, sem retângulos.
+*/
+
 .conversa-item {
-    width: 100%;
+    width: 92%;
 
-    padding: 11px;
-    border-radius: 10px;
+    padding: 9px 8px;
 
-    border: 1px solid transparent;
+    border: none;
 
-    background: rgba(255,255,255,0.035);
+    border-radius: 8px;
 
-    color: white;
+    background: transparent;
 
-    text-align: left;
+    color: rgba(255,255,255,0.75);
+
+    text-align: center;
+
     cursor: pointer;
 
     transition: 0.2s;
 
     overflow: hidden;
+
     text-overflow: ellipsis;
+
     white-space: nowrap;
+
+    font-size: 13px;
 }
 
 .conversa-item:hover {
-    background: rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.06);
+
+    color: white;
 }
 
 .conversa-item.ativa {
-    background: rgba(124,58,237,0.18);
+    background: rgba(124,58,237,0.15);
 
-    border-color: rgba(124,58,237,0.35);
+    color: white;
 }
 
 /* =========================
@@ -210,6 +238,7 @@ body {
     background: rgba(255,255,255,0.07);
 
     padding: 11px;
+
     border-radius: 10px;
 
     text-align: center;
@@ -324,6 +353,7 @@ body {
 
     display: flex;
     flex-direction: column;
+
     gap: 13px;
 
     scroll-behavior: smooth;
@@ -403,6 +433,7 @@ body {
     line-height: 1.6;
 
     word-wrap: break-word;
+
     overflow-wrap: break-word;
 }
 
@@ -452,11 +483,13 @@ body {
 .conteudo-mensagem ul,
 .conteudo-mensagem ol {
     margin: 8px 0 10px 20px;
+
     padding-left: 18px;
 }
 
 .conteudo-mensagem li {
     margin-bottom: 7px;
+
     line-height: 1.55;
 }
 
@@ -468,6 +501,7 @@ body {
     display: block;
 
     margin: 10px 0;
+
     padding: 14px;
 
     border-radius: 10px;
@@ -488,6 +522,7 @@ body {
         monospace;
 
     font-size: 13px;
+
     line-height: 1.5;
 }
 
@@ -508,12 +543,15 @@ body {
 
 .typing-dots {
     display: inline-flex;
+
     gap: 4px;
+
     margin-left: 5px;
 }
 
 .typing-dots span {
     width: 6px;
+
     height: 6px;
 
     border-radius: 50%;
@@ -624,6 +662,7 @@ body {
     flex-shrink: 0;
 
     display: flex;
+
     gap: 10px;
 
     padding: 14px;
@@ -645,6 +684,7 @@ body {
 
 .entrada input {
     flex: 1;
+
     min-width: 0;
 
     padding: 14px;
@@ -774,9 +814,11 @@ body {
         width: 100%;
 
         height: auto;
+
         max-height: 190px;
 
         padding: 10px;
+
         gap: 8px;
 
         border-right: none;
@@ -846,10 +888,6 @@ body {
 
 <body>
 
-<!-- =========================
-     SIDEBAR
-========================= -->
-
 <aside class="sidebar">
 
 ```
@@ -898,10 +936,6 @@ body {
 
 </aside>
 
-<!-- =========================
-     MAIN
-========================= -->
-
 <main class="main">
 
 ```
@@ -929,18 +963,12 @@ body {
 
 </div>
 
-<!-- =========================
-     ÁREA DO CHAT
-========================= -->
-
 <div class="chat-area">
 
     <div
         id="chat"
         class="chat"
     ></div>
-
-    <!-- WELCOME -->
 
     <div
         id="welcome"
@@ -991,10 +1019,6 @@ body {
 
 </div>
 
-<!-- =========================
-     ENTRADA
-========================= -->
-
 <div class="entrada">
 
     <input
@@ -1017,7 +1041,39 @@ body {
 
 </main>
 
-<!-- SCRIPT PRINCIPAL -->
+<script>
+
+function atalho(texto) {
+
+    const welcome =
+        document.getElementById("welcome");
+
+    const campo =
+        document.getElementById("mensagem");
+
+    if (welcome) {
+        welcome.classList.add("hidden");
+    }
+
+    if (campo) {
+        campo.value = texto;
+        campo.focus();
+    }
+
+}
+
+function esconderWelcome() {
+
+    const welcome =
+        document.getElementById("welcome");
+
+    if (welcome) {
+        welcome.classList.add("hidden");
+    }
+
+}
+
+</script>
 
 <script src="/static/script.js"></script>
 
