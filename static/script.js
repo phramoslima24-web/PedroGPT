@@ -1,3 +1,4 @@
+````javascript
 // ============================================================
 // ORION AI - SCRIPT.JS
 // ============================================================
@@ -43,7 +44,6 @@ function formatarResposta(texto) {
 
     const blocosCodigo = [];
 
-    // Código Markdown
     protegido = protegido.replace(
         /```([a-zA-Z0-9_+#.-]*)\s*\n?([\s\S]*?)```/g,
         function (_, linguagem, codigo) {
@@ -183,12 +183,10 @@ function formatarResposta(texto) {
 
     // Fecha listas restantes
     if (listaAberta) {
-
         resultado += "</ul>";
     }
 
     if (listaNumeradaAberta) {
-
         resultado += "</ol>";
     }
 
@@ -200,7 +198,6 @@ function formatarResposta(texto) {
                 `___CODIGO_${index}___`,
                 codigo
             );
-
         }
     );
 
@@ -217,7 +214,6 @@ function esconderWelcome() {
     const welcome = elemento("welcome");
 
     if (welcome) {
-
         welcome.classList.add("hidden");
     }
 }
@@ -228,7 +224,6 @@ function mostrarWelcome() {
     const welcome = elemento("welcome");
 
     if (welcome) {
-
         welcome.classList.remove("hidden");
     }
 }
@@ -281,6 +276,7 @@ function addMensagem(texto, tipo) {
             : "msg-bot"
     );
 
+
     // ========================================================
     // DIGITANDO
     // ========================================================
@@ -293,13 +289,19 @@ function addMensagem(texto, tipo) {
 
         div.innerHTML = `
             <div class="conteudo-mensagem">
-                <span>🤖 Orion AI está digitando</span>
+
+                <span>
+                    🤖 Orion AI está digitando
+                </span>
 
                 <span class="typing-dots">
+
                     <span></span>
                     <span></span>
                     <span></span>
+
                 </span>
+
             </div>
         `;
 
@@ -309,6 +311,7 @@ function addMensagem(texto, tipo) {
 
         return div;
     }
+
 
     // ========================================================
     // HORA
@@ -327,6 +330,7 @@ function addMensagem(texto, tipo) {
             .toString()
             .padStart(2, "0");
 
+
     // ========================================================
     // CONTEÚDO
     // ========================================================
@@ -344,6 +348,7 @@ function addMensagem(texto, tipo) {
         conteudo =
             formatarResposta(texto);
     }
+
 
     // ========================================================
     // HTML
@@ -395,6 +400,7 @@ async function carregarHistorico() {
                 }
             );
 
+
         if (resposta.status === 401) {
 
             console.warn(
@@ -403,6 +409,7 @@ async function carregarHistorico() {
 
             return;
         }
+
 
         if (!resposta.ok) {
 
@@ -414,8 +421,10 @@ async function carregarHistorico() {
             return;
         }
 
+
         const historico =
             await resposta.json();
+
 
         const chat =
             elemento("chat");
@@ -424,7 +433,9 @@ async function carregarHistorico() {
             return;
         }
 
+
         chat.innerHTML = "";
+
 
         if (
             !Array.isArray(historico) ||
@@ -436,7 +447,9 @@ async function carregarHistorico() {
             return;
         }
 
+
         esconderWelcome();
+
 
         historico.forEach(function (item) {
 
@@ -446,6 +459,7 @@ async function carregarHistorico() {
             const message =
                 item?.message ?? "";
 
+
             addMensagem(
                 message,
                 sender === "user"
@@ -453,6 +467,7 @@ async function carregarHistorico() {
                     : "bot"
             );
         });
+
 
         scrollBottom();
 
@@ -476,18 +491,22 @@ async function enviar() {
         return;
     }
 
+
     const campo =
         elemento("mensagem");
 
     const botao =
         elemento("btnEnviar");
 
+
     if (!campo) {
         return;
     }
 
+
     const texto =
         campo.value.trim();
+
 
     if (!texto) {
 
@@ -496,18 +515,22 @@ async function enviar() {
         return;
     }
 
+
     enviando = true;
+
 
     esconderWelcome();
 
-    // Mostra a mensagem do usuário
+
+    // Mensagem do usuário
     addMensagem(
         texto,
         "user"
     );
 
-    // Limpa campo
+
     campo.value = "";
+
 
     if (botao) {
 
@@ -517,12 +540,14 @@ async function enviar() {
             "Enviando...";
     }
 
-    // Mostra digitando
+
+    // Digitando
     const typing =
         addMensagem(
             "",
             "bot typing"
         );
+
 
     try {
 
@@ -535,6 +560,7 @@ async function enviar() {
                     headers: {
                         "Content-Type":
                             "application/json",
+
                         "Accept":
                             "application/json"
                     },
@@ -549,12 +575,14 @@ async function enviar() {
                 }
             );
 
-        // Remove digitando
+
         if (typing) {
             typing.remove();
         }
 
+
         let data = {};
+
 
         try {
 
@@ -567,18 +595,18 @@ async function enviar() {
                 "Resposta não é JSON:",
                 erroJSON
             );
-
-            data = {};
         }
 
+
         // ====================================================
-        // ERRO DO SERVIDOR
+        // ERRO
         // ====================================================
 
         if (!resposta.ok) {
 
             let mensagemErro =
                 "Erro ao conectar com o servidor.";
+
 
             if (data.reply) {
 
@@ -591,6 +619,7 @@ async function enviar() {
                     data.message;
             }
 
+
             addMensagem(
                 mensagemErro,
                 "bot"
@@ -598,6 +627,7 @@ async function enviar() {
 
             return;
         }
+
 
         // ====================================================
         // RESPOSTA DA IA
@@ -607,17 +637,16 @@ async function enviar() {
             data.reply ||
             "Não recebi uma resposta da IA.";
 
+
         addMensagem(
             textoResposta,
             "bot"
         );
 
+
         falarResposta(
             textoResposta
         );
-
-        // Atualiza conversas
-        await carregarConversas();
 
     } catch (erro) {
 
@@ -626,9 +655,11 @@ async function enviar() {
             erro
         );
 
+
         if (typing) {
             typing.remove();
         }
+
 
         addMensagem(
             "❌ Erro ao conectar com o servidor. Verifique os logs do servidor.",
@@ -639,6 +670,7 @@ async function enviar() {
 
         enviando = false;
 
+
         if (botao) {
 
             botao.disabled = false;
@@ -646,6 +678,7 @@ async function enviar() {
             botao.textContent =
                 "Enviar";
         }
+
 
         campo.focus();
     }
@@ -661,6 +694,7 @@ function falarResposta(texto) {
     const opcaoVoz =
         elemento("voz");
 
+
     if (
         !opcaoVoz ||
         !opcaoVoz.checked
@@ -668,27 +702,34 @@ function falarResposta(texto) {
         return;
     }
 
+
     if (
         !("speechSynthesis" in window)
     ) {
         return;
     }
 
+
     speechSynthesis.cancel();
+
 
     const voz =
         new SpeechSynthesisUtterance(
             texto
         );
 
+
     voz.lang =
         "pt-BR";
+
 
     voz.rate =
         1;
 
+
     voz.pitch =
         1;
+
 
     speechSynthesis.speak(
         voz
@@ -702,17 +743,18 @@ function falarResposta(texto) {
 
 function atalho(texto) {
 
-    esconderWelcome();
-
     const campo =
         elemento("mensagem");
+
 
     if (!campo) {
         return;
     }
 
+
     campo.value =
         texto;
+
 
     campo.focus();
 }
@@ -733,6 +775,7 @@ async function novaConversa() {
         return;
     }
 
+
     try {
 
         const resposta =
@@ -751,7 +794,9 @@ async function novaConversa() {
                 }
             );
 
+
         let data = {};
+
 
         try {
 
@@ -766,6 +811,7 @@ async function novaConversa() {
             );
         }
 
+
         if (
             !resposta.ok ||
             !data.success
@@ -779,15 +825,19 @@ async function novaConversa() {
             return;
         }
 
+
         const chat =
             elemento("chat");
+
 
         if (chat) {
 
             chat.innerHTML = "";
         }
 
+
         mostrarWelcome();
+
 
         if (
             "speechSynthesis" in window
@@ -796,8 +846,10 @@ async function novaConversa() {
             speechSynthesis.cancel();
         }
 
+
         const titulo =
             elemento("tituloConversa");
+
 
         if (titulo) {
 
@@ -805,9 +857,8 @@ async function novaConversa() {
                 "Orion AI";
         }
 
-        await carregarHistorico();
 
-        await carregarConversas();
+        await carregarHistorico();
 
     } catch (erro) {
 
@@ -816,300 +867,6 @@ async function novaConversa() {
             erro
         );
 
-        alert(
-            "Erro ao conectar com o servidor."
-        );
-    }
-}
-
-
-// ============================================================
-// CARREGAR CONVERSAS
-// ============================================================
-
-async function carregarConversas() {
-
-    const lista =
-        elemento("conversas");
-
-    if (!lista) {
-        return;
-    }
-
-    try {
-
-        const resposta =
-            await fetch(
-                "/conversations",
-                {
-                    method: "GET",
-
-                    credentials:
-                        "same-origin",
-
-                    cache:
-                        "no-store",
-
-                    headers: {
-                        "Accept":
-                            "application/json"
-                    }
-                }
-            );
-
-        if (resposta.status === 401) {
-            return;
-        }
-
-        if (!resposta.ok) {
-
-            console.warn(
-                "Erro ao carregar conversas:",
-                resposta.status
-            );
-
-            return;
-        }
-
-        const conversas =
-            await resposta.json();
-
-        lista.innerHTML = "";
-
-        if (
-            !Array.isArray(conversas) ||
-            conversas.length === 0
-        ) {
-
-            return;
-        }
-
-        const conversaAtual =
-            await obterConversaAtual();
-
-        conversas.forEach(
-            function (conversa) {
-
-                const item =
-                    document.createElement("button");
-
-                item.type =
-                    "button";
-
-                item.className =
-                    "conversa-item";
-
-                item.dataset.id =
-                    conversa.id;
-
-                item.textContent =
-                    conversa.title ||
-                    "Nova conversa";
-
-                if (
-                    String(conversa.id) ===
-                    String(conversaAtual)
-                ) {
-
-                    item.classList.add(
-                        "ativa"
-                    );
-                }
-
-                item.addEventListener(
-                    "click",
-                    function () {
-
-                        abrirConversa(
-                            conversa.id
-                        );
-                    }
-                );
-
-                lista.appendChild(item);
-            }
-        );
-
-    } catch (erro) {
-
-        console.error(
-            "Erro ao carregar conversas:",
-            erro
-        );
-    }
-}
-
-
-// ============================================================
-// OBTER CONVERSA ATUAL
-// ============================================================
-
-async function obterConversaAtual() {
-
-    try {
-
-        const resposta =
-            await fetch(
-                "/api/status",
-                {
-                    method: "GET",
-
-                    credentials:
-                        "same-origin",
-
-                    cache:
-                        "no-store"
-                }
-            );
-
-        if (!resposta.ok) {
-            return null;
-        }
-
-        const data =
-            await resposta.json();
-
-        return data.conversation_id ?? null;
-
-    } catch (erro) {
-
-        console.error(
-            "Erro ao obter conversa atual:",
-            erro
-        );
-
-        return null;
-    }
-}
-
-
-// ============================================================
-// ABRIR CONVERSA
-// ============================================================
-
-async function abrirConversa(id) {
-
-    if (enviando) {
-        return;
-    }
-
-    try {
-
-        const resposta =
-            await fetch(
-                `/conversation/${encodeURIComponent(id)}`,
-                {
-                    method: "GET",
-
-                    credentials:
-                        "same-origin",
-
-                    cache:
-                        "no-store",
-
-                    headers: {
-                        "Accept":
-                            "application/json"
-                    }
-                }
-            );
-
-        let data = {};
-
-        try {
-
-            data =
-                await resposta.json();
-
-        } catch (erroJSON) {
-
-            console.error(
-                "Erro JSON:",
-                erroJSON
-            );
-        }
-
-        if (
-            !resposta.ok ||
-            !data.success
-        ) {
-
-            alert(
-                data.message ||
-                "Não foi possível abrir a conversa."
-            );
-
-            return;
-        }
-
-        const chat =
-            elemento("chat");
-
-        if (!chat) {
-            return;
-        }
-
-        chat.innerHTML = "";
-
-        const titulo =
-            elemento("tituloConversa");
-
-        if (titulo) {
-
-            titulo.textContent =
-                data.title ||
-                "Orion AI";
-        }
-
-        const mensagens =
-            data.messages || [];
-
-        if (
-            mensagens.length === 0
-        ) {
-
-            mostrarWelcome();
-
-        } else {
-
-            esconderWelcome();
-
-            mensagens.forEach(
-                function (item) {
-
-                    addMensagem(
-                        item.message,
-                        item.sender === "user"
-                            ? "user"
-                            : "bot"
-                    );
-                }
-            );
-        }
-
-        document
-            .querySelectorAll(
-                ".conversa-item"
-            )
-            .forEach(
-                function (item) {
-
-                    item.classList.toggle(
-                        "ativa",
-                        String(item.dataset.id) ===
-                        String(id)
-                    );
-                }
-            );
-
-        scrollBottom();
-
-    } catch (erro) {
-
-        console.error(
-            "Erro ao abrir conversa:",
-            erro
-        );
 
         alert(
             "Erro ao conectar com o servidor."
@@ -1127,9 +884,11 @@ function configurarEnter() {
     const campo =
         elemento("mensagem");
 
+
     if (!campo) {
         return;
     }
+
 
     campo.addEventListener(
         "keydown",
@@ -1158,9 +917,11 @@ function configurarVoz() {
     const opcaoVoz =
         elemento("voz");
 
+
     if (!opcaoVoz) {
         return;
     }
+
 
     opcaoVoz.addEventListener(
         "change",
@@ -1187,9 +948,11 @@ function configurarFormulario() {
     const campo =
         elemento("mensagem");
 
+
     if (!campo) {
         return;
     }
+
 
     campo.addEventListener(
         "input",
@@ -1214,14 +977,25 @@ document.addEventListener(
             "Orion AI: script carregado."
         );
 
+
         await carregarHistorico();
 
-        await carregarConversas();
 
         configurarEnter();
 
+
         configurarVoz();
+
 
         configurarFormulario();
     }
 );
+````
+
+### Git
+
+```bash
+git add .
+git commit -m "Remove sistema de conversas da interface"
+git push
+```
