@@ -1,5 +1,6 @@
+````javascript
 // ============================================================
-// PedroGPT - SCRIPT.JS
+// Orion AI - SCRIPT.JS
 // FASE 4
 // ============================================================
 
@@ -49,10 +50,6 @@ function formatarResposta(texto) {
 
     const blocosCodigo = [];
 
-    // ========================================================
-    // PROTEGER CÓDIGO
-    // ========================================================
-
     protegido = protegido.replace(
         /```(?:[a-zA-Z0-9_+-]+)?\s*\n?([\s\S]*?)```/g,
         function (_, codigo) {
@@ -67,30 +64,15 @@ function formatarResposta(texto) {
         }
     );
 
-
-    // ========================================================
-    // NEGRITO
-    // ========================================================
-
     protegido = protegido.replace(
         /\*\*(.+?)\*\*/g,
         "<strong>$1</strong>"
     );
 
-
-    // ========================================================
-    // ITÁLICO
-    // ========================================================
-
     protegido = protegido.replace(
         /(?<!\*)\*([^*\n]+)\*(?!\*)/g,
         "<em>$1</em>"
     );
-
-
-    // ========================================================
-    // TÍTULOS
-    // ========================================================
 
     protegido = protegido.replace(
         /^### (.+)$/gm,
@@ -107,11 +89,6 @@ function formatarResposta(texto) {
         "<h2>$1</h2>"
     );
 
-
-    // ========================================================
-    // LISTAS
-    // ========================================================
-
     const linhas = protegido.split("\n");
 
     let resultado = "";
@@ -125,10 +102,6 @@ function formatarResposta(texto) {
 
         const trim = linha.trim();
 
-
-        // ====================================================
-        // LISTA NORMAL
-        // ====================================================
 
         if (/^[-•*]\s+/.test(trim)) {
 
@@ -161,10 +134,6 @@ function formatarResposta(texto) {
         }
 
 
-        // ====================================================
-        // LISTA NUMERADA
-        // ====================================================
-
         if (/^\d+[.)]\s+/.test(trim)) {
 
             if (listaAberta) {
@@ -196,10 +165,6 @@ function formatarResposta(texto) {
         }
 
 
-        // ====================================================
-        // FECHAR LISTAS
-        // ====================================================
-
         if (listaAberta) {
 
             resultado += "</ul>";
@@ -216,10 +181,6 @@ function formatarResposta(texto) {
         }
 
 
-        // ====================================================
-        // LINHA VAZIA
-        // ====================================================
-
         if (!trim) {
 
             resultado +=
@@ -229,19 +190,11 @@ function formatarResposta(texto) {
         }
 
 
-        // ====================================================
-        // TEXTO
-        // ====================================================
-
         resultado +=
             `<div class="linha-resposta">${linha}</div>`;
 
     });
 
-
-    // ========================================================
-    // FECHAR LISTAS
-    // ========================================================
 
     if (listaAberta) {
 
@@ -254,10 +207,6 @@ function formatarResposta(texto) {
         resultado += "</ol>";
     }
 
-
-    // ========================================================
-    // RESTAURAR CÓDIGOS
-    // ========================================================
 
     blocosCodigo.forEach(
         (codigo, index) => {
@@ -379,7 +328,7 @@ function addMensagem(
 
         div.innerHTML = `
             <div class="conteudo-mensagem">
-                <span>🤖 PedroGPT está digitando</span>
+                <span>🤖 Orion AI está digitando</span>
 
                 <span class="typing-dots">
                     <span></span>
@@ -618,10 +567,6 @@ async function enviar() {
     esconderWelcome();
 
 
-    // ========================================================
-    // MENSAGEM USUÁRIO
-    // ========================================================
-
     addMensagem(
         texto,
         "user"
@@ -632,10 +577,6 @@ async function enviar() {
 
     campo.focus();
 
-
-    // ========================================================
-    // TYPING
-    // ========================================================
 
     const typing =
         addMensagem(
@@ -667,10 +608,6 @@ async function enviar() {
                 }
             );
 
-
-        // ====================================================
-        // ERRO HTTP
-        // ====================================================
 
         if (!resposta.ok) {
 
@@ -727,10 +664,6 @@ async function enviar() {
         }
 
 
-        // ====================================================
-        // RESPOSTA
-        // ====================================================
-
         const textoResposta =
             data.reply ||
             "Não recebi uma resposta da IA.";
@@ -741,10 +674,6 @@ async function enviar() {
             "bot"
         );
 
-
-        // ====================================================
-        // VOZ
-        // ====================================================
 
         falarResposta(
             textoResposta
@@ -854,8 +783,6 @@ function atalho(texto) {
 
     campo.focus();
 
-
-    // Não envia automaticamente.
 }
 
 
@@ -1062,3 +989,4 @@ document.addEventListener(
 
     }
 );
+````
