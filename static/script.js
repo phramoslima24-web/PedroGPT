@@ -1,4 +1,4 @@
-
+````javascript
 // ============================================================
 // ORION AI - SCRIPT.JS
 // ============================================================
@@ -91,7 +91,7 @@ function formatarResposta(texto) {
     );
 
     // ========================================================
-    // REMOVE ASPAS TRIPLAS RESTANTES
+    // REMOVE ASPAS TRIPLAS
     // ========================================================
 
     protegido = protegido.replace(
@@ -461,6 +461,7 @@ function carregarVozes() {
             vozSalva &&
             voz.name === vozSalva
         ) {
+
             option.selected = true;
         }
     });
@@ -503,7 +504,7 @@ function carregarVozes() {
 
 
 // ============================================================
-// OBTER VOZ SELECIONADA
+// OBTER VOZ
 // ============================================================
 
 function obterVozSelecionada() {
@@ -774,7 +775,7 @@ function addMensagem(texto, tipo) {
     `;
 
     // ========================================================
-    // BOTÃO COPIAR
+    // COPIAR
     // ========================================================
 
     if (!ehUsuario) {
@@ -990,10 +991,6 @@ async function enviar() {
             );
         }
 
-        // ====================================================
-        // ERRO DO SERVIDOR
-        // ====================================================
-
         if (!resposta.ok) {
 
             let mensagemErro =
@@ -1015,10 +1012,6 @@ async function enviar() {
             return;
         }
 
-        // ====================================================
-        // RESPOSTA DA IA
-        // ====================================================
-
         const textoResposta =
             limparAspasTriplas(
                 data.reply ||
@@ -1035,7 +1028,6 @@ async function enviar() {
             textoResposta
         );
 
-        // Atualiza a lista de conversas
         await carregarConversas();
 
     } catch (erro) {
@@ -1200,8 +1192,6 @@ async function carregarConversas() {
     const lista =
         elemento("conversas");
 
-    // O HTML atual não possui ainda uma lista
-    // de conversas na sidebar.
     if (!lista) {
         return;
     }
@@ -1484,6 +1474,112 @@ async function abrirConversa(id) {
 
 
 // ============================================================
+// ARQUIVOS
+// ============================================================
+
+function configurarArquivos() {
+
+    const btnArquivo =
+        elemento("btnArquivo");
+
+    const arquivo =
+        elemento("arquivo");
+
+    const arquivoSelecionado =
+        elemento("arquivoSelecionado");
+
+    const nomeArquivo =
+        elemento("nomeArquivo");
+
+    const removerArquivo =
+        elemento("removerArquivo");
+
+    if (!btnArquivo || !arquivo) {
+
+        console.warn(
+            "Botão ou input de arquivo não encontrado."
+        );
+
+        return;
+    }
+
+    // ========================================================
+    // ABRIR SELETOR
+    // ========================================================
+
+    btnArquivo.addEventListener(
+        "click",
+        function () {
+
+            arquivo.click();
+
+        }
+    );
+
+    // ========================================================
+    // ARQUIVO ESCOLHIDO
+    // ========================================================
+
+    arquivo.addEventListener(
+        "change",
+        function () {
+
+            if (
+                !arquivo.files ||
+                arquivo.files.length === 0
+            ) {
+                return;
+            }
+
+            const arquivoEscolhido =
+                arquivo.files[0];
+
+            if (nomeArquivo) {
+
+                nomeArquivo.textContent =
+                    arquivoEscolhido.name;
+            }
+
+            if (arquivoSelecionado) {
+
+                arquivoSelecionado.classList.remove(
+                    "hidden"
+                );
+            }
+        }
+    );
+
+    // ========================================================
+    // REMOVER ARQUIVO
+    // ========================================================
+
+    if (removerArquivo) {
+
+        removerArquivo.addEventListener(
+            "click",
+            function () {
+
+                arquivo.value = "";
+
+                if (nomeArquivo) {
+
+                    nomeArquivo.textContent =
+                        "";
+                }
+
+                if (arquivoSelecionado) {
+
+                    arquivoSelecionado.classList.add(
+                        "hidden"
+                    );
+                }
+            }
+        );
+    }
+}
+
+
+// ============================================================
 // ENTER
 // ============================================================
 
@@ -1633,6 +1729,8 @@ document.addEventListener(
 
         configurarFormulario();
 
+        configurarArquivos();
+
         await carregarHistorico();
 
         await carregarConversas();
@@ -1646,4 +1744,4 @@ document.addEventListener(
 
     }
 );
-
+````
