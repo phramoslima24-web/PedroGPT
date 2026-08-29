@@ -1,11 +1,10 @@
-
+````javascript
 // ============================================================
 // ORION AI - SCRIPT.JS
 // ============================================================
 
 let enviando = false;
-let vozesDisponiveis = [];
-let arquivoAtual = null;
+let arquivoSelecionado = null;
 
 
 // ============================================================
@@ -32,588 +31,37 @@ function escaparHTML(texto) {
 
 
 // ============================================================
-// LIMPAR ASPAS TRIPLAS
+// ELEMENTOS DO CHAT
 // ============================================================
 
-function limparAspasTriplas(texto) {
+const chat = elemento("chat");
+const welcome = elemento("welcome");
+const mensagemInput = elemento("mensagem");
+const btnEnviar = elemento("btnEnviar");
+const btnArquivo = elemento("btnArquivo");
+const arquivoInput = elemento("arquivo");
+const arquivoBox = elemento("arquivoSelecionado");
+const nomeArquivo = elemento("nomeArquivo");
+const removerArquivo = elemento("removerArquivo");
 
-    if (!texto) {
-        return "";
+
+// ============================================================
+// MOSTRAR / ESCONDER WELCOME
+// ============================================================
+
+function atualizarWelcome() {
+
+    if (!chat || !welcome) {
+        return;
     }
 
-    return String(texto)
-        .replace(/^\s*'''(?:\w+)?\s*/, "")
-        .replace(/\s*'''\s*$/, "")
-        .trim();
-}
+    const quantidade = chat.children.length;
 
-
-// ============================================================
-// FORMATAR RESPOSTA
-// ============================================================
-
-function formatarResposta(texto) {
-
-    if (!texto) {
-        return "";
-    }
-
-    texto = limparAspasTriplas(texto);
-
-    let protegido = escaparHTML(texto);
-
-    const blocosCodigo = [];
-
-    protegido = protegido.replace(
-        /```([a-zA-Z0-9_+#.-]*)\s*\n?([\s\S]*?)```/g,
-        function (_, linguagem, codigo) {
-
-            const id = blocosCodigo.length;
-
-            blocosCodigo.push(
-                `<pre class="codigo-pedrogpt"><code>${codigo.trim()}</code></pre>`
-            );
-
-            return `___CODIGO_${id}___`;
-        }
-    );
-
-    protegido = protegido.replace(
-        /\*\*(.+?)\*\*/g,
-        "<strong>$1</strong>"
-    );
-
-    protegido = protegido.replace(
-        /(?<!\*)\*([^*\n]+)\*(?!\*)/g,
-        "<em>$1</em>"
-    );
-
-    protegido = protegido.replace(
-        /^### (.+)$/gm,
-        "<h4>$1</h4>"
-    );
-
-    protegido = protegido.replace(
-        /^## (.+)$/gm,
-        "<h3>$1</h3>"
-    );
-
-    protegido = protegido.replace(
-        /^# (.+)$/gm,
-        "<h2>$1</h2>"
-    );
-
-    const linhas = protegido.split("\n");
-
-    let resultado = "";
-    let listaAberta = false;
-    let listaNumeradaAberta = false;
-
-    linhas.forEach(function (linha) {
-
-        const trim = linha.trim();
-
-        if (!trim) {
-
-            if (listaAberta) {
-                resultado += "</ul>";
-                listaAberta = false;
-            }
-
-            if (listaNumeradaAberta) {
-                resultado += "</ol>";
-                listaNumeradaAberta = false;
-            }
-
-            resultado += '<div class="quebra-linha"></div>';
-
-            return;
-        }
-
-        if (/^[-•*]\s+/.test(trim)) {
-
-            if (listaNumeradaAberta) {
-                resultado += "</ol>";
-                listaNumeradaAberta = false;
-            }
-
-            if (!listaAberta) {
-                resultado += "<ul>";
-                listaAberta = true;
-            }
-
-            resultado += `<li>${trim.replace(/^[-•*]\s+/, "")}</li>`;
-
-            return;
-        }
-
-        if (/^\d+[.)]\s+/.test(trim)) {
-
-            if (listaAberta) {
-                resultado += "</ul>";
-                listaAberta = false;
-            }
-
-            if (!listaNumeradaAberta) {
-                resultado += "<ol>";
-                listaNumeradaAberta = true;
-            }
-
-            resultado += `<li>${trim.replace(/^\d+[.)]\s+/, "")}</li>`;
-
-            return;
-        }
-
-        if (listaAberta) {
-            resultado += "</ul>";
-            listaAberta = false;
-        }
-
-        if (listaNumeradaAberta) {
-            resultado += "</ol>";
-            listaNumeradaAberta = false;
-        }
-
-        resultado += `<div class="linha-resposta">${linha}</div>`;
-    });
-
-    if (listaAberta) {
-        resultado += "</ul>";
-    }
-
-    if (listaNumeradaAberta) {
-        resultado += "</ol>";
-    }
-
-    blocosCodigo.forEach(function (codigo, index) {
-
-        resultado = resultado.replace(
-            `___CODIGO_${index}___`,
-            codigo
-        );
-
-    });
-
-    return resultado;
-}
-
-
-// ============================================================
-// WELCOME
-// ============================================================
-
-function esconderWelcome() {
-
-    const welcome = elemento("welcome");
-
-    if (welcome) {
+    if (quantidade === 0) {
+        welcome.classList.remove("hidden");
+    } else {
         welcome.classList.add("hidden");
     }
-}
-
-
-function mostrarWelcome() {
-
-    const welcome = elemento("welcome");
-
-    if (welcome) {
-        welcome.classList.remove("hidden");
-    }
-}
-
-
-// ============================================================
-// SCROLL
-// ============================================================
-
-function scrollBottom() {
-
-    const chat = elemento("chat");
-
-    if (!chat) {
-        return;
-    }
-
-    requestAnimationFrame(function () {
-        chat.scrollTop = chat.scrollHeight;
-    });
-}
-
-
-// ============================================================
-// COPIAR
-// ============================================================
-
-async function copiarMensagem(texto, botao) {
-
-    try {
-
-        if (
-            navigator.clipboard &&
-            window.isSecureContext
-        ) {
-
-            await navigator.clipboard.writeText(texto);
-
-        } else {
-
-            const area =
-                document.createElement("textarea");
-
-            area.value = texto;
-
-            area.style.position = "fixed";
-            area.style.left = "-9999px";
-
-            document.body.appendChild(area);
-
-            area.focus();
-            area.select();
-
-            document.execCommand("copy");
-
-            area.remove();
-        }
-
-        const original =
-            botao.textContent;
-
-        botao.textContent =
-            "✅ Copiado!";
-
-        setTimeout(function () {
-
-            botao.textContent =
-                original;
-
-        }, 1500);
-
-    } catch (erro) {
-
-        console.error(
-            "Erro ao copiar:",
-            erro
-        );
-
-        alert(
-            "Não foi possível copiar."
-        );
-    }
-}
-
-
-// ============================================================
-// VOZ
-// ============================================================
-
-function carregarVozes() {
-
-    const seletor =
-        elemento("seletorVoz");
-
-    if (!seletor) {
-        return;
-    }
-
-    // Se o navegador não suporta voz,
-    // não bloqueia o restante do aplicativo.
-    if (!("speechSynthesis" in window)) {
-
-        seletor.innerHTML =
-            '<option value="">Voz não suportada</option>';
-
-        return;
-    }
-
-    let vozes =
-        window.speechSynthesis.getVoices();
-
-    // Alguns navegadores demoram para disponibilizar
-    // as vozes.
-    if (!vozes || vozes.length === 0) {
-
-        seletor.innerHTML =
-            '<option value="">Voz indisponível neste navegador</option>';
-
-        return;
-    }
-
-    vozesDisponiveis = vozes;
-
-    const salva =
-        localStorage.getItem("orion_voz");
-
-    vozes = [...vozes].sort(function (a, b) {
-
-        const aPT =
-            a.lang.toLowerCase().startsWith("pt");
-
-        const bPT =
-            b.lang.toLowerCase().startsWith("pt");
-
-        if (aPT && !bPT) return -1;
-        if (!aPT && bPT) return 1;
-
-        return a.name.localeCompare(b.name);
-    });
-
-    seletor.innerHTML = "";
-
-    vozes.forEach(function (voz) {
-
-        const option =
-            document.createElement("option");
-
-        const indice =
-            vozesDisponiveis.indexOf(voz);
-
-        option.value =
-            indice;
-
-        option.textContent =
-            `${voz.name} (${voz.lang})`;
-
-        seletor.appendChild(option);
-
-        if (
-            salva &&
-            voz.name === salva
-        ) {
-
-            option.selected = true;
-        }
-    });
-
-    // Se não tiver voz salva,
-    // tenta escolher português do Brasil.
-    if (!salva) {
-
-        const brasileira =
-            vozes.find(function (voz) {
-
-                return voz.lang
-                    .toLowerCase()
-                    .includes("pt-br");
-
-            });
-
-        if (brasileira) {
-
-            seletor.value =
-                vozesDisponiveis.indexOf(
-                    brasileira
-                );
-
-        } else {
-
-            const portugues =
-                vozes.find(function (voz) {
-
-                    return voz.lang
-                        .toLowerCase()
-                        .startsWith("pt");
-
-                });
-
-            if (portugues) {
-
-                seletor.value =
-                    vozesDisponiveis.indexOf(
-                        portugues
-                    );
-            }
-        }
-    }
-}
-
-
-// ============================================================
-// INICIALIZAR VOZ
-// ============================================================
-
-function iniciarSistemaDeVoz() {
-
-    const seletor =
-        elemento("seletorVoz");
-
-    if (!seletor) {
-        return;
-    }
-
-    if (!("speechSynthesis" in window)) {
-
-        seletor.innerHTML =
-            '<option value="">Voz não suportada</option>';
-
-        return;
-    }
-
-    // Mostra imediatamente que o sistema foi iniciado.
-    seletor.innerHTML =
-        '<option value="">Carregando...</option>';
-
-    carregarVozes();
-
-    // Chrome/Edge normalmente usam este evento.
-    window.speechSynthesis.onvoiceschanged =
-        function () {
-
-            carregarVozes();
-
-        };
-
-    // Tenta novamente algumas vezes porque
-    // alguns navegadores não disparam o evento.
-    let tentativas = 0;
-
-    const intervalo =
-        setInterval(function () {
-
-            carregarVozes();
-
-            tentativas++;
-
-            if (
-                vozesDisponiveis.length > 0 ||
-                tentativas >= 10
-            ) {
-
-                clearInterval(intervalo);
-            }
-
-        }, 500);
-}
-
-
-// ============================================================
-// VOZ SELECIONADA
-// ============================================================
-
-function obterVozSelecionada() {
-
-    const seletor =
-        elemento("seletorVoz");
-
-    if (!seletor) {
-        return null;
-    }
-
-    const indice =
-        Number(seletor.value);
-
-    return (
-        vozesDisponiveis[indice] ||
-        null
-    );
-}
-
-
-// ============================================================
-// SALVAR VOZ
-// ============================================================
-
-function salvarVozSelecionada() {
-
-    const voz =
-        obterVozSelecionada();
-
-    if (!voz) {
-        return;
-    }
-
-    localStorage.setItem(
-        "orion_voz",
-        voz.name
-    );
-}
-
-
-// ============================================================
-// TESTAR VOZ
-// ============================================================
-
-function testarVoz() {
-
-    if (!("speechSynthesis" in window)) {
-
-        alert(
-            "Seu navegador não suporta voz."
-        );
-
-        return;
-    }
-
-    const voz =
-        obterVozSelecionada();
-
-    window.speechSynthesis.cancel();
-
-    const fala =
-        new SpeechSynthesisUtterance(
-            "Olá! Eu sou a Orion AI."
-        );
-
-    fala.lang =
-        voz?.lang || "pt-BR";
-
-    fala.rate = 1;
-    fala.pitch = 1;
-
-    if (voz) {
-        fala.voice = voz;
-    }
-
-    window.speechSynthesis.speak(
-        fala
-    );
-}
-
-
-// ============================================================
-// FALAR RESPOSTA
-// ============================================================
-
-function falarResposta(texto) {
-
-    const opcao =
-        elemento("voz");
-
-    if (
-        !opcao ||
-        !opcao.checked
-    ) {
-        return;
-    }
-
-    if (
-        !("speechSynthesis" in window)
-    ) {
-        return;
-    }
-
-    const voz =
-        obterVozSelecionada();
-
-    window.speechSynthesis.cancel();
-
-    const fala =
-        new SpeechSynthesisUtterance(
-            limparAspasTriplas(texto)
-        );
-
-    fala.lang =
-        voz?.lang || "pt-BR";
-
-    fala.rate = 1;
-    fala.pitch = 1;
-
-    if (voz) {
-        fala.voice = voz;
-    }
-
-    window.speechSynthesis.speak(
-        fala
-    );
 }
 
 
@@ -621,747 +69,172 @@ function falarResposta(texto) {
 // ADICIONAR MENSAGEM
 // ============================================================
 
-function addMensagem(
-    texto,
-    tipo,
-    imagem = null
-) {
-
-    const chat =
-        elemento("chat");
+function adicionarMensagem(texto, tipo) {
 
     if (!chat) {
         return null;
     }
 
-    const div =
-        document.createElement("div");
+    const div = document.createElement("div");
 
-    const ehUsuario =
-        tipo === "user";
-
-    const ehTyping =
-        tipo.includes("typing");
-
-    div.classList.add(
-        ehUsuario
+    div.className =
+        tipo === "user"
             ? "msg-user"
-            : "msg-bot"
-    );
+            : "msg-bot";
 
-    if (ehTyping) {
+    const conteudo = document.createElement("div");
 
-        div.classList.add(
-            "typing-message"
-        );
+    conteudo.className = "conteudo-mensagem";
 
-        div.innerHTML = `
-            <div class="conteudo-mensagem">
-                <span>🤖 Orion AI está digitando</span>
-                <span class="typing-dots">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </span>
-            </div>
-        `;
+    conteudo.textContent = texto;
 
-        chat.appendChild(div);
-
-        scrollBottom();
-
-        return div;
-    }
-
-    const agora =
-        new Date();
-
-    const hora =
-        String(agora.getHours())
-            .padStart(2, "0")
-        +
-        ":"
-        +
-        String(agora.getMinutes())
-            .padStart(2, "0");
-
-    let conteudo = "";
-
-    if (imagem) {
-
-        conteudo += `
-            <img
-                src="${imagem}"
-                style="
-                    display:block;
-                    max-width:280px;
-                    max-height:300px;
-                    border-radius:12px;
-                    margin-bottom:8px;
-                    object-fit:contain;
-                    cursor:pointer;
-                "
-                alt="Imagem enviada"
-                onclick="abrirImagem(this.src)"
-            >
-        `;
-    }
-
-    if (ehUsuario) {
-
-        conteudo +=
-            escaparHTML(texto)
-                .replace(/\n/g, "<br>");
-
-    } else {
-
-        conteudo +=
-            formatarResposta(texto);
-    }
-
-    div.innerHTML = `
-        <div class="conteudo-mensagem">
-            ${conteudo}
-        </div>
-
-        <div class="hora-mensagem"
-             style="
-                font-size:10px;
-                opacity:0.5;
-                margin-top:5px;
-                text-align:right;
-             ">
-            ${hora}
-        </div>
-
-        ${
-            !ehUsuario
-            ? `
-                <button
-                    type="button"
-                    class="copiar-mensagem"
-                    style="
-                        margin-top:8px;
-                        padding:5px 9px;
-                        border-radius:8px;
-                        border:1px solid rgba(255,255,255,0.1);
-                        background:rgba(255,255,255,0.06);
-                        color:white;
-                        cursor:pointer;
-                        font-size:11px;
-                    "
-                >
-                    📋 Copiar
-                </button>
-            `
-            : ""
-        }
-    `;
-
-    if (!ehUsuario) {
-
-        const botao =
-            div.querySelector(
-                ".copiar-mensagem"
-            );
-
-        if (botao) {
-
-            botao.addEventListener(
-                "click",
-                function () {
-
-                    copiarMensagem(
-                        limparAspasTriplas(texto),
-                        botao
-                    );
-
-                }
-            );
-        }
-    }
+    div.appendChild(conteudo);
 
     chat.appendChild(div);
 
-    scrollBottom();
+    atualizarWelcome();
+
+    chat.scrollTop = chat.scrollHeight;
 
     return div;
 }
 
 
 // ============================================================
-// ABRIR IMAGEM
+// TYPING
 // ============================================================
 
-function abrirImagem(src) {
+function mostrarTyping() {
 
-    if (!src) {
-        return;
+    if (!chat) {
+        return null;
     }
 
-    const fundo =
-        document.createElement("div");
+    const div = document.createElement("div");
 
-    fundo.style.cssText = `
-        position:fixed;
-        inset:0;
-        background:rgba(0,0,0,0.85);
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        z-index:99999;
-        padding:20px;
-        cursor:zoom-out;
+    div.className = "msg-bot typing-message";
+
+    div.id = "typingMessage";
+
+    div.innerHTML = `
+        <div class="conteudo-mensagem">
+            Orion AI está digitando
+            <span class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+        </div>
     `;
 
-    const imagem =
-        document.createElement("img");
+    chat.appendChild(div);
 
-    imagem.src = src;
+    atualizarWelcome();
 
-    imagem.style.cssText = `
-        max-width:95%;
-        max-height:95%;
-        object-fit:contain;
-        border-radius:12px;
-    `;
+    chat.scrollTop = chat.scrollHeight;
 
-    fundo.appendChild(imagem);
+    return div;
+}
 
-    fundo.onclick =
-        function () {
-            fundo.remove();
-        };
 
-    document.body.appendChild(fundo);
+function removerTyping() {
+
+    const typing = elemento("typingMessage");
+
+    if (typing) {
+        typing.remove();
+    }
 }
 
 
 // ============================================================
-// ARQUIVOS
+// MARKDOWN SIMPLES
 // ============================================================
 
-function configurarArquivos() {
+function formatarResposta(texto) {
 
-    const btn =
-        elemento("btnArquivo");
+    let html = escaparHTML(texto);
 
-    const input =
-        elemento("arquivo");
+    // Blocos de código
+    html = html.replace(
+        /```([\s\S]*?)```/g,
+        function(_, codigo) {
 
-    if (!btn || !input) {
-        return;
-    }
-
-    btn.addEventListener(
-        "click",
-        function (event) {
-
-            event.preventDefault();
-
-            input.click();
-
+            return `
+                <pre class="codigo-pedrogpt"><code>${codigo.trim()}</code></pre>
+            `;
         }
     );
 
-    input.addEventListener(
-        "change",
-        function () {
-
-            if (
-                !input.files ||
-                !input.files.length
-            ) {
-                return;
-            }
-
-            arquivoAtual =
-                input.files[0];
-
-            const nome =
-                elemento("nomeArquivo");
-
-            const container =
-                elemento("arquivoSelecionado");
-
-            if (nome) {
-                nome.textContent =
-                    arquivoAtual.name;
-            }
-
-            if (container) {
-                container.classList.add(
-                    "ativo"
-                );
-            }
-
-            if (
-                arquivoAtual.type &&
-                arquivoAtual.type.startsWith("image/")
-            ) {
-
-                const leitor =
-                    new FileReader();
-
-                leitor.onload =
-                    function (evento) {
-
-                        let preview =
-                            elemento("previewArquivo");
-
-                        if (!preview) {
-
-                            preview =
-                                document.createElement("img");
-
-                            preview.id =
-                                "previewArquivo";
-
-                            preview.style.cssText = `
-                                width:55px;
-                                height:55px;
-                                object-fit:cover;
-                                border-radius:8px;
-                                margin-right:8px;
-                            `;
-
-                            if (container) {
-                                container.prepend(
-                                    preview
-                                );
-                            }
-                        }
-
-                        preview.src =
-                            evento.target.result;
-                    };
-
-                leitor.readAsDataURL(
-                    arquivoAtual
-                );
-            }
-
-            esconderWelcome();
-        }
+    // Títulos
+    html = html.replace(
+        /^### (.*)$/gm,
+        "<h4>$1</h4>"
     );
 
-    const remover =
-        elemento("removerArquivo");
-
-    if (remover) {
-
-        remover.addEventListener(
-            "click",
-            limparArquivoSelecionado
-        );
-    }
-}
-
-
-// ============================================================
-// LIMPAR ARQUIVO
-// ============================================================
-
-function limparArquivoSelecionado() {
-
-    const input =
-        elemento("arquivo");
-
-    const container =
-        elemento("arquivoSelecionado");
-
-    const nome =
-        elemento("nomeArquivo");
-
-    const preview =
-        elemento("previewArquivo");
-
-    if (input) {
-        input.value = "";
-    }
-
-    arquivoAtual = null;
-
-    if (nome) {
-        nome.textContent =
-            "Nenhum arquivo selecionado";
-    }
-
-    if (container) {
-        container.classList.remove(
-            "ativo"
-        );
-    }
-
-    if (preview) {
-        preview.remove();
-    }
-}
-
-
-// ============================================================
-// HISTÓRICO
-// ============================================================
-
-async function carregarHistorico() {
-
-    try {
-
-        const resposta =
-            await fetch(
-                "/history",
-                {
-                    method: "GET",
-                    credentials: "same-origin",
-                    cache: "no-store",
-                    headers: {
-                        "Accept":
-                            "application/json"
-                    }
-                }
-            );
-
-        if (
-            resposta.status === 401 ||
-            !resposta.ok
-        ) {
-            return;
-        }
-
-        const historico =
-            await resposta.json();
-
-        const chat =
-            elemento("chat");
-
-        if (!chat) {
-            return;
-        }
-
-        chat.innerHTML = "";
-
-        if (
-            !Array.isArray(historico) ||
-            historico.length === 0
-        ) {
-
-            mostrarWelcome();
-
-            return;
-        }
-
-        esconderWelcome();
-
-        historico.forEach(function (item) {
-
-            addMensagem(
-                item?.message || "",
-                item?.sender === "user"
-                    ? "user"
-                    : "bot"
-            );
-
-        });
-
-        scrollBottom();
-
-    } catch (erro) {
-
-        console.error(
-            "Erro no histórico:",
-            erro
-        );
-    }
-}
-
-
-// ============================================================
-// ENVIAR
-// ============================================================
-
-async function enviar() {
-
-    if (enviando) {
-        return;
-    }
-
-    const campo =
-        elemento("mensagem");
-
-    const botao =
-        elemento("btnEnviar");
-
-    if (!campo) {
-
-        console.error(
-            "Campo #mensagem não encontrado."
-        );
-
-        return;
-    }
-
-    const texto =
-        campo.value.trim();
-
-    if (
-        !texto &&
-        !arquivoAtual
-    ) {
-
-        campo.focus();
-
-        return;
-    }
-
-    enviando = true;
-
-    esconderWelcome();
-
-    let imagemPreview = null;
-    let imagemBase64 = null;
-    let tipoImagem = null;
-
-    try {
-
-        // ====================================================
-        // IMAGEM
-        // ====================================================
-
-        if (arquivoAtual) {
-
-            if (
-                arquivoAtual.type &&
-                arquivoAtual.type.startsWith("image/")
-            ) {
-
-                imagemPreview =
-                    await arquivoParaDataURL(
-                        arquivoAtual
-                    );
-
-                imagemBase64 =
-                    imagemPreview;
-
-                tipoImagem =
-                    arquivoAtual.type;
-
-            } else {
-
-                addMensagem(
-                    "❌ Selecione uma imagem válida.",
-                    "bot"
-                );
-
-                return;
-            }
-        }
-
-        // ====================================================
-        // MOSTRAR USUÁRIO
-        // ====================================================
-
-        addMensagem(
-            texto,
-            "user",
-            imagemPreview
-        );
-
-        campo.value = "";
-
-        limparArquivoSelecionado();
-
-        if (botao) {
-
-            botao.disabled = true;
-
-            botao.textContent =
-                "Enviando...";
-        }
-
-        const typing =
-            addMensagem(
-                "",
-                "bot typing"
-            );
-
-        // ====================================================
-        // REQUISIÇÃO
-        // ====================================================
-
-        const resposta =
-            await fetch(
-                "/chat",
-                {
-                    method: "POST",
-
-                    credentials:
-                        "same-origin",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json",
-
-                        "Accept":
-                            "application/json"
-                    },
-
-                    body: JSON.stringify({
-
-                        message:
-                            texto,
-
-                        image:
-                            imagemBase64,
-
-                        image_type:
-                            tipoImagem
-
-                    })
-                }
-            );
-
-        if (typing) {
-            typing.remove();
-        }
-
-        let data = {};
-
-        try {
-            data =
-                await resposta.json();
-        } catch (erroJSON) {
-
-            console.error(
-                "Resposta não é JSON:",
-                erroJSON
-            );
-        }
-
-        if (!resposta.ok) {
-
-            const erro =
-                data.reply ||
-                data.message ||
-                data.error ||
-                `Erro do servidor (${resposta.status}).`;
-
-            addMensagem(
-                `❌ ${erro}`,
-                "bot"
-            );
-
-            return;
-        }
-
-        const respostaTexto =
-            limparAspasTriplas(
-                data.reply ||
-                data.response ||
-                ""
-            );
-
-        if (!respostaTexto) {
-
-            addMensagem(
-                "❌ A IA não retornou uma resposta.",
-                "bot"
-            );
-
-            return;
-        }
-
-        addMensagem(
-            respostaTexto,
-            "bot"
-        );
-
-        falarResposta(
-            respostaTexto
-        );
-
-        await carregarConversas();
-
-    } catch (erro) {
-
-        console.error(
-            "ERRO AO ENVIAR:",
-            erro
-        );
-
-        addMensagem(
-            "❌ Erro ao conectar com o servidor. Verifique o Render e tente novamente.",
-            "bot"
-        );
-
-    } finally {
-
-        enviando = false;
-
-        if (botao) {
-
-            botao.disabled = false;
-
-            botao.textContent =
-                "Enviar";
-        }
-
-        campo.focus();
-    }
-}
-
-
-// ============================================================
-// ARQUIVO -> DATA URL
-// ============================================================
-
-function arquivoParaDataURL(arquivo) {
-
-    return new Promise(
-        function (resolve, reject) {
-
-            const leitor =
-                new FileReader();
-
-            leitor.onload =
-                function (evento) {
-
-                    resolve(
-                        evento.target.result
-                    );
-
-                };
-
-            leitor.onerror =
-                reject;
-
-            leitor.readAsDataURL(
-                arquivo
-            );
-
-        }
+    html = html.replace(
+        /^## (.*)$/gm,
+        "<h3>$1</h3>"
     );
+
+    html = html.replace(
+        /^# (.*)$/gm,
+        "<h2>$1</h2>"
+    );
+
+    // Negrito
+    html = html.replace(
+        /\*\*(.*?)\*\*/g,
+        "<strong>$1</strong>"
+    );
+
+    // Itálico
+    html = html.replace(
+        /\*(.*?)\*/g,
+        "<em>$1</em>"
+    );
+
+    // Quebras de linha
+    html = html.replace(
+        /\n/g,
+        "<br>"
+    );
+
+    return html;
 }
 
 
 // ============================================================
-// ATALHO
+// ADICIONAR RESPOSTA DA IA
 // ============================================================
 
-function atalho(texto) {
+function adicionarResposta(texto) {
 
-    const campo =
-        elemento("mensagem");
-
-    if (!campo) {
-        return;
+    if (!chat) {
+        return null;
     }
 
-    esconderWelcome();
+    const div = document.createElement("div");
 
-    campo.value =
-        texto;
+    div.className = "msg-bot";
 
-    campo.focus();
+    const conteudo = document.createElement("div");
+
+    conteudo.className = "conteudo-mensagem";
+
+    conteudo.innerHTML = formatarResposta(texto);
+
+    div.appendChild(conteudo);
+
+    chat.appendChild(div);
+
+    atualizarWelcome();
+
+    chat.scrollTop = chat.scrollHeight;
+
+    falarResposta(texto);
+
+    return div;
 }
 
 
@@ -1371,370 +244,244 @@ function atalho(texto) {
 
 async function novaConversa() {
 
+    // Não deixa criar várias conversas ao mesmo tempo
     if (enviando) {
-
-        alert(
-            "Aguarde a resposta atual terminar."
-        );
-
         return;
     }
 
+    const botao = document.querySelector(".nova-conversa");
+
+    const textoOriginal =
+        botao
+            ? botao.textContent
+            : "";
+
     try {
 
-        const resposta =
-            await fetch(
-                "/new_chat",
-                {
-                    method: "POST",
-                    credentials: "same-origin",
-                    headers: {
-                        "Accept":
-                            "application/json"
-                    }
-                }
-            );
+        enviando = true;
 
-        const data =
-            await resposta.json();
+        if (botao) {
+            botao.disabled = true;
+            botao.textContent = "⏳ Criando...";
+        }
 
-        if (
-            !resposta.ok ||
-            !data.success
-        ) {
+        const resposta = await fetch("/new_chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            credentials: "same-origin",
+            body: JSON.stringify({})
+        });
 
-            alert(
-                data.message ||
-                "Erro ao criar conversa."
-            );
+        // Se o servidor redirecionou para login
+        if (resposta.redirected) {
+
+            window.location.href = resposta.url;
 
             return;
         }
 
-        const chat =
-            elemento("chat");
+        let dados;
 
+        try {
+            dados = await resposta.json();
+        } catch (erro) {
+
+            throw new Error(
+                "O servidor não retornou JSON válido."
+            );
+        }
+
+        if (!resposta.ok || !dados.success) {
+
+            throw new Error(
+                dados.message ||
+                "Não foi possível criar uma nova conversa."
+            );
+        }
+
+        // Limpa as mensagens antigas
         if (chat) {
             chat.innerHTML = "";
         }
 
-        mostrarWelcome();
+        removerTyping();
 
-        limparArquivoSelecionado();
-
-        if (
-            "speechSynthesis" in window
-        ) {
-
-            window.speechSynthesis.cancel();
+        // Limpa o campo de texto
+        if (mensagemInput) {
+            mensagemInput.value = "";
+            mensagemInput.focus();
         }
 
-        const titulo =
-            elemento("tituloConversa");
+        // Remove arquivo selecionado
+        limparArquivo();
+
+        // Atualiza título
+        const titulo = elemento("tituloConversa");
 
         if (titulo) {
             titulo.textContent =
-                "Orion AI";
+                dados.title || "Nova conversa";
         }
 
-        await carregarConversas();
+        atualizarWelcome();
+
+        console.log(
+            "Nova conversa criada:",
+            dados.conversation_id
+        );
 
     } catch (erro) {
 
         console.error(
-            "Erro nova conversa:",
+            "ERRO NOVA CONVERSA:",
             erro
         );
 
         alert(
-            "Erro ao conectar com o servidor."
+            "❌ Não foi possível criar uma nova conversa.\n\n" +
+            erro.message
         );
+
+    } finally {
+
+        enviando = false;
+
+        if (botao) {
+            botao.disabled = false;
+            botao.textContent = textoOriginal || "🆕 Nova conversa";
+        }
     }
 }
 
 
 // ============================================================
-// CONVERSAS
+// ENVIAR MENSAGEM
 // ============================================================
 
-async function carregarConversas() {
-
-    const lista =
-        elemento("conversas");
-
-    if (!lista) {
-        return;
-    }
-
-    try {
-
-        const resposta =
-            await fetch(
-                "/conversations",
-                {
-                    credentials:
-                        "same-origin",
-                    cache:
-                        "no-store",
-                    headers: {
-                        "Accept":
-                            "application/json"
-                    }
-                }
-            );
-
-        if (
-            resposta.status === 401 ||
-            !resposta.ok
-        ) {
-            return;
-        }
-
-        const conversas =
-            await resposta.json();
-
-        lista.innerHTML = "";
-
-        if (!Array.isArray(conversas)) {
-            return;
-        }
-
-        const atual =
-            await obterConversaAtual();
-
-        conversas.forEach(
-            function (conversa) {
-
-                const item =
-                    document.createElement("button");
-
-                item.type = "button";
-
-                item.className =
-                    "conversa-item";
-
-                item.dataset.id =
-                    conversa.id;
-
-                item.textContent =
-                    conversa.title ||
-                    "Nova conversa";
-
-                if (
-                    String(conversa.id) ===
-                    String(atual)
-                ) {
-
-                    item.classList.add(
-                        "ativa"
-                    );
-                }
-
-                item.addEventListener(
-                    "click",
-                    function () {
-
-                        abrirConversa(
-                            conversa.id
-                        );
-
-                    }
-                );
-
-                lista.appendChild(item);
-            }
-        );
-
-    } catch (erro) {
-
-        console.error(
-            "Erro conversas:",
-            erro
-        );
-    }
-}
-
-
-// ============================================================
-// CONVERSA ATUAL
-// ============================================================
-
-async function obterConversaAtual() {
-
-    try {
-
-        const resposta =
-            await fetch(
-                "/api/status",
-                {
-                    credentials:
-                        "same-origin",
-                    cache:
-                        "no-store"
-                }
-            );
-
-        if (!resposta.ok) {
-            return null;
-        }
-
-        const data =
-            await resposta.json();
-
-        return data.conversation_id ?? null;
-
-    } catch (erro) {
-
-        console.error(
-            "Erro status:",
-            erro
-        );
-
-        return null;
-    }
-}
-
-
-// ============================================================
-// ABRIR CONVERSA
-// ============================================================
-
-async function abrirConversa(id) {
+async function enviar() {
 
     if (enviando) {
         return;
     }
 
+    if (!mensagemInput) {
+        return;
+    }
+
+    const texto = mensagemInput.value.trim();
+
+    if (!texto) {
+        mensagemInput.focus();
+        return;
+    }
+
+    enviando = true;
+
+    if (btnEnviar) {
+        btnEnviar.disabled = true;
+        btnEnviar.textContent = "Enviando...";
+    }
+
+    adicionarMensagem(texto, "user");
+
+    mensagemInput.value = "";
+
+    const typing = mostrarTyping();
+
     try {
 
-        const resposta =
-            await fetch(
-                `/conversation/${encodeURIComponent(id)}`,
-                {
-                    credentials:
-                        "same-origin",
-                    cache:
-                        "no-store",
-                    headers: {
-                        "Accept":
-                            "application/json"
-                    }
-                }
+        const resposta = await fetch("/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            credentials: "same-origin",
+            body: JSON.stringify({
+                message: texto
+            })
+        });
+
+        if (resposta.redirected) {
+
+            window.location.href = resposta.url;
+
+            return;
+        }
+
+        let dados;
+
+        try {
+            dados = await resposta.json();
+        } catch (erro) {
+
+            throw new Error(
+                "O servidor não retornou uma resposta válida."
             );
+        }
 
-        const data =
-            await resposta.json();
+        if (typing) {
+            typing.remove();
+        }
 
-        if (
-            !resposta.ok ||
-            !data.success
-        ) {
+        if (!resposta.ok || !dados.success) {
 
-            alert(
-                data.message ||
-                "Erro ao abrir conversa."
+            adicionarResposta(
+                dados.reply ||
+                dados.message ||
+                "❌ Não foi possível obter uma resposta."
             );
 
             return;
         }
 
-        const chat =
-            elemento("chat");
-
-        if (!chat) {
-            return;
-        }
-
-        chat.innerHTML = "";
-
-        const titulo =
-            elemento("tituloConversa");
-
-        if (titulo) {
-
-            titulo.textContent =
-                data.title ||
-                "Orion AI";
-        }
-
-        const mensagens =
-            data.messages || [];
-
-        if (!mensagens.length) {
-
-            mostrarWelcome();
-
-        } else {
-
-            esconderWelcome();
-
-            mensagens.forEach(
-                function (item) {
-
-                    addMensagem(
-                        item.message || "",
-                        item.sender === "user"
-                            ? "user"
-                            : "bot"
-                    );
-
-                }
-            );
-        }
-
-        document
-            .querySelectorAll(
-                ".conversa-item"
-            )
-            .forEach(
-                function (item) {
-
-                    item.classList.toggle(
-                        "ativa",
-                        String(item.dataset.id) ===
-                        String(id)
-                    );
-
-                }
-            );
-
-        scrollBottom();
+        adicionarResposta(
+            dados.reply || "Não recebi uma resposta."
+        );
 
     } catch (erro) {
 
         console.error(
-            "Erro abrir conversa:",
+            "ERRO AO ENVIAR:",
             erro
         );
 
-        alert(
-            "Erro ao conectar com o servidor."
+        if (typing) {
+            typing.remove();
+        }
+
+        adicionarResposta(
+            "❌ Erro ao conectar com o servidor. Tente novamente."
         );
+
+    } finally {
+
+        enviando = false;
+
+        if (btnEnviar) {
+            btnEnviar.disabled = false;
+            btnEnviar.textContent = "Enviar";
+        }
+
+        mensagemInput.focus();
     }
 }
 
 
 // ============================================================
-// ENTER
+// ENTER PARA ENVIAR
 // ============================================================
 
-function configurarEnter() {
+if (mensagemInput) {
 
-    const campo =
-        elemento("mensagem");
-
-    if (!campo) {
-        return;
-    }
-
-    campo.addEventListener(
+    mensagemInput.addEventListener(
         "keydown",
-        function (event) {
+        function(event) {
 
-            if (
-                event.key === "Enter" &&
-                !event.shiftKey
-            ) {
+            if (event.key === "Enter") {
 
                 event.preventDefault();
 
@@ -1746,30 +493,95 @@ function configurarEnter() {
 
 
 // ============================================================
-// FORMULÁRIO
+// ATALHOS
 // ============================================================
 
-function configurarFormulario() {
+function atalho(texto) {
 
-    const campo =
-        elemento("mensagem");
-
-    if (!campo) {
+    if (!mensagemInput) {
         return;
     }
 
-    campo.addEventListener(
-        "input",
-        function () {
+    mensagemInput.value = texto;
 
-            campo.style.height =
-                "auto";
+    mensagemInput.focus();
 
-            campo.style.height =
-                Math.min(
-                    campo.scrollHeight,
-                    180
-                ) + "px";
+    enviar();
+}
+
+
+// ============================================================
+// ARQUIVO
+// ============================================================
+
+if (btnArquivo && arquivoInput) {
+
+    btnArquivo.addEventListener(
+        "click",
+        function() {
+
+            arquivoInput.click();
+        }
+    );
+}
+
+
+if (arquivoInput) {
+
+    arquivoInput.addEventListener(
+        "change",
+        function() {
+
+            const arquivo =
+                arquivoInput.files &&
+                arquivoInput.files[0];
+
+            if (!arquivo) {
+                limparArquivo();
+                return;
+            }
+
+            arquivoSelecionado = arquivo;
+
+            if (nomeArquivo) {
+                nomeArquivo.textContent =
+                    arquivo.name;
+            }
+
+            if (arquivoBox) {
+                arquivoBox.classList.add("ativo");
+            }
+        }
+    );
+}
+
+
+function limparArquivo() {
+
+    arquivoSelecionado = null;
+
+    if (arquivoInput) {
+        arquivoInput.value = "";
+    }
+
+    if (arquivoBox) {
+        arquivoBox.classList.remove("ativo");
+    }
+
+    if (nomeArquivo) {
+        nomeArquivo.textContent =
+            "Nenhum arquivo selecionado";
+    }
+}
+
+
+if (removerArquivo) {
+
+    removerArquivo.addEventListener(
+        "click",
+        function() {
+
+            limparArquivo();
         }
     );
 }
@@ -1779,100 +591,229 @@ function configurarFormulario() {
 // VOZ
 // ============================================================
 
-function configurarVoz() {
-
-    const opcao =
-        elemento("voz");
-
-    if (opcao) {
-
-        opcao.addEventListener(
-            "change",
-            function () {
-
-                if (
-                    !opcao.checked &&
-                    "speechSynthesis" in window
-                ) {
-
-                    window.speechSynthesis.cancel();
-                }
-
-            }
-        );
-    }
-
-    const seletor =
-        elemento("seletorVoz");
-
-    if (seletor) {
-
-        seletor.addEventListener(
-            "change",
-            function () {
-
-                salvarVozSelecionada();
-
-                if (
-                    "speechSynthesis" in window
-                ) {
-
-                    window.speechSynthesis.cancel();
-                }
-
-            }
-        );
-    }
-
-    const testar =
-        elemento("btnTestarVoz");
-
-    if (testar) {
-
-        testar.addEventListener(
-            "click",
-            function (event) {
-
-                event.preventDefault();
-
-                testarVoz();
-
-            }
-        );
-    }
-
-    iniciarSistemaDeVoz();
-}
+let vozes = [];
 
 
-// ============================================================
-// BOTÃO ENVIAR
-// ============================================================
+function carregarVozes() {
 
-function configurarBotaoEnviar() {
+    if (!("speechSynthesis" in window)) {
 
-    const botao =
-        elemento("btnEnviar");
+        const seletor = elemento("seletorVoz");
 
-    if (!botao) {
-
-        console.error(
-            "Botão #btnEnviar não encontrado."
-        );
+        if (seletor) {
+            seletor.innerHTML =
+                `<option value="">Voz não disponível</option>`;
+        }
 
         return;
     }
 
-    botao.addEventListener(
-        "click",
-        function (event) {
+    vozes =
+        window.speechSynthesis.getVoices();
 
-            event.preventDefault();
+    const seletor =
+        elemento("seletorVoz");
 
-            enviar();
+    if (!seletor) {
+        return;
+    }
 
+    seletor.innerHTML = "";
+
+    const vozesPT = vozes.filter(
+        voz =>
+            voz.lang &&
+            voz.lang.toLowerCase().startsWith("pt")
+    );
+
+    const lista =
+        vozesPT.length > 0
+            ? vozesPT
+            : vozes;
+
+    if (lista.length === 0) {
+
+        seletor.innerHTML =
+            `<option value="">Nenhuma voz disponível</option>`;
+
+        return;
+    }
+
+    lista.forEach(
+        (voz, indice) => {
+
+            const option =
+                document.createElement("option");
+
+            option.value =
+                String(vozes.indexOf(voz));
+
+            option.textContent =
+                `${voz.name} (${voz.lang})`;
+
+            seletor.appendChild(option);
         }
     );
+}
+
+
+if ("speechSynthesis" in window) {
+
+    carregarVozes();
+
+    window.speechSynthesis.onvoiceschanged =
+        carregarVozes;
+}
+
+
+function falarResposta(texto) {
+
+    const checkbox =
+        elemento("voz");
+
+    if (!checkbox || !checkbox.checked) {
+        return;
+    }
+
+    if (!("speechSynthesis" in window)) {
+        return;
+    }
+
+    const textoLimpo =
+        String(texto)
+            .replace(/```[\s\S]*?```/g, "")
+            .replace(/[#*_>`]/g, "");
+
+    if (!textoLimpo.trim()) {
+        return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const fala =
+        new SpeechSynthesisUtterance(
+            textoLimpo
+        );
+
+    const seletor =
+        elemento("seletorVoz");
+
+    if (seletor && seletor.value !== "") {
+
+        const indice =
+            Number(seletor.value);
+
+        if (vozes[indice]) {
+            fala.voice = vozes[indice];
+        }
+    }
+
+    fala.lang = "pt-BR";
+    fala.rate = 1;
+    fala.pitch = 1;
+
+    window.speechSynthesis.speak(fala);
+}
+
+
+// ============================================================
+// TESTAR VOZ
+// ============================================================
+
+const btnTestarVoz =
+    elemento("btnTestarVoz");
+
+
+if (btnTestarVoz) {
+
+    btnTestarVoz.addEventListener(
+        "click",
+        function() {
+
+            falarResposta(
+                "Olá! Eu sou o Orion AI. Esta é a minha voz."
+            );
+        }
+    );
+}
+
+
+// ============================================================
+// CARREGAR HISTÓRICO
+// ============================================================
+
+async function carregarHistorico() {
+
+    if (!chat) {
+        return;
+    }
+
+    try {
+
+        const resposta =
+            await fetch("/history", {
+                method: "GET",
+                headers: {
+                    "Accept": "application/json"
+                },
+                credentials: "same-origin"
+            });
+
+        if (resposta.redirected) {
+
+            window.location.href =
+                resposta.url;
+
+            return;
+        }
+
+        if (!resposta.ok) {
+
+            console.warn(
+                "Erro ao carregar histórico:",
+                resposta.status
+            );
+
+            atualizarWelcome();
+
+            return;
+        }
+
+        const historico =
+            await resposta.json();
+
+        chat.innerHTML = "";
+
+        historico.forEach(
+            item => {
+
+                if (item.sender === "user") {
+
+                    adicionarMensagem(
+                        item.message,
+                        "user"
+                    );
+
+                } else {
+
+                    adicionarResposta(
+                        item.message
+                    );
+                }
+            }
+        );
+
+        atualizarWelcome();
+
+    } catch (erro) {
+
+        console.error(
+            "Erro ao carregar histórico:",
+            erro
+        );
+
+        atualizarWelcome();
+    }
 }
 
 
@@ -1882,32 +823,16 @@ function configurarBotaoEnviar() {
 
 document.addEventListener(
     "DOMContentLoaded",
-    async function () {
+    function() {
 
-        console.log(
-            "Orion AI iniciado."
-        );
+        atualizarWelcome();
 
-        configurarEnter();
+        carregarHistorico();
 
-        configurarBotaoEnviar();
-
-        configurarVoz();
-
-        configurarFormulario();
-
-        configurarArquivos();
-
-        await carregarHistorico();
-
-        await carregarConversas();
-
-        const campo =
-            elemento("mensagem");
-
-        if (campo) {
-            campo.focus();
+        if (mensagemInput) {
+            mensagemInput.focus();
         }
 
     }
 );
+````
