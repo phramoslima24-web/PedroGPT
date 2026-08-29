@@ -1,4 +1,4 @@
-
+````javascript
 // ============================================================
 // ORION AI - SCRIPT.JS
 // ============================================================
@@ -659,6 +659,7 @@ function addMensagem(texto, tipo, imagem = null) {
                     cursor:pointer;
                 "
                 alt="Imagem enviada"
+                onclick="abrirImagem(this.src)"
             >
         `;
     }
@@ -742,23 +743,6 @@ function addMensagem(texto, tipo, imagem = null) {
         }
     }
 
-    // Clique na imagem
-    if (imagem) {
-
-        const img =
-            div.querySelector("img");
-
-        if (img) {
-
-            img.addEventListener(
-                "click",
-                function () {
-                    abrirImagem(imagem);
-                }
-            );
-        }
-    }
-
     chat.appendChild(div);
 
     scrollBottom();
@@ -782,7 +766,7 @@ function abrirImagem(src) {
 
     fundo.style.position = "fixed";
     fundo.style.inset = "0";
-    fundo.style.background = "rgba(0,0,0,0.88)";
+    fundo.style.background = "rgba(0,0,0,0.85)";
     fundo.style.display = "flex";
     fundo.style.alignItems = "center";
     fundo.style.justifyContent = "center";
@@ -795,24 +779,17 @@ function abrirImagem(src) {
 
     imagem.src = src;
 
-    imagem.style.maxWidth = "95vw";
-    imagem.style.maxHeight = "95vh";
-    imagem.style.width = "auto";
-    imagem.style.height = "auto";
+    imagem.style.maxWidth = "95%";
+    imagem.style.maxHeight = "95%";
     imagem.style.objectFit = "contain";
     imagem.style.borderRadius = "12px";
-    imagem.style.cursor = "default";
 
     fundo.appendChild(imagem);
 
     fundo.addEventListener(
         "click",
-        function (event) {
-
-            if (event.target === fundo) {
-                fundo.remove();
-            }
-
+        function () {
+            fundo.remove();
         }
     );
 
@@ -970,10 +947,339 @@ function configurarArquivos() {
             "click",
             function () {
 
-                limparArquivoSelecionado();
+                arquivo.value = "";
 
+                arquivoAtual =
+                    null;
+
+                if (nomeArquivo) {
+
+                    nomeArquivo.textContent =
+                        "Nenhum arquivo selecionado";
+                }
+
+                if (arquivoSelecionado) {
+
+                    arquivoSelecionado.classList.remove(
+                        "ativo"
+                    );
+                }
+
+                const preview =
+                    elemento("previewArquivo");
+
+                if (preview) {
+                    preview.remove();
+                }
             }
         );
+    }
+}
+
+
+// ============================================================
+// CARREGAR HISTÓRICO
+// ============================================================
+
+async function carregarHistorico() {
+
+    try {
+
+        const resposta =
+            await fetch(
+                "/history",
+                {
+                    method: "GET",
+                    credentials: "same-origin",
+                    cache: "no-store",
+                    headers: {
+                        "Accept":
+                            "application/json"
+                    }
+                }
+            );
+
+        if (resposta.status === 401) {
+            return;
+        }
+
+        if (!resposta.ok) {
+            return;
+        }
+
+        const historico =
+            await resposta.json();
+
+        const chat =
+            elemento("chat");
+
+        if (!chat) {
+            return;
+        }
+
+        chat.innerHTML = "";
+
+        if (
+            !Array.isArray(historico) ||
+            historico.length === 0
+        ) {
+
+            mostrarWelcome();
+
+            return;
+        }
+
+        esconderWelcome();
+
+        historico.forEach(function (item) {
+
+            addMensagem(
+                item?.message ?? "",
+                item?.sender === "user"
+                    ? "user"
+                    : "bot"
+            );
+
+        });
+
+        scrollBottom();
+
+    } catch (erro) {
+
+        console.error(
+            "Erro no histórico:",
+            erro
+        );
+    }
+}
+
+
+// ============================================================
+// ENVIAR MENSAGEM
+// ============================================================
+
+async function enviar() {
+
+    if (enviando) {
+        return;
+    }
+
+    const campo =
+        elemento("mensagem");
+
+    const botao =
+        elemento("btnEnviar");
+
+    if (!campo) {
+        return;
+    }
+
+    const texto =
+        campo.value.trim();
+
+    if (!texto && !arquivoAtual) {
+
+        campo.focus();
+
+        return;
+    }
+
+    enviando = true;
+
+    esconderWelcome();
+
+    // ========================================================
+    // PREPARAR IMAGEM
+    // ========================================================
+
+    let imagemPreview = null;
+    let imagemBase64 = null;
+    let tipoImagem = null;
+
+    if (arquivoAtual) {
+
+        if (
+            arquivoAtual.type &&
+            arquivoAtual.type.startsWith("image/")
+        ) {
+
+            imagemPreview =
+                await arquivoParaDataURL(
+                    arquivoAtual
+                );
+
+            imagemBase64 =
+                imagemPreview;
+
+            tipoImagem =
+                arquivoAtual.type;
+
+        } else {
+
+            addMensagem(
+                "❌ Por enquanto, a Orion AI aceita imagens para análise. Selecione uma imagem.",
+                "bot"
+            );
+
+            enviando = false;
+
+            return;
+        }
+    }
+
+    // ========================================================
+    // MOSTRAR MENSAGEM DO USUÁRIO
+    // ========================================================
+
+    addMensagem(
+        texto,
+        "user",
+        imagemPreview
+    );
+
+    campo.value = "";
+
+    limparArquivoSelecionado();
+
+    if (botao) {
+
+        botao.disabled = true;
+
+        botao.textContent =
+            "Enviando...";
+    }
+
+    const typing =
+        addMensagem(
+            "",
+            "bot typing"
+        );
+
+    try {
+
+        // ====================================================
+        // ENVIA TEXTO + IMAGEM
+        // ====================================================
+
+        const resposta =
+            await fetch(
+                "/chat",
+                {
+                    method: "POST",
+
+                    credentials:
+                        "same-origin",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+
+                        "Accept":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        message:
+                            texto,
+
+                        image:
+                            imagemBase64,
+
+                        image_type:
+                            tipoImagem
+
+                    })
+                }
+            );
+
+        if (typing) {
+            typing.remove();
+        }
+
+        let data = {};
+
+        try {
+
+            data =
+                await resposta.json();
+
+        } catch (erroJSON) {
+
+            console.error(
+                "Erro ao interpretar JSON:",
+                erroJSON
+            );
+        }
+
+        if (!resposta.ok) {
+
+            let mensagemErro =
+                "Erro ao conectar com o servidor.";
+
+            if (data.reply) {
+                mensagemErro = data.reply;
+            } else if (data.message) {
+                mensagemErro = data.message;
+            } else if (data.error) {
+                mensagemErro = data.error;
+            }
+
+            addMensagem(
+                mensagemErro,
+                "bot"
+            );
+
+            return;
+        }
+
+        const textoResposta =
+            limparAspasTriplas(
+                data.reply ||
+                data.response ||
+                "Não recebi uma resposta da IA."
+            );
+
+        addMensagem(
+            textoResposta,
+            "bot"
+        );
+
+        falarResposta(
+            textoResposta
+        );
+
+        await carregarConversas();
+
+    } catch (erro) {
+
+        console.error(
+            "Erro no envio:",
+            erro
+        );
+
+        if (typing) {
+            typing.remove();
+        }
+
+        addMensagem(
+            "❌ Erro ao conectar com o servidor. Verifique se o servidor está funcionando.",
+            "bot"
+        );
+
+    } finally {
+
+        enviando = false;
+
+        if (botao) {
+
+            botao.disabled = false;
+
+            botao.textContent =
+                "Enviar";
+        }
+
+        campo.focus();
     }
 }
 
@@ -1050,242 +1356,6 @@ function limparArquivoSelecionado() {
 
     if (preview) {
         preview.remove();
-    }
-}
-
-
-// ============================================================
-// ENVIAR MENSAGEM
-// ============================================================
-
-async function enviar() {
-
-    if (enviando) {
-        return;
-    }
-
-    const campo =
-        elemento("mensagem");
-
-    const botao =
-        elemento("btnEnviar");
-
-    if (!campo) {
-        return;
-    }
-
-    const texto =
-        campo.value.trim();
-
-    if (!texto && !arquivoAtual) {
-
-        campo.focus();
-
-        return;
-    }
-
-    enviando = true;
-
-    esconderWelcome();
-
-    // ========================================================
-    // PEGAR ARQUIVO ANTES DE LIMPAR
-    // ========================================================
-
-    const arquivoParaEnviar =
-        arquivoAtual;
-
-    let imagemPreview =
-        null;
-
-    if (
-        arquivoParaEnviar &&
-        arquivoParaEnviar.type &&
-        arquivoParaEnviar.type.startsWith("image/")
-    ) {
-
-        try {
-
-            imagemPreview =
-                await arquivoParaDataURL(
-                    arquivoParaEnviar
-                );
-
-        } catch (erro) {
-
-            console.error(
-                "Erro ao criar preview:",
-                erro
-            );
-        }
-    }
-
-    // ========================================================
-    // MOSTRAR MENSAGEM DO USUÁRIO
-    // ========================================================
-
-    addMensagem(
-        texto,
-        "user",
-        imagemPreview
-    );
-
-    campo.value = "";
-
-    // ========================================================
-    // BOTÃO
-    // ========================================================
-
-    if (botao) {
-
-        botao.disabled = true;
-
-        botao.textContent =
-            "Enviando...";
-    }
-
-    const typing =
-        addMensagem(
-            "",
-            "bot typing"
-        );
-
-    try {
-
-        // ====================================================
-        // FORMDATA
-        // ====================================================
-
-        const formData =
-            new FormData();
-
-        formData.append(
-            "message",
-            texto
-        );
-
-        if (arquivoParaEnviar) {
-
-            formData.append(
-                "image",
-                arquivoParaEnviar,
-                arquivoParaEnviar.name
-            );
-        }
-
-        // ====================================================
-        // ENVIO
-        // ====================================================
-
-        const resposta =
-            await fetch(
-                "/chat",
-                {
-                    method: "POST",
-
-                    credentials:
-                        "same-origin",
-
-                    headers: {
-                        "Accept":
-                            "application/json"
-                    },
-
-                    body:
-                        formData
-                }
-            );
-
-        if (typing) {
-            typing.remove();
-        }
-
-        let data = {};
-
-        try {
-
-            data =
-                await resposta.json();
-
-        } catch (erroJSON) {
-
-            console.error(
-                "Erro ao interpretar JSON:",
-                erroJSON
-            );
-        }
-
-        if (!resposta.ok) {
-
-            let mensagemErro =
-                "Erro ao conectar com o servidor.";
-
-            if (data.reply) {
-                mensagemErro = data.reply;
-            } else if (data.message) {
-                mensagemErro = data.message;
-            } else if (data.error) {
-                mensagemErro = data.error;
-            }
-
-            addMensagem(
-                mensagemErro,
-                "bot"
-            );
-
-            return;
-        }
-
-        const textoResposta =
-            limparAspasTriplas(
-                data.reply ||
-                data.response ||
-                "Não recebi uma resposta da IA."
-            );
-
-        addMensagem(
-            textoResposta,
-            "bot"
-        );
-
-        falarResposta(
-            textoResposta
-        );
-
-        // Limpar somente depois que o envio deu certo
-        limparArquivoSelecionado();
-
-        await carregarConversas();
-
-    } catch (erro) {
-
-        console.error(
-            "Erro no envio:",
-            erro
-        );
-
-        if (typing) {
-            typing.remove();
-        }
-
-        addMensagem(
-            "❌ Erro ao conectar com o servidor. Verifique se o servidor está funcionando.",
-            "bot"
-        );
-
-    } finally {
-
-        enviando = false;
-
-        if (botao) {
-
-            botao.disabled = false;
-
-            botao.textContent =
-                "Enviar";
-        }
-
-        campo.focus();
     }
 }
 
@@ -1407,83 +1477,6 @@ async function novaConversa() {
 
         alert(
             "Erro ao conectar com o servidor."
-        );
-    }
-}
-
-
-// ============================================================
-// CARREGAR HISTÓRICO
-// ============================================================
-
-async function carregarHistorico() {
-
-    try {
-
-        const resposta =
-            await fetch(
-                "/history",
-                {
-                    method: "GET",
-                    credentials: "same-origin",
-                    cache: "no-store",
-                    headers: {
-                        "Accept":
-                            "application/json"
-                    }
-                }
-            );
-
-        if (resposta.status === 401) {
-            return;
-        }
-
-        if (!resposta.ok) {
-            return;
-        }
-
-        const historico =
-            await resposta.json();
-
-        const chat =
-            elemento("chat");
-
-        if (!chat) {
-            return;
-        }
-
-        chat.innerHTML = "";
-
-        if (
-            !Array.isArray(historico) ||
-            historico.length === 0
-        ) {
-
-            mostrarWelcome();
-
-            return;
-        }
-
-        esconderWelcome();
-
-        historico.forEach(function (item) {
-
-            addMensagem(
-                item?.message ?? "",
-                item?.sender === "user"
-                    ? "user"
-                    : "bot"
-            );
-
-        });
-
-        scrollBottom();
-
-    } catch (erro) {
-
-        console.error(
-            "Erro no histórico:",
-            erro
         );
     }
 }
@@ -1944,4 +1937,4 @@ document.addEventListener(
 
     }
 );
-
+````
