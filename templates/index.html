@@ -1,55 +1,742 @@
+
 <!DOCTYPE html>
 
 <html lang="pt-BR">
 
-<head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Orion AI</title>
 
-<style> * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; } body { display: flex; height: 100vh; overflow: hidden; background: radial-gradient( circle at top, #111827, #0b0f19 60%, #05070d ); color: white; } /* ========================= SIDEBAR ========================= */ .sidebar { width: 280px; flex-shrink: 0; background: rgba(255,255,255,0.035); backdrop-filter: blur(18px); border-right: 1px solid rgba(255,255,255,0.08); padding: 18px; display: flex; flex-direction: column; gap: 14px; overflow: hidden; } .logo { text-align: center; padding: 8px 0 12px; } .logo h2 { font-size: 22px; } .usuario { padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07); text-align: center; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .plano { text-align: center; padding: 7px; border-radius: 9px; font-size: 12px; font-weight: bold; background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.25); color: #c4b5fd; } .nova-conversa { width: 100%; border: none; background: linear-gradient( 135deg, #10b981, #059669 ); color: white; padding: 12px; border-radius: 11px; cursor: pointer; font-weight: bold; transition: 0.2s; } .nova-conversa:hover { transform: translateY(-1px); box-shadow: 0 7px 20px rgba(16,185,129,0.25); } .logout { display: block; text-decoration: none; color: white; background: rgba(255,255,255,0.07); padding: 11px; border-radius: 10px; text-align: center; transition: 0.2s; margin-top: auto; } .logout:hover { background: rgba(255,255,255,0.12); } /* ========================= MAIN ========================= */ .main { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; position: relative; } /* ========================= HEADER ========================= */ .header { height: 62px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 0 18px; border-bottom: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.025); backdrop-filter: blur(12px); font-weight: bold; position: relative; z-index: 20; } /* ========================= OPÇÕES ========================= */ .opcoes { padding: 10px 18px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; color: rgba(255,255,255,0.75); flex-shrink: 0; position: relative; z-index: 20; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; } .opcoes label { cursor: pointer; user-select: none; } .opcoes input { accent-color: #7c3aed; cursor: pointer; } /* ========================= SELETOR DE VOZ ========================= */ .seletor-voz { display: flex; align-items: center; gap: 7px; } .seletor-voz select { max-width: 240px; padding: 7px 10px; border-radius: 9px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.07); color: white; outline: none; cursor: pointer; } .seletor-voz select:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.12); } .seletor-voz select option { background: #111827; color: white; } .btn-testar-voz { padding: 7px 11px; border-radius: 9px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.07); color: white; cursor: pointer; transition: 0.2s; font-size: 12px; } .btn-testar-voz:hover { background: rgba(255,255,255,0.13); transform: translateY(-1px); } /* ========================= ÁREA DO CHAT ========================= */ .chat-area { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; } /* ========================= CHAT ========================= */ .chat { flex: 1; min-height: 0; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 13px; scroll-behavior: smooth; position: relative; z-index: 1; } .chat::-webkit-scrollbar { width: 7px; } .chat::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; } /* ========================= MENSAGENS ========================= */ .msg-user, .msg-bot { max-width: 78%; padding: 12px 14px; animation: pop 0.15s ease; box-shadow: 0 8px 22px rgba(0,0,0,0.18); } .msg-user { align-self: flex-end; border-radius: 17px 17px 4px 17px; background: linear-gradient( 135deg, #7c3aed, #4f46e5 ); } .msg-bot { align-self: flex-start; border-radius: 17px 17px 17px 4px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(10px); } /* ========================= CONTEÚDO ========================= */ .conteudo-mensagem { line-height: 1.6; word-wrap: break-word; overflow-wrap: break-word; } .conteudo-mensagem strong { font-weight: 700; } .conteudo-mensagem em { font-style: italic; } .linha-resposta { margin-bottom: 6px; } .linha-resposta:last-child { margin-bottom: 0; } .quebra-linha { height: 8px; } /* ========================= TÍTULOS ========================= */ .conteudo-mensagem h2 { font-size: 20px; margin: 10px 0 8px; } .conteudo-mensagem h3 { font-size: 18px; margin: 10px 0 8px; } .conteudo-mensagem h4 { font-size: 16px; margin: 8px 0 6px; } /* ========================= LISTAS ========================= */ .conteudo-mensagem ul, .conteudo-mensagem ol { margin: 8px 0 10px 20px; padding-left: 18px; } .conteudo-mensagem li { margin-bottom: 7px; line-height: 1.55; } /* ========================= CÓDIGO ========================= */ .codigo-pedrogpt { display: block; margin: 10px 0; padding: 14px; border-radius: 10px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); overflow-x: auto; white-space: pre; font-family: Consolas, Monaco, monospace; font-size: 13px; line-height: 1.5; } .codigo-pedrogpt code { font-family: Consolas, Monaco, monospace; } /* ========================= TYPING ========================= */ .typing-message { opacity: 0.9; } .typing-dots { display: inline-flex; gap: 4px; margin-left: 5px; } .typing-dots span { width: 6px; height: 6px; border-radius: 50%; background: #c4b5fd; animation: typing 1.2s infinite; } .typing-dots span:nth-child(2) { animation-delay: .15s; } .typing-dots span:nth-child(3) { animation-delay: .3s; } /* ========================= WELCOME ========================= */ .welcome { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 14px; padding: 20px; background: radial-gradient( circle at top, #111827, #0b0f19 ); text-align: center; z-index: 5; pointer-events: auto; } .welcome h2 { font-size: 28px; } .welcome p { color: rgba(255,255,255,0.6); } /* ========================= QUICK ACTIONS ========================= */ .quick-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 600px; margin-top: 8px; } .quick { padding: 11px 15px; border-radius: 11px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.08); cursor: pointer; transition: .2s; font-size: 14px; } .quick:hover { transform: translateY(-2px); background: rgba(255,255,255,0.13); } /* ========================= ENTRADA ========================= */ .entrada { flex-shrink: 0; display: flex; gap: 10px; padding: 14px; border-top: 1px solid rgba(255,255,255,0.06); background: rgba(0,0,0,0.25); backdrop-filter: blur(14px); position: relative; z-index: 30; } .entrada input { flex: 1; min-width: 0; padding: 14px; border-radius: 13px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.06); color: white; outline: none; } .entrada input:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.12); } .entrada input::placeholder { color: rgba(255,255,255,0.45); } .entrada button { padding: 14px 20px; border-radius: 13px; border: none; cursor: pointer; background: linear-gradient( 135deg, #7c3aed, #4f46e5 ); color: white; font-weight: bold; transition: 0.2s; } .entrada button:hover { transform: translateY(-1px); } .entrada button:disabled { opacity: .55; cursor: not-allowed; transform: none; } /* ========================= HIDDEN ========================= */ .hidden { display: none !important; } /* ========================= ANIMAÇÕES ========================= */ @keyframes pop { from { opacity: 0; transform: translateY(5px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } } @keyframes typing { 0%, 60%, 100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } } /* ========================= MOBILE ========================= */ @media(max-width: 768px) { body { flex-direction: column; } .sidebar { width: 100%; height: auto; max-height: 190px; padding: 10px; gap: 8px; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); } .logo { padding: 0; } .logo h2 { font-size: 19px; } .usuario { padding: 8px; } .plano { padding: 6px; } .nova-conversa { padding: 9px; } .logout { padding: 8px; } .main { height: calc(100vh - 190px); } .chat { padding: 13px; } .msg-user, .msg-bot { max-width: 91%; } .opcoes { padding: 8px 10px; gap: 10px; } .seletor-voz { width: 100%; } .seletor-voz select { flex: 1; max-width: none; } .entrada { padding: 9px; } .entrada input { padding: 12px; } .entrada button { padding: 12px 15px; } } </style>
+<style>
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    background: radial-gradient(
+        circle at top,
+        #111827,
+        #0b0f19 60%,
+        #05070d
+    );
+    color: white;
+}
+
+
+/* =========================
+   SIDEBAR
+========================= */
+
+.sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.035);
+    backdrop-filter: blur(18px);
+    border-right: 1px solid rgba(255,255,255,0.08);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow: hidden;
+}
+
+.logo {
+    text-align: center;
+    padding: 8px 0 12px;
+}
+
+.logo h2 {
+    font-size: 22px;
+}
+
+.usuario {
+    padding: 12px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    text-align: center;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.plano {
+    text-align: center;
+    padding: 7px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: bold;
+    background: rgba(124,58,237,0.15);
+    border: 1px solid rgba(124,58,237,0.25);
+    color: #c4b5fd;
+}
+
+.nova-conversa {
+    width: 100%;
+    border: none;
+    background: linear-gradient(
+        135deg,
+        #10b981,
+        #059669
+    );
+    color: white;
+    padding: 12px;
+    border-radius: 11px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+.nova-conversa:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 7px 20px rgba(16,185,129,0.25);
+}
+
+.logout {
+    display: block;
+    text-decoration: none;
+    color: white;
+    background: rgba(255,255,255,0.07);
+    padding: 11px;
+    border-radius: 10px;
+    text-align: center;
+    transition: 0.2s;
+    margin-top: auto;
+}
+
+.logout:hover {
+    background: rgba(255,255,255,0.12);
+}
+
+
+/* =========================
+   MAIN
+========================= */
+
+.main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    position: relative;
+}
+
+
+/* =========================
+   HEADER
+========================= */
+
+.header {
+    height: 62px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.025);
+    backdrop-filter: blur(12px);
+    font-weight: bold;
+    position: relative;
+    z-index: 20;
+}
+
+
+/* =========================
+   OPÇÕES
+========================= */
+
+.opcoes {
+    padding: 10px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.opcoes label {
+    cursor: pointer;
+    user-select: none;
+}
+
+.opcoes input {
+    accent-color: #7c3aed;
+    cursor: pointer;
+}
+
+
+/* =========================
+   SELETOR DE VOZ
+========================= */
+
+.seletor-voz {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.seletor-voz select {
+    max-width: 240px;
+    padding: 7px 10px;
+    border-radius: 9px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.07);
+    color: white;
+    outline: none;
+    cursor: pointer;
+}
+
+.seletor-voz select:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+}
+
+.seletor-voz select option {
+    background: #111827;
+    color: white;
+}
+
+
+/* =========================
+   BOTÃO TESTAR VOZ
+========================= */
+
+.btn-testar-voz,
+.btn-parar-voz {
+    padding: 7px 11px;
+    border-radius: 9px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.07);
+    color: white;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 12px;
+}
+
+.btn-testar-voz:hover,
+.btn-parar-voz:hover {
+    background: rgba(255,255,255,0.13);
+    transform: translateY(-1px);
+}
+
+.btn-parar-voz {
+    background: rgba(239,68,68,0.15);
+    border-color: rgba(239,68,68,0.3);
+}
+
+.btn-parar-voz:hover {
+    background: rgba(239,68,68,0.25);
+}
+
+
+/* =========================
+   ÁREA DO CHAT
+========================= */
+
+.chat-area {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+
+/* =========================
+   CHAT
+========================= */
+
+.chat {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    scroll-behavior: smooth;
+    position: relative;
+    z-index: 1;
+}
+
+.chat::-webkit-scrollbar {
+    width: 7px;
+}
+
+.chat::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+}
+
+
+/* =========================
+   MENSAGENS
+========================= */
+
+.msg-user,
+.msg-bot {
+    max-width: 78%;
+    padding: 12px 14px;
+    animation: pop 0.15s ease;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.18);
+}
+
+.msg-user {
+    align-self: flex-end;
+    border-radius: 17px 17px 4px 17px;
+    background: linear-gradient(
+        135deg,
+        #7c3aed,
+        #4f46e5
+    );
+}
+
+.msg-bot {
+    align-self: flex-start;
+    border-radius: 17px 17px 17px 4px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
+}
+
+
+/* =========================
+   CONTEÚDO
+========================= */
+
+.conteudo-mensagem {
+    line-height: 1.6;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.conteudo-mensagem strong {
+    font-weight: 700;
+}
+
+.conteudo-mensagem em {
+    font-style: italic;
+}
+
+.linha-resposta {
+    margin-bottom: 6px;
+}
+
+.linha-resposta:last-child {
+    margin-bottom: 0;
+}
+
+.quebra-linha {
+    height: 8px;
+}
+
+
+/* =========================
+   TÍTULOS
+========================= */
+
+.conteudo-mensagem h2 {
+    font-size: 20px;
+    margin: 10px 0 8px;
+}
+
+.conteudo-mensagem h3 {
+    font-size: 18px;
+    margin: 10px 0 8px;
+}
+
+.conteudo-mensagem h4 {
+    font-size: 16px;
+    margin: 8px 0 6px;
+}
+
+
+/* =========================
+   LISTAS
+========================= */
+
+.conteudo-mensagem ul,
+.conteudo-mensagem ol {
+    margin: 8px 0 10px 20px;
+    padding-left: 18px;
+}
+
+.conteudo-mensagem li {
+    margin-bottom: 7px;
+    line-height: 1.55;
+}
+
+
+/* =========================
+   CÓDIGO
+========================= */
+
+.codigo-pedrogpt {
+    display: block;
+    margin: 10px 0;
+    padding: 14px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.1);
+    overflow-x: auto;
+    white-space: pre;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.codigo-pedrogpt code {
+    font-family: Consolas, Monaco, monospace;
+}
+
+
+/* =========================
+   TYPING
+========================= */
+
+.typing-message {
+    opacity: 0.9;
+}
+
+.typing-dots {
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 5px;
+}
+
+.typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #c4b5fd;
+    animation: typing 1.2s infinite;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: .15s;
+}
+
+.typing-dots span:nth-child(3) {
+    animation-delay: .3s;
+}
+
+
+/* =========================
+   WELCOME
+========================= */
+
+.welcome {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    padding: 20px;
+    background: radial-gradient(
+        circle at top,
+        #111827,
+        #0b0f19
+    );
+    text-align: center;
+    z-index: 5;
+    pointer-events: auto;
+}
+
+.welcome h2 {
+    font-size: 28px;
+}
+
+.welcome p {
+    color: rgba(255,255,255,0.6);
+}
+
+
+/* =========================
+   QUICK ACTIONS
+========================= */
+
+.quick-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 600px;
+    margin-top: 8px;
+}
+
+.quick {
+    padding: 11px 15px;
+    border-radius: 11px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.08);
+    cursor: pointer;
+    transition: .2s;
+    font-size: 14px;
+}
+
+.quick:hover {
+    transform: translateY(-2px);
+    background: rgba(255,255,255,0.13);
+}
+
+
+/* =========================
+   ENTRADA
+========================= */
+
+.entrada {
+    flex-shrink: 0;
+    display: flex;
+    gap: 10px;
+    padding: 14px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.25);
+    backdrop-filter: blur(14px);
+    position: relative;
+    z-index: 30;
+}
+
+.entrada input {
+    flex: 1;
+    min-width: 0;
+    padding: 14px;
+    border-radius: 13px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.06);
+    color: white;
+    outline: none;
+}
+
+.entrada input:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+}
+
+.entrada input::placeholder {
+    color: rgba(255,255,255,0.45);
+}
+
+.entrada button {
+    padding: 14px 20px;
+    border-radius: 13px;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(
+        135deg,
+        #7c3aed,
+        #4f46e5
+    );
+    color: white;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+.entrada button:hover {
+    transform: translateY(-1px);
+}
+
+.entrada button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+    transform: none;
+}
+
+
+/* =========================
+   HIDDEN
+========================= */
+
+.hidden {
+    display: none !important;
+}
+
+
+/* =========================
+   ANIMAÇÕES
+========================= */
+
+@keyframes pop {
+
+    from {
+        opacity: 0;
+        transform: translateY(5px) scale(.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+}
+
+@keyframes typing {
+
+    0%, 60%, 100% {
+        opacity: .3;
+        transform: translateY(0);
+    }
+
+    30% {
+        opacity: 1;
+        transform: translateY(-3px);
+    }
+
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media(max-width: 768px) {
+
+    body {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+        max-height: 190px;
+        padding: 10px;
+        gap: 8px;
+        border-right: none;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .logo {
+        padding: 0;
+    }
+
+    .logo h2 {
+        font-size: 19px;
+    }
+
+    .usuario {
+        padding: 8px;
+    }
+
+    .plano {
+        padding: 6px;
+    }
+
+    .nova-conversa {
+        padding: 9px;
+    }
+
+    .logout {
+        padding: 8px;
+    }
+
+    .main {
+        height: calc(100vh - 190px);
+    }
+
+    .chat {
+        padding: 13px;
+    }
+
+    .msg-user,
+    .msg-bot {
+        max-width: 91%;
+    }
+
+    .opcoes {
+        padding: 8px 10px;
+        gap: 10px;
+    }
+
+    .seletor-voz {
+        width: 100%;
+    }
+
+    .seletor-voz select {
+        flex: 1;
+        max-width: none;
+    }
+
+    .entrada {
+        padding: 9px;
+    }
+
+    .entrada input {
+        padding: 12px;
+    }
+
+    .entrada button {
+        padding: 12px 15px;
+    }
+
+}
+
+</style>
 
 </head>
 
 <body>
 
+
 <aside class="sidebar">
 
-<div class="logo">
-    <h2>🤖 Orion AI</h2>
-</div>
+    <div class="logo">
+        <h2>🤖 Orion AI</h2>
+    </div>
 
-<div class="usuario">
-    Olá, {{ username }}
-</div>
+    <div class="usuario">
+        Olá, {{ username }}
+    </div>
 
-<div class="plano">
+    <div class="plano">
 
-    {% if plan == "premium" %}
-        ⭐ Plano PREMIUM
-    {% else %}
-        🆓 Plano FREE
-    {% endif %}
+        {% if plan == "premium" %}
+            ⭐ Plano PREMIUM
+        {% else %}
+            🆓 Plano FREE
+        {% endif %}
 
-</div>
+    </div>
 
-<button
-    class="nova-conversa"
-    type="button"
-    onclick="novaConversa()"
->
-    🆕 Nova conversa
-</button>
+    <button
+        class="nova-conversa"
+        type="button"
+        onclick="novaConversa()"
+    >
+        🆕 Nova conversa
+    </button>
 
-<a
-    href="/logout"
-    class="logout"
->
-    🚪 Sair
-</a>
+    <a
+        href="/logout"
+        class="logout"
+    >
+        🚪 Sair
+    </a>
 
 </aside>
 
+
 <main class="main">
+
 
 <header class="header">
 
@@ -58,6 +745,7 @@
     </span>
 
 </header>
+
 
 <div class="opcoes">
 
@@ -73,6 +761,7 @@
 
     </label>
 
+
     <div class="seletor-voz">
 
         <span>🎙️ Voz:</span>
@@ -85,6 +774,7 @@
 
         </select>
 
+
         <button
             type="button"
             id="btnTestarVoz"
@@ -93,16 +783,30 @@
             ▶️ Testar
         </button>
 
+
+        <button
+            type="button"
+            id="btnPararVoz"
+            class="btn-parar-voz"
+            onclick="pararResposta()"
+            style="display:none;"
+        >
+            ⏹️ Parar
+        </button>
+
     </div>
 
 </div>
 
+
 <div class="chat-area">
+
 
     <div
         id="chat"
         class="chat"
     ></div>
+
 
     <div
         id="welcome"
@@ -117,7 +821,9 @@
             Como posso ajudar hoje?
         </p>
 
+
         <div class="quick-actions">
+
 
             <div
                 class="quick"
@@ -126,12 +832,14 @@
                 💻 Criar código
             </div>
 
+
             <div
                 class="quick"
                 onclick="atalho('Estudar')"
             >
                 📚 Estudar
             </div>
+
 
             <div
                 class="quick"
@@ -140,6 +848,7 @@
                 📝 Fazer resumo
             </div>
 
+
             <div
                 class="quick"
                 onclick="atalho('Tirar dúvidas')"
@@ -147,11 +856,13 @@
                 ❓ Tirar dúvidas
             </div>
 
+
         </div>
 
     </div>
 
 </div>
+
 
 <div class="entrada">
 
@@ -172,7 +883,9 @@
 
 </div>
 
+
 </main>
+
 
 <script src="/static/script.js"></script>
 
