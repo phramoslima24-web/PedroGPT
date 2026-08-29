@@ -70,7 +70,7 @@ function formatarResposta(texto) {
     // ========================================================
 
     protegido = protegido.replace(
-        /([a-zA-Z0-9_+#.-]*)\s*\n?([\s\S]*?)```/g,
+        /```([a-zA-Z0-9_+#.-]*)\s*\n?([\s\S]*?)```/g,
         function (_, linguagem, codigo) {
 
             const id = blocosCodigo.length;
@@ -341,8 +341,6 @@ async function copiarMensagem(texto, botao) {
             erro
         );
 
-        // Fallback para navegadores que não permitem
-        // navigator.clipboard
         try {
 
             const area =
@@ -391,6 +389,245 @@ async function copiarMensagem(texto, botao) {
             );
         }
     }
+}
+
+
+// ============================================================
+// SISTEMA DE VOZ
+// ============================================================
+
+let vozesDisponiveis = [];
+
+
+// ============================================================
+// CARREGAR VOZES
+// ============================================================
+
+function carregarVozes() {
+
+    if (!("speechSynthesis" in window)) {
+        return;
+    }
+
+    const seletor =
+        elemento("seletorVoz");
+
+    if (!seletor) {
+        return;
+    }
+
+    const vozes =
+        speechSynthesis.getVoices();
+
+    if (!vozes || vozes.length === 0) {
+        return;
+    }
+
+    vozesDisponiveis = vozes;
+
+    const vozSalva =
+        localStorage.getItem(
+            "orion_voz"
+        );
+
+    seletor.innerHTML = "";
+
+    // ========================================================
+    // ORDENAR
+    // ========================================================
+
+    const ordenadas =
+        [...vozes].sort(function (a, b) {
+
+            const aPT =
+                a.lang.toLowerCase().startsWith("pt");
+
+            const bPT =
+                b.lang.toLowerCase().startsWith("pt");
+
+            if (aPT && !bPT) {
+                return -1;
+            }
+
+            if (!aPT && bPT) {
+                return 1;
+            }
+
+            return a.name.localeCompare(
+                b.name
+            );
+        });
+
+    // ========================================================
+    // ADICIONAR VOZES
+    // ========================================================
+
+    ordenadas.forEach(function (voz, index) {
+
+        const option =
+            document.createElement("option");
+
+        option.value =
+            vozes.indexOf(voz);
+
+        option.textContent =
+            `${voz.name} (${voz.lang})`;
+
+        seletor.appendChild(option);
+
+        if (
+            vozSalva &&
+            voz.name === vozSalva
+        ) {
+
+            option.selected = true;
+        }
+    });
+
+    // ========================================================
+    // SE NENHUMA VOZ FOI SALVA
+    // ========================================================
+
+    if (!vozSalva) {
+
+        const vozBrasileira =
+            ordenadas.find(function (voz) {
+
+                return voz.lang
+                    .toLowerCase()
+                    .includes("pt-br");
+
+            });
+
+        if (vozBrasileira) {
+
+            seletor.value =
+                vozes.indexOf(
+                    vozBrasileira
+                );
+
+        } else {
+
+            const vozPortugues =
+                ordenadas.find(function (voz) {
+
+                    return voz.lang
+                        .toLowerCase()
+                        .startsWith("pt");
+
+                });
+
+            if (vozPortugues) {
+
+                seletor.value =
+                    vozes.indexOf(
+                        vozPortugues
+                    );
+            }
+        }
+    }
+}
+
+
+// ============================================================
+// OBTER VOZ SELECIONADA
+// ============================================================
+
+function obterVozSelecionada() {
+
+    if (!vozesDisponiveis.length) {
+        return null;
+    }
+
+    const seletor =
+        elemento("seletorVoz");
+
+    if (!seletor) {
+        return null;
+    }
+
+    const indice =
+        Number(seletor.value);
+
+    return vozesDisponiveis[indice] || null;
+}
+
+
+// ============================================================
+// SALVAR VOZ
+// ============================================================
+
+function salvarVozSelecionada() {
+
+    const seletor =
+        elemento("seletorVoz");
+
+    if (!seletor) {
+        return;
+    }
+
+    const voz =
+        obterVozSelecionada();
+
+    if (!voz) {
+        return;
+    }
+
+    localStorage.setItem(
+        "orion_voz",
+        voz.name
+    );
+}
+
+
+// ============================================================
+// TESTAR VOZ
+// ============================================================
+
+function testarVoz() {
+
+    if (!("speechSynthesis" in window)) {
+
+        alert(
+            "Seu navegador não suporta reprodução de voz."
+        );
+
+        return;
+    }
+
+    const seletor =
+        elemento("seletorVoz");
+
+    if (!seletor) {
+        return;
+    }
+
+    const voz =
+        obterVozSelecionada();
+
+    const texto =
+        "Olá! Eu sou a Orion AI. Essa é a voz selecionada.";
+
+    speechSynthesis.cancel();
+
+    const fala =
+        new SpeechSynthesisUtterance(
+            texto
+        );
+
+    fala.lang =
+        voz?.lang || "pt-BR";
+
+    fala.rate = 1;
+    fala.pitch = 1;
+
+    if (voz) {
+        fala.voice = voz;
+    }
+
+    speechSynthesis.speak(
+        fala
+    );
 }
 
 
@@ -472,15 +709,6 @@ function addMensagem(texto, tipo) {
 
         conteudo = formatarResposta(texto);
     }
-
-    // ========================================================
-    // BOTÃO COPIAR
-    // ========================================================
-
-    const textoParaCopiar =
-        escaparHTML(
-            limparAspasTriplas(texto)
-        );
 
     // ========================================================
     // HTML
@@ -878,14 +1106,24 @@ function falarResposta(texto) {
 
     speechSynthesis.cancel();
 
+    const vozSelecionada =
+        obterVozSelecionada();
+
     const voz =
         new SpeechSynthesisUtterance(
             texto
         );
 
-    voz.lang = "pt-BR";
+    voz.lang =
+        vozSelecionada?.lang ||
+        "pt-BR";
+
     voz.rate = 1;
     voz.pitch = 1;
+
+    if (vozSelecionada) {
+        voz.voice = vozSelecionada;
+    }
 
     speechSynthesis.speak(
         voz
@@ -1352,23 +1590,71 @@ function configurarVoz() {
     const opcaoVoz =
         elemento("voz");
 
-    if (!opcaoVoz) {
-        return;
+    if (opcaoVoz) {
+
+        opcaoVoz.addEventListener(
+            "change",
+            function () {
+
+                if (
+                    !opcaoVoz.checked &&
+                    "speechSynthesis" in window
+                ) {
+
+                    speechSynthesis.cancel();
+                }
+            }
+        );
     }
 
-    opcaoVoz.addEventListener(
-        "change",
-        function () {
+    const seletor =
+        elemento("seletorVoz");
 
-            if (
-                !opcaoVoz.checked &&
-                "speechSynthesis" in window
-            ) {
+    if (seletor) {
 
-                speechSynthesis.cancel();
+        seletor.addEventListener(
+            "change",
+            function () {
+
+                salvarVozSelecionada();
+
+                if (
+                    "speechSynthesis" in window
+                ) {
+
+                    speechSynthesis.cancel();
+                }
             }
-        }
-    );
+        );
+    }
+
+    const botaoTestar =
+        elemento("btnTestarVoz");
+
+    if (botaoTestar) {
+
+        botaoTestar.addEventListener(
+            "click",
+            function () {
+
+                testarVoz();
+            }
+        );
+    }
+
+    carregarVozes();
+
+    if (
+        "speechSynthesis" in window
+    ) {
+
+        speechSynthesis.onvoiceschanged =
+            function () {
+
+                carregarVozes();
+
+            };
+    }
 }
 
 
@@ -1419,3 +1705,4 @@ document.addEventListener(
         configurarFormulario();
     }
 );
+
