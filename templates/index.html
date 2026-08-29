@@ -1,6 +1,4 @@
-
 <!DOCTYPE html>
-
 <html lang="pt-BR">
 
 <head>
@@ -95,12 +93,6 @@ body {
     border-radius: 11px;
     cursor: pointer;
     font-weight: bold;
-    transition: 0.2s;
-}
-
-.nova-conversa:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 7px 20px rgba(16,185,129,0.25);
 }
 
 .logout {
@@ -111,12 +103,7 @@ body {
     padding: 11px;
     border-radius: 10px;
     text-align: center;
-    transition: 0.2s;
     margin-top: auto;
-}
-
-.logout:hover {
-    background: rgba(255,255,255,0.12);
 }
 
 /* =========================
@@ -180,7 +167,7 @@ body {
 }
 
 /* =========================
-   SELETOR DE VOZ
+   VOZ
 ========================= */
 
 .seletor-voz {
@@ -200,11 +187,6 @@ body {
     cursor: pointer;
 }
 
-.seletor-voz select:focus {
-    border-color: #7c3aed;
-    box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
-}
-
 .seletor-voz select option {
     background: #111827;
     color: white;
@@ -217,17 +199,10 @@ body {
     background: rgba(255,255,255,0.07);
     color: white;
     cursor: pointer;
-    transition: 0.2s;
-    font-size: 12px;
-}
-
-.btn-testar-voz:hover {
-    background: rgba(255,255,255,0.13);
-    transform: translateY(-1px);
 }
 
 /* =========================
-   ÁREA DO CHAT
+   CHAT
 ========================= */
 
 .chat-area {
@@ -238,10 +213,6 @@ body {
     flex-direction: column;
     overflow: hidden;
 }
-
-/* =========================
-   CHAT
-========================= */
 
 .chat {
     flex: 1;
@@ -256,25 +227,12 @@ body {
     z-index: 1;
 }
 
-.chat::-webkit-scrollbar {
-    width: 7px;
-}
-
-.chat::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.15);
-    border-radius: 10px;
-}
-
-/* =========================
-   MENSAGENS
-========================= */
-
 .msg-user,
 .msg-bot {
     max-width: 78%;
     padding: 12px 14px;
-    animation: pop 0.15s ease;
-    box-shadow: 0 8px 22px rgba(0,0,0,0.18);
+    animation: pop .15s ease;
+    box-shadow: 0 8px 22px rgba(0,0,0,.18);
 }
 
 .msg-user {
@@ -290,14 +248,9 @@ body {
 .msg-bot {
     align-self: flex-start;
     border-radius: 17px 17px 17px 4px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.08);
-    backdrop-filter: blur(10px);
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.08);
 }
-
-/* =========================
-   CONTEÚDO
-========================= */
 
 .conteudo-mensagem {
     line-height: 1.6;
@@ -305,29 +258,13 @@ body {
     overflow-wrap: break-word;
 }
 
-.conteudo-mensagem strong {
-    font-weight: 700;
-}
-
-.conteudo-mensagem em {
-    font-style: italic;
-}
-
 .linha-resposta {
     margin-bottom: 6px;
-}
-
-.linha-resposta:last-child {
-    margin-bottom: 0;
 }
 
 .quebra-linha {
     height: 8px;
 }
-
-/* =========================
-   TÍTULOS
-========================= */
 
 .conteudo-mensagem h2 {
     font-size: 20px;
@@ -344,10 +281,6 @@ body {
     margin: 8px 0 6px;
 }
 
-/* =========================
-   LISTAS
-========================= */
-
 .conteudo-mensagem ul,
 .conteudo-mensagem ol {
     margin: 8px 0 10px 20px;
@@ -356,20 +289,15 @@ body {
 
 .conteudo-mensagem li {
     margin-bottom: 7px;
-    line-height: 1.55;
 }
-
-/* =========================
-   CÓDIGO
-========================= */
 
 .codigo-pedrogpt {
     display: block;
     margin: 10px 0;
     padding: 14px;
     border-radius: 10px;
-    background: rgba(0,0,0,0.5);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,0,0,.5);
+    border: 1px solid rgba(255,255,255,.1);
     overflow-x: auto;
     white-space: pre;
     font-family: Consolas, Monaco, monospace;
@@ -377,16 +305,12 @@ body {
     line-height: 1.5;
 }
 
-.codigo-pedrogpt code {
-    font-family: Consolas, Monaco, monospace;
-}
-
 /* =========================
    TYPING
 ========================= */
 
 .typing-message {
-    opacity: 0.9;
+    opacity: .9;
 }
 
 .typing-dots {
@@ -431,7 +355,11 @@ body {
     );
     text-align: center;
     z-index: 5;
-    pointer-events: auto;
+    pointer-events: none;
+}
+
+.welcome.hidden {
+    display: none !important;
 }
 
 .welcome h2 {
@@ -439,12 +367,8 @@ body {
 }
 
 .welcome p {
-    color: rgba(255,255,255,0.6);
+    color: rgba(255,255,255,.6);
 }
-
-/* =========================
-   QUICK ACTIONS
-========================= */
 
 .quick-actions {
     display: flex;
@@ -452,26 +376,19 @@ body {
     flex-wrap: wrap;
     justify-content: center;
     max-width: 600px;
-    margin-top: 8px;
 }
 
 .quick {
     padding: 11px 15px;
     border-radius: 11px;
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.08);
     cursor: pointer;
-    transition: .2s;
-    font-size: 14px;
-}
-
-.quick:hover {
-    transform: translateY(-2px);
-    background: rgba(255,255,255,0.13);
+    pointer-events: auto;
 }
 
 /* =========================
-   ARQUIVO SELECIONADO
+   ARQUIVO
 ========================= */
 
 .arquivo-selecionado {
@@ -481,10 +398,9 @@ body {
     margin: 0 14px 8px;
     padding: 8px 11px;
     border-radius: 10px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.08);
     font-size: 12px;
-    color: rgba(255,255,255,0.8);
 }
 
 .arquivo-selecionado.ativo {
@@ -504,7 +420,6 @@ body {
     background: transparent;
     color: #f87171;
     cursor: pointer;
-    font-size: 14px;
 }
 
 /* =========================
@@ -516,62 +431,41 @@ body {
     display: flex;
     gap: 10px;
     padding: 14px;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    background: rgba(0,0,0,0.25);
+    border-top: 1px solid rgba(255,255,255,.06);
+    background: rgba(0,0,0,.25);
     backdrop-filter: blur(14px);
     position: relative;
-    z-index: 30;
+    z-index: 100;
 }
-
-/* =========================
-   BOTÃO ANEXAR
-========================= */
 
 .btn-arquivo {
     width: 48px;
     flex-shrink: 0;
     padding: 14px 0;
     border-radius: 13px;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.07);
     color: white;
     cursor: pointer;
     font-size: 18px;
-    transition: 0.2s;
 }
-
-.btn-arquivo:hover {
-    background: rgba(255,255,255,0.13);
-    transform: translateY(-1px);
-}
-
-/* =========================
-   INPUT
-========================= */
 
 .entrada input[type="text"] {
     flex: 1;
     min-width: 0;
     padding: 14px;
     border-radius: 13px;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.06);
     color: white;
     outline: none;
+    position: relative;
+    z-index: 101;
 }
 
 .entrada input[type="text"]:focus {
     border-color: #7c3aed;
-    box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
 }
-
-.entrada input[type="text"]::placeholder {
-    color: rgba(255,255,255,0.45);
-}
-
-/* =========================
-   BOTÃO ENVIAR
-========================= */
 
 .entrada button#btnEnviar {
     padding: 14px 20px;
@@ -585,22 +479,14 @@ body {
     );
     color: white;
     font-weight: bold;
-    transition: 0.2s;
-}
-
-.entrada button#btnEnviar:hover {
-    transform: translateY(-1px);
+    position: relative;
+    z-index: 101;
 }
 
 .entrada button:disabled {
     opacity: .55;
     cursor: not-allowed;
-    transform: none;
 }
-
-/* =========================
-   HIDDEN
-========================= */
 
 .hidden {
     display: none !important;
@@ -611,7 +497,6 @@ body {
 ========================= */
 
 @keyframes pop {
-
     from {
         opacity: 0;
         transform: translateY(5px) scale(.98);
@@ -621,14 +506,10 @@ body {
         opacity: 1;
         transform: translateY(0) scale(1);
     }
-
 }
 
 @keyframes typing {
-
-    0%,
-    60%,
-    100% {
+    0%,60%,100% {
         opacity: .3;
         transform: translateY(0);
     }
@@ -637,14 +518,13 @@ body {
         opacity: 1;
         transform: translateY(-3px);
     }
-
 }
 
 /* =========================
    MOBILE
 ========================= */
 
-@media(max-width: 768px) {
+@media(max-width:768px) {
 
     body {
         flex-direction: column;
@@ -657,31 +537,7 @@ body {
         padding: 10px;
         gap: 8px;
         border-right: none;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
-
-    .logo {
-        padding: 0;
-    }
-
-    .logo h2 {
-        font-size: 19px;
-    }
-
-    .usuario {
-        padding: 8px;
-    }
-
-    .plano {
-        padding: 6px;
-    }
-
-    .nova-conversa {
-        padding: 9px;
-    }
-
-    .logout {
-        padding: 8px;
+        border-bottom: 1px solid rgba(255,255,255,.08);
     }
 
     .main {
@@ -728,7 +584,6 @@ body {
         width: 43px;
         padding: 12px 0;
     }
-
 }
 
 </style>
@@ -739,38 +594,38 @@ body {
 
 <aside class="sidebar">
 
-<div class="logo">
-    <h2>🤖 Orion AI</h2>
-</div>
+    <div class="logo">
+        <h2>🤖 Orion AI</h2>
+    </div>
 
-<div class="usuario">
-    Olá, {{ username }}
-</div>
+    <div class="usuario">
+        Olá, {{ username }}
+    </div>
 
-<div class="plano">
+    <div class="plano">
 
-    {% if plan == "premium" %}
-        ⭐ Plano PREMIUM
-    {% else %}
-        🆓 Plano FREE
-    {% endif %}
+        {% if plan == "premium" %}
+            ⭐ Plano PREMIUM
+        {% else %}
+            🆓 Plano FREE
+        {% endif %}
 
-</div>
+    </div>
 
-<button
-    class="nova-conversa"
-    type="button"
-    onclick="novaConversa()"
->
-    🆕 Nova conversa
-</button>
+    <button
+        class="nova-conversa"
+        type="button"
+        id="btnNovaConversa"
+    >
+        🆕 Nova conversa
+    </button>
 
-<a
-    href="/logout"
-    class="logout"
->
-    🚪 Sair
-</a>
+    <a
+        href="/logout"
+        class="logout"
+    >
+        🚪 Sair
+    </a>
 
 </aside>
 
@@ -804,8 +659,8 @@ body {
 
         <select id="seletorVoz">
 
-            <option value="">
-                Carregando vozes...
+            <option value="default">
+                Voz padrão do navegador
             </option>
 
         </select>
@@ -834,53 +689,49 @@ body {
         class="welcome"
     >
 
-        <h2>
-            🤖 Orion AI
-        </h2>
+        <h2>🤖 Orion AI</h2>
 
-        <p>
-            Como posso ajudar hoje?
-        </p>
+        <p>Como posso ajudar hoje?</p>
 
         <div class="quick-actions">
 
-            <div
+            <button
+                type="button"
                 class="quick"
-                onclick="atalho('Criar código')"
+                data-texto="Criar código"
             >
                 💻 Criar código
-            </div>
+            </button>
 
-            <div
+            <button
+                type="button"
                 class="quick"
-                onclick="atalho('Estudar')"
+                data-texto="Estudar"
             >
                 📚 Estudar
-            </div>
+            </button>
 
-            <div
+            <button
+                type="button"
                 class="quick"
-                onclick="atalho('Fazer resumo')"
+                data-texto="Fazer resumo"
             >
                 📝 Fazer resumo
-            </div>
+            </button>
 
-            <div
+            <button
+                type="button"
                 class="quick"
-                onclick="atalho('Tirar dúvidas')"
+                data-texto="Tirar dúvidas"
             >
                 ❓ Tirar dúvidas
-            </div>
+            </button>
 
         </div>
 
     </div>
 
 </div>
-
-<!-- =========================
-     ARQUIVO SELECIONADO
-========================= -->
 
 <div
     id="arquivoSelecionado"
@@ -900,7 +751,6 @@ body {
         type="button"
         id="removerArquivo"
         class="remover-arquivo"
-        title="Remover arquivo"
     >
         ✕
     </button>
@@ -909,41 +759,32 @@ body {
 
 <div class="entrada">
 
-    <!-- INPUT DE ARQUIVO ESCONDIDO -->
-
     <input
         type="file"
         id="arquivo"
+        accept="image/*"
         hidden
     >
-
-    <!-- BOTÃO ANEXAR -->
 
     <button
         type="button"
         id="btnArquivo"
         class="btn-arquivo"
-        title="Enviar arquivo"
-        aria-label="Enviar arquivo"
     >
         📎
     </button>
-
-    <!-- CAMPO DE MENSAGEM -->
 
     <input
         type="text"
         id="mensagem"
         placeholder="Digite sua mensagem..."
         autocomplete="off"
+        spellcheck="true"
     >
-
-    <!-- ENVIAR -->
 
     <button
         id="btnEnviar"
         type="button"
-        onclick="enviar()"
     >
         Enviar
     </button>
@@ -952,9 +793,8 @@ body {
 
 </main>
 
-<script src="/static/script.js"></script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 
 </body>
 
 </html>
-
