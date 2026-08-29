@@ -1,4 +1,3 @@
-````javascript
 // ============================================================
 // ORION AI - SCRIPT.JS
 // ============================================================
@@ -66,10 +65,6 @@ function formatarResposta(texto) {
 
     const blocosCodigo = [];
 
-    // ========================================================
-    // BLOCOS DE CÓDIGO
-    // ========================================================
-
     protegido = protegido.replace(
         /```([a-zA-Z0-9_+#.-]*)\s*\n?([\s\S]*?)```/g,
         function (_, linguagem, codigo) {
@@ -90,36 +85,20 @@ function formatarResposta(texto) {
         }
     );
 
-    // ========================================================
-    // REMOVE ASPAS TRIPLAS
-    // ========================================================
-
     protegido = protegido.replace(
         /^\s*'''\s*$/gm,
         ""
     );
-
-    // ========================================================
-    // NEGRITO
-    // ========================================================
 
     protegido = protegido.replace(
         /\*\*(.+?)\*\*/g,
         "<strong>$1</strong>"
     );
 
-    // ========================================================
-    // ITÁLICO
-    // ========================================================
-
     protegido = protegido.replace(
         /(?<!\*)\*([^*\n]+)\*(?!\*)/g,
         "<em>$1</em>"
     );
-
-    // ========================================================
-    // TÍTULOS
-    // ========================================================
 
     protegido = protegido.replace(
         /^### (.+)$/gm,
@@ -143,10 +122,6 @@ function formatarResposta(texto) {
     let listaAberta = false;
     let listaNumeradaAberta = false;
 
-    // ========================================================
-    // PROCESSAR LINHAS
-    // ========================================================
-
     linhas.forEach(function (linha) {
 
         const trim = linha.trim();
@@ -154,10 +129,6 @@ function formatarResposta(texto) {
         if (trim === "'''") {
             return;
         }
-
-        // ====================================================
-        // LISTA
-        // ====================================================
 
         if (/^[-•*]\s+/.test(trim)) {
 
@@ -181,10 +152,6 @@ function formatarResposta(texto) {
             return;
         }
 
-        // ====================================================
-        // LISTA NUMERADA
-        // ====================================================
-
         if (/^\d+[.)]\s+/.test(trim)) {
 
             if (listaAberta) {
@@ -207,10 +174,6 @@ function formatarResposta(texto) {
             return;
         }
 
-        // ====================================================
-        // FECHAR LISTAS
-        // ====================================================
-
         if (listaAberta) {
             resultado += "</ul>";
             listaAberta = false;
@@ -220,10 +183,6 @@ function formatarResposta(texto) {
             resultado += "</ol>";
             listaNumeradaAberta = false;
         }
-
-        // ====================================================
-        // LINHA VAZIA
-        // ====================================================
 
         if (!trim) {
 
@@ -237,10 +196,6 @@ function formatarResposta(texto) {
             `<div class="linha-resposta">${linha}</div>`;
     });
 
-    // ========================================================
-    // FECHAR LISTAS
-    // ========================================================
-
     if (listaAberta) {
         resultado += "</ul>";
     }
@@ -248,10 +203,6 @@ function formatarResposta(texto) {
     if (listaNumeradaAberta) {
         resultado += "</ol>";
     }
-
-    // ========================================================
-    // INSERIR CÓDIGOS
-    // ========================================================
 
     blocosCodigo.forEach(function (codigo, index) {
 
@@ -338,7 +289,7 @@ async function copiarMensagem(texto, botao) {
     } catch (erro) {
 
         console.error(
-            "Erro ao copiar mensagem:",
+            "Erro ao copiar:",
             erro
         );
 
@@ -350,7 +301,8 @@ async function copiarMensagem(texto, botao) {
             area.value = texto;
 
             area.style.position = "fixed";
-            area.style.opacity = "0";
+            area.style.left = "-9999px";
+            area.style.top = "0";
 
             document.body.appendChild(area);
 
@@ -381,7 +333,7 @@ async function copiarMensagem(texto, botao) {
         } catch (fallbackErro) {
 
             console.error(
-                "Não foi possível copiar:",
+                "Erro no fallback:",
                 fallbackErro
             );
 
@@ -461,7 +413,6 @@ function carregarVozes() {
             vozSalva &&
             voz.name === vozSalva
         ) {
-
             option.selected = true;
         }
     });
@@ -480,7 +431,9 @@ function carregarVozes() {
         if (vozBrasileira) {
 
             seletor.value =
-                vozes.indexOf(vozBrasileira);
+                vozes.indexOf(
+                    vozBrasileira
+                );
 
         } else {
 
@@ -496,7 +449,9 @@ function carregarVozes() {
             if (vozPortugues) {
 
                 seletor.value =
-                    vozes.indexOf(vozPortugues);
+                    vozes.indexOf(
+                        vozPortugues
+                    );
             }
         }
     }
@@ -664,10 +619,6 @@ function addMensagem(texto, tipo) {
             : "msg-bot"
     );
 
-    // ========================================================
-    // DIGITANDO
-    // ========================================================
-
     if (ehTyping) {
 
         div.classList.add(
@@ -693,10 +644,6 @@ function addMensagem(texto, tipo) {
         return div;
     }
 
-    // ========================================================
-    // HORA
-    // ========================================================
-
     const agora =
         new Date();
 
@@ -711,10 +658,6 @@ function addMensagem(texto, tipo) {
             .toString()
             .padStart(2, "0");
 
-    // ========================================================
-    // CONTEÚDO
-    // ========================================================
-
     let conteudo;
 
     if (ehUsuario) {
@@ -728,10 +671,6 @@ function addMensagem(texto, tipo) {
         conteudo =
             formatarResposta(texto);
     }
-
-    // ========================================================
-    // HTML
-    // ========================================================
 
     div.innerHTML = `
         <div class="conteudo-mensagem">
@@ -774,10 +713,6 @@ function addMensagem(texto, tipo) {
         }
     `;
 
-    // ========================================================
-    // COPIAR
-    // ========================================================
-
     if (!ehUsuario) {
 
         const botaoCopiar =
@@ -810,7 +745,7 @@ function addMensagem(texto, tipo) {
 
 
 // ============================================================
-// CARREGAR HISTÓRICO
+// HISTÓRICO
 // ============================================================
 
 async function carregarHistorico() {
@@ -898,6 +833,10 @@ async function carregarHistorico() {
 
 async function enviar() {
 
+    console.log(
+        "Orion AI: enviar() executado."
+    );
+
     if (enviando) {
         return;
     }
@@ -909,6 +848,11 @@ async function enviar() {
         elemento("btnEnviar");
 
     if (!campo) {
+
+        console.error(
+            "Campo #mensagem não encontrado."
+        );
+
         return;
     }
 
@@ -949,6 +893,10 @@ async function enviar() {
 
     try {
 
+        console.log(
+            "Orion AI: enviando POST /chat..."
+        );
+
         const resposta =
             await fetch(
                 "/chat",
@@ -972,6 +920,11 @@ async function enviar() {
                 }
             );
 
+        console.log(
+            "Orion AI: status:",
+            resposta.status
+        );
+
         if (typing) {
             typing.remove();
         }
@@ -986,7 +939,7 @@ async function enviar() {
         } catch (erroJSON) {
 
             console.error(
-                "Erro ao interpretar JSON:",
+                "Erro JSON:",
                 erroJSON
             );
         }
@@ -997,11 +950,19 @@ async function enviar() {
                 "Erro ao conectar com o servidor.";
 
             if (data.reply) {
-                mensagemErro = data.reply;
+
+                mensagemErro =
+                    data.reply;
+
             } else if (data.message) {
-                mensagemErro = data.message;
+
+                mensagemErro =
+                    data.message;
+
             } else if (data.error) {
-                mensagemErro = data.error;
+
+                mensagemErro =
+                    data.error;
             }
 
             addMensagem(
@@ -1163,6 +1124,7 @@ async function novaConversa() {
             elemento("tituloConversa");
 
         if (titulo) {
+
             titulo.textContent =
                 "Orion AI";
         }
@@ -1222,6 +1184,12 @@ async function carregarConversas() {
         }
 
         if (!resposta.ok) {
+
+            console.warn(
+                "Erro ao carregar conversas:",
+                resposta.status
+            );
+
             return;
         }
 
@@ -1271,11 +1239,14 @@ async function carregarConversas() {
 
                 item.addEventListener(
                     "click",
-                    function () {
+                    function (event) {
+
+                        event.preventDefault();
 
                         abrirConversa(
                             conversa.id
                         );
+
                     }
                 );
 
@@ -1479,6 +1450,10 @@ async function abrirConversa(id) {
 
 function configurarArquivos() {
 
+    console.log(
+        "Orion AI: configurando sistema de arquivos..."
+    );
+
     const btnArquivo =
         elemento("btnArquivo");
 
@@ -1494,45 +1469,110 @@ function configurarArquivos() {
     const removerArquivo =
         elemento("removerArquivo");
 
-    if (!btnArquivo || !arquivo) {
 
-        console.warn(
-            "Botão ou input de arquivo não encontrado."
+    // ========================================================
+    // VERIFICAR ELEMENTOS
+    // ========================================================
+
+    if (!btnArquivo) {
+
+        console.error(
+            "❌ #btnArquivo não encontrado no HTML."
         );
 
+    } else {
+
+        console.log(
+            "✅ #btnArquivo encontrado."
+        );
+    }
+
+
+    if (!arquivo) {
+
+        console.error(
+            "❌ #arquivo não encontrado no HTML."
+        );
+
+    } else {
+
+        console.log(
+            "✅ #arquivo encontrado."
+        );
+    }
+
+
+    if (!btnArquivo || !arquivo) {
         return;
     }
 
+
     // ========================================================
-    // ABRIR SELETOR
+    // GARANTIR QUE NÃO ENVIE O FORMULÁRIO
     // ========================================================
 
-    btnArquivo.addEventListener(
-        "click",
-        function () {
-
-            arquivo.click();
-
-        }
+    btnArquivo.setAttribute(
+        "type",
+        "button"
     );
+
+
+    // ========================================================
+    // BOTÃO ARQUIVO
+    // ========================================================
+
+    btnArquivo.onclick =
+        function (event) {
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            console.log(
+                "📁 Orion AI: botão arquivo clicado."
+            );
+
+            try {
+
+                arquivo.click();
+
+            } catch (erro) {
+
+                console.error(
+                    "❌ Erro ao abrir seletor:",
+                    erro
+                );
+
+            }
+
+        };
+
 
     // ========================================================
     // ARQUIVO ESCOLHIDO
     // ========================================================
 
-    arquivo.addEventListener(
-        "change",
+    arquivo.onchange =
         function () {
+
+            console.log(
+                "📁 Arquivo selecionado."
+            );
 
             if (
                 !arquivo.files ||
                 arquivo.files.length === 0
             ) {
+
                 return;
             }
 
             const arquivoEscolhido =
                 arquivo.files[0];
+
+            console.log(
+                "Arquivo:",
+                arquivoEscolhido.name
+            );
 
             if (nomeArquivo) {
 
@@ -1545,9 +1585,10 @@ function configurarArquivos() {
                 arquivoSelecionado.classList.remove(
                     "hidden"
                 );
+
             }
-        }
-    );
+        };
+
 
     // ========================================================
     // REMOVER ARQUIVO
@@ -1555,9 +1596,16 @@ function configurarArquivos() {
 
     if (removerArquivo) {
 
-        removerArquivo.addEventListener(
-            "click",
-            function () {
+        removerArquivo.setAttribute(
+            "type",
+            "button"
+        );
+
+        removerArquivo.onclick =
+            function (event) {
+
+                event.preventDefault();
+                event.stopPropagation();
 
                 arquivo.value = "";
 
@@ -1573,9 +1621,13 @@ function configurarArquivos() {
                         "hidden"
                     );
                 }
-            }
-        );
+
+            };
     }
+
+    console.log(
+        "✅ Sistema de arquivos configurado."
+    );
 }
 
 
@@ -1605,6 +1657,7 @@ function configurarEnter() {
 
                 enviar();
             }
+
         }
     );
 }
@@ -1664,9 +1717,20 @@ function configurarVoz() {
 
     if (botaoTestar) {
 
+        botaoTestar.setAttribute(
+            "type",
+            "button"
+        );
+
         botaoTestar.addEventListener(
             "click",
-            testarVoz
+            function (event) {
+
+                event.preventDefault();
+
+                testarVoz();
+
+            }
         );
     }
 
@@ -1712,6 +1776,82 @@ function configurarFormulario() {
 
 
 // ============================================================
+// BOTÃO ENVIAR
+// ============================================================
+
+function configurarBotaoEnviar() {
+
+    const botao =
+        elemento("btnEnviar");
+
+    if (!botao) {
+
+        console.warn(
+            "⚠️ #btnEnviar não encontrado."
+        );
+
+        return;
+    }
+
+    botao.setAttribute(
+        "type",
+        "button"
+    );
+
+    botao.onclick =
+        function (event) {
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            console.log(
+                "🚀 Botão enviar clicado."
+            );
+
+            enviar();
+
+        };
+
+    console.log(
+        "✅ Botão enviar configurado."
+    );
+}
+
+
+// ============================================================
+// BOTÃO NOVA CONVERSA
+// ============================================================
+
+function configurarNovaConversa() {
+
+    const botoes =
+        document.querySelectorAll(
+            "[onclick*='novaConversa'], #btnNovaConversa"
+        );
+
+    botoes.forEach(function (botao) {
+
+        botao.setAttribute(
+            "type",
+            "button"
+        );
+
+        botao.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+
+                novaConversa();
+
+            }
+        );
+
+    });
+}
+
+
+// ============================================================
 // INICIALIZAÇÃO
 // ============================================================
 
@@ -1720,8 +1860,23 @@ document.addEventListener(
     async function () {
 
         console.log(
-            "Orion AI: script carregado corretamente."
+            "===================================="
         );
+
+        console.log(
+            "ORION AI - SCRIPT CARREGADO"
+        );
+
+        console.log(
+            "===================================="
+        );
+
+
+        // ====================================================
+        // CONFIGURAÇÕES
+        // ====================================================
+
+        configurarBotaoEnviar();
 
         configurarEnter();
 
@@ -1731,9 +1886,26 @@ document.addEventListener(
 
         configurarArquivos();
 
+        configurarNovaConversa();
+
+
+        // ====================================================
+        // HISTÓRICO
+        // ====================================================
+
         await carregarHistorico();
 
+
+        // ====================================================
+        // CONVERSAS
+        // ====================================================
+
         await carregarConversas();
+
+
+        // ====================================================
+        // FOCO
+        // ====================================================
 
         const campo =
             elemento("mensagem");
@@ -1742,6 +1914,10 @@ document.addEventListener(
             campo.focus();
         }
 
+
+        console.log(
+            "✅ Orion AI inicializada."
+        );
+
     }
 );
-````
