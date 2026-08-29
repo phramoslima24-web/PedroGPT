@@ -269,7 +269,34 @@ async function copiarMensagem(texto, botao) {
 
     try {
 
-        await navigator.clipboard.writeText(texto);
+        if (
+            navigator.clipboard &&
+            window.isSecureContext
+        ) {
+
+            await navigator.clipboard.writeText(texto);
+
+        } else {
+
+            const area =
+                document.createElement("textarea");
+
+            area.value = texto;
+
+            area.style.position = "fixed";
+            area.style.left = "-9999px";
+            area.style.top = "0";
+            area.style.opacity = "0";
+
+            document.body.appendChild(area);
+
+            area.focus();
+            area.select();
+
+            document.execCommand("copy");
+
+            document.body.removeChild(area);
+        }
 
         const textoOriginal =
             botao.textContent;
@@ -295,54 +322,120 @@ async function copiarMensagem(texto, botao) {
             erro
         );
 
-        try {
-
-            const area =
-                document.createElement("textarea");
-
-            area.value = texto;
-
-            area.style.position = "fixed";
-            area.style.opacity = "0";
-
-            document.body.appendChild(area);
-
-            area.focus();
-            area.select();
-
-            document.execCommand("copy");
-
-            document.body.removeChild(area);
-
-            const textoOriginal =
-                botao.textContent;
-
-            botao.textContent =
-                "✅ Copiado!";
-
-            botao.disabled = true;
-
-            setTimeout(function () {
-
-                botao.textContent =
-                    textoOriginal;
-
-                botao.disabled = false;
-
-            }, 1500);
-
-        } catch (fallbackErro) {
-
-            console.error(
-                "Não foi possível copiar:",
-                fallbackErro
-            );
-
-            alert(
-                "Não foi possível copiar a mensagem."
-            );
-        }
+        alert(
+            "Não foi possível copiar a mensagem."
+        );
     }
+}
+
+
+// ============================================================
+// COLAR
+// ============================================================
+
+async function colarMensagem() {
+
+    const campo =
+        elemento("mensagem");
+
+    if (!campo) {
+        return;
+    }
+
+    try {
+
+        // Chrome / navegadores modernos
+        if (
+            navigator.clipboard &&
+            typeof navigator.clipboard.readText === "function"
+        ) {
+
+            const texto =
+                await navigator.clipboard.readText();
+
+            if (texto) {
+
+                campo.value +=
+                    texto;
+
+                campo.focus();
+
+                esconderWelcome();
+
+                campo.style.height =
+                    "auto";
+
+                campo.style.height =
+                    Math.min(
+                        campo.scrollHeight,
+                        180
+                    ) + "px";
+
+                return;
+            }
+        }
+
+        // Fallback
+        campo.focus();
+
+        alert(
+            "O navegador bloqueou o acesso à área de transferência. Use Ctrl + V para colar."
+        );
+
+    } catch (erro) {
+
+        console.error(
+            "Erro ao colar:",
+            erro
+        );
+
+        campo.focus();
+
+        alert(
+            "Não foi possível acessar a área de transferência. Use Ctrl + V para colar."
+        );
+    }
+}
+
+
+// ============================================================
+// CONFIGURAR BOTÃO COLAR
+// ============================================================
+
+function configurarColar() {
+
+    const botoes = [
+
+        elemento("btnColar"),
+        elemento("colar"),
+        elemento("botaoColar")
+
+    ];
+
+    const botao =
+        botoes.find(function (item) {
+            return item !== null;
+        });
+
+    if (!botao) {
+
+        console.warn(
+            "Botão Colar não encontrado."
+        );
+
+        return;
+    }
+
+    botao.addEventListener(
+        "click",
+        function (event) {
+
+            event.preventDefault();
+
+            colarMensagem();
+
+        }
+    );
 }
 
 
@@ -350,9 +443,41 @@ async function copiarMensagem(texto, botao) {
 // SISTEMA DE VOZ
 // ============================================================
 
+function mostrarStatusVoz(texto) {
+
+    const seletor =
+        elemento("seletorVoz");
+
+    if (!seletor) {
+        return;
+    }
+
+    seletor.innerHTML = "";
+
+    const option =
+        document.createElement("option");
+
+    option.value = "";
+
+    option.textContent =
+        texto;
+
+    option.disabled = true;
+
+    option.selected = true;
+
+    seletor.appendChild(option);
+}
+
+
 function carregarVozes() {
 
     if (!("speechSynthesis" in window)) {
+
+        mostrarStatusVoz(
+            "Voz não suportada"
+        );
+
         return;
     }
 
@@ -366,11 +491,21 @@ function carregarVozes() {
     const vozes =
         speechSynthesis.getVoices();
 
-    if (!vozes || vozes.length === 0) {
+    // O Chrome pode demorar para disponibilizar as vozes.
+    if (
+        !vozes ||
+        vozes.length === 0
+    ) {
+
+        mostrarStatusVoz(
+            "Carregando vozes..."
+        );
+
         return;
     }
 
-    vozesDisponiveis = vozes;
+    vozesDisponiveis =
+        Array.from(vozes);
 
     const vozSalva =
         localStorage.getItem("orion_voz");
@@ -378,87 +513,146 @@ function carregarVozes() {
     seletor.innerHTML = "";
 
     const ordenadas =
-        [...vozes].sort(function (a, b) {
+        [...vozesDisponiveis].sort(
+            function (a, b) {
 
-            const aPT =
-                a.lang.toLowerCase().startsWith("pt");
-
-            const bPT =
-                b.lang.toLowerCase().startsWith("pt");
-
-            if (aPT && !bPT) {
-                return -1;
-            }
-
-            if (!aPT && bPT) {
-                return 1;
-            }
-
-            return a.name.localeCompare(b.name);
-        });
-
-    ordenadas.forEach(function (voz) {
-
-        const option =
-            document.createElement("option");
-
-        option.value =
-            vozes.indexOf(voz);
-
-        option.textContent =
-            `${voz.name} (${voz.lang})`;
-
-        seletor.appendChild(option);
-
-        if (
-            vozSalva &&
-            voz.name === vozSalva
-        ) {
-
-            option.selected = true;
-        }
-    });
-
-    if (!vozSalva) {
-
-        const vozBrasileira =
-            ordenadas.find(function (voz) {
-
-                return voz.lang
-                    .toLowerCase()
-                    .includes("pt-br");
-
-            });
-
-        if (vozBrasileira) {
-
-            seletor.value =
-                vozes.indexOf(vozBrasileira);
-
-        } else {
-
-            const vozPortugues =
-                ordenadas.find(function (voz) {
-
-                    return voz.lang
+                const aPT =
+                    a.lang
                         .toLowerCase()
                         .startsWith("pt");
 
-                });
+                const bPT =
+                    b.lang
+                        .toLowerCase()
+                        .startsWith("pt");
 
-            if (vozPortugues) {
+                if (aPT && !bPT) {
+                    return -1;
+                }
 
-                seletor.value =
-                    vozes.indexOf(vozPortugues);
+                if (!aPT && bPT) {
+                    return 1;
+                }
+
+                return a.name.localeCompare(
+                    b.name
+                );
+            }
+        );
+
+    let indiceSelecionado = -1;
+
+    ordenadas.forEach(
+        function (voz, indice) {
+
+            const option =
+                document.createElement("option");
+
+            const indiceOriginal =
+                vozesDisponiveis.indexOf(voz);
+
+            option.value =
+                indiceOriginal;
+
+            option.textContent =
+                `${voz.name} (${voz.lang})`;
+
+            seletor.appendChild(option);
+
+            if (
+                vozSalva &&
+                voz.name === vozSalva
+            ) {
+
+                indiceSelecionado =
+                    indiceOriginal;
             }
         }
+    );
+
+    // Voz salva
+    if (indiceSelecionado !== -1) {
+
+        seletor.value =
+            String(indiceSelecionado);
+
+        return;
+    }
+
+    // Português brasileiro
+    const vozBrasileira =
+        ordenadas.find(
+            function (voz) {
+
+                return voz.lang
+                    .toLowerCase()
+                    .replace("_", "-")
+                    .includes("pt-br");
+
+            }
+        );
+
+    if (vozBrasileira) {
+
+        seletor.value =
+            String(
+                vozesDisponiveis.indexOf(
+                    vozBrasileira
+                )
+            );
+
+        salvarVozSelecionada();
+
+        return;
+    }
+
+    // Qualquer português
+    const vozPortugues =
+        ordenadas.find(
+            function (voz) {
+
+                return voz.lang
+                    .toLowerCase()
+                    .startsWith("pt");
+
+            }
+        );
+
+    if (vozPortugues) {
+
+        seletor.value =
+            String(
+                vozesDisponiveis.indexOf(
+                    vozPortugues
+                )
+            );
+
+        salvarVozSelecionada();
+
+        return;
+    }
+
+    // Se não houver português,
+    // usa a primeira voz disponível.
+    if (ordenadas.length > 0) {
+
+        seletor.value =
+            String(
+                vozesDisponiveis.indexOf(
+                    ordenadas[0]
+                )
+            );
     }
 }
 
 
 function obterVozSelecionada() {
 
-    if (!vozesDisponiveis.length) {
+    if (
+        !vozesDisponiveis ||
+        vozesDisponiveis.length === 0
+    ) {
+
         return null;
     }
 
@@ -472,7 +666,14 @@ function obterVozSelecionada() {
     const indice =
         Number(seletor.value);
 
-    return vozesDisponiveis[indice] || null;
+    if (Number.isNaN(indice)) {
+        return null;
+    }
+
+    return (
+        vozesDisponiveis[indice] ||
+        null
+    );
 }
 
 
@@ -510,6 +711,8 @@ function testarVoz() {
         return;
     }
 
+    carregarVozes();
+
     const voz =
         obterVozSelecionada();
 
@@ -521,7 +724,8 @@ function testarVoz() {
         );
 
     fala.lang =
-        voz?.lang || "pt-BR";
+        voz?.lang ||
+        "pt-BR";
 
     fala.rate = 1;
     fala.pitch = 1;
@@ -550,13 +754,21 @@ function falarResposta(texto) {
         return;
     }
 
+    if (!texto) {
+        return;
+    }
+
+    carregarVozes();
+
     speechSynthesis.cancel();
 
     const vozSelecionada =
         obterVozSelecionada();
 
     const fala =
-        new SpeechSynthesisUtterance(texto);
+        new SpeechSynthesisUtterance(
+            limparAspasTriplas(texto)
+        );
 
     fala.lang =
         vozSelecionada?.lang ||
@@ -566,7 +778,8 @@ function falarResposta(texto) {
     fala.pitch = 1;
 
     if (vozSelecionada) {
-        fala.voice = vozSelecionada;
+        fala.voice =
+            vozSelecionada;
     }
 
     speechSynthesis.speak(fala);
@@ -577,7 +790,11 @@ function falarResposta(texto) {
 // ADICIONAR MENSAGEM
 // ============================================================
 
-function addMensagem(texto, tipo, imagem = null) {
+function addMensagem(
+    texto,
+    tipo,
+    imagem = null
+) {
 
     const chat =
         elemento("chat");
@@ -896,7 +1113,10 @@ function configurarArquivos() {
                 preview.style.flexShrink =
                     "0";
 
-                if (nomeArquivo) {
+                if (
+                    arquivoSelecionado &&
+                    nomeArquivo
+                ) {
 
                     arquivoSelecionado.insertBefore(
                         preview,
@@ -945,32 +1165,11 @@ function configurarArquivos() {
 
         removerArquivo.addEventListener(
             "click",
-            function () {
+            function (event) {
 
-                arquivo.value = "";
+                event.preventDefault();
 
-                arquivoAtual =
-                    null;
-
-                if (nomeArquivo) {
-
-                    nomeArquivo.textContent =
-                        "Nenhum arquivo selecionado";
-                }
-
-                if (arquivoSelecionado) {
-
-                    arquivoSelecionado.classList.remove(
-                        "ativo"
-                    );
-                }
-
-                const preview =
-                    elemento("previewArquivo");
-
-                if (preview) {
-                    preview.remove();
-                }
+                limparArquivoSelecionado();
             }
         );
     }
@@ -1071,6 +1270,10 @@ async function enviar() {
         elemento("btnEnviar");
 
     if (!campo) {
+        console.error(
+            "Campo #mensagem não encontrado."
+        );
+
         return;
     }
 
@@ -1088,10 +1291,6 @@ async function enviar() {
 
     esconderWelcome();
 
-    // ========================================================
-    // PREPARAR IMAGEM
-    // ========================================================
-
     let imagemPreview = null;
     let imagemBase64 = null;
     let tipoImagem = null;
@@ -1103,16 +1302,35 @@ async function enviar() {
             arquivoAtual.type.startsWith("image/")
         ) {
 
-            imagemPreview =
-                await arquivoParaDataURL(
-                    arquivoAtual
+            try {
+
+                imagemPreview =
+                    await arquivoParaDataURL(
+                        arquivoAtual
+                    );
+
+                imagemBase64 =
+                    imagemPreview;
+
+                tipoImagem =
+                    arquivoAtual.type;
+
+            } catch (erroArquivo) {
+
+                console.error(
+                    "Erro ao ler imagem:",
+                    erroArquivo
                 );
 
-            imagemBase64 =
-                imagemPreview;
+                addMensagem(
+                    "❌ Não foi possível ler a imagem.",
+                    "bot"
+                );
 
-            tipoImagem =
-                arquivoAtual.type;
+                enviando = false;
+
+                return;
+            }
 
         } else {
 
@@ -1139,6 +1357,9 @@ async function enviar() {
 
     campo.value = "";
 
+    campo.style.height =
+        "auto";
+
     limparArquivoSelecionado();
 
     if (botao) {
@@ -1156,10 +1377,6 @@ async function enviar() {
         );
 
     try {
-
-        // ====================================================
-        // ENVIA TEXTO + IMAGEM
-        // ====================================================
 
         const resposta =
             await fetch(
@@ -1210,6 +1427,8 @@ async function enviar() {
                 "Erro ao interpretar JSON:",
                 erroJSON
             );
+
+            data = {};
         }
 
         if (!resposta.ok) {
@@ -1218,11 +1437,19 @@ async function enviar() {
                 "Erro ao conectar com o servidor.";
 
             if (data.reply) {
-                mensagemErro = data.reply;
+
+                mensagemErro =
+                    data.reply;
+
             } else if (data.message) {
-                mensagemErro = data.message;
+
+                mensagemErro =
+                    data.message;
+
             } else if (data.error) {
-                mensagemErro = data.error;
+
+                mensagemErro =
+                    data.error;
             }
 
             addMensagem(
@@ -1379,6 +1606,15 @@ function atalho(texto) {
         texto;
 
     campo.focus();
+
+    campo.style.height =
+        "auto";
+
+    campo.style.height =
+        Math.min(
+            campo.scrollHeight,
+            180
+        ) + "px";
 }
 
 
@@ -1859,7 +2095,12 @@ function configurarVoz() {
 
         botaoTestar.addEventListener(
             "click",
-            testarVoz
+            function (event) {
+
+                event.preventDefault();
+
+                testarVoz();
+            }
         );
     }
 
@@ -1875,6 +2116,23 @@ function configurarVoz() {
                 carregarVozes();
 
             };
+
+        // Alguns navegadores não disparam
+        // onvoiceschanged imediatamente.
+        setTimeout(
+            carregarVozes,
+            500
+        );
+
+        setTimeout(
+            carregarVozes,
+            1500
+        );
+
+        setTimeout(
+            carregarVozes,
+            3000
+        );
     }
 }
 
@@ -1899,6 +2157,12 @@ function configurarFormulario() {
             campo.style.height =
                 "auto";
 
+            campo.style.height =
+                Math.min(
+                    campo.scrollHeight,
+                    180
+                ) + "px";
+
         }
     );
 }
@@ -1919,6 +2183,8 @@ document.addEventListener(
         configurarEnter();
 
         configurarVoz();
+
+        configurarColar();
 
         configurarFormulario();
 
