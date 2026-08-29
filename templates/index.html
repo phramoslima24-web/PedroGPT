@@ -6,6 +6,7 @@
 <head>
 
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Orion AI</title>
@@ -31,7 +32,6 @@ body {
     );
     color: white;
 }
-
 
 /* =========================
    SIDEBAR
@@ -119,7 +119,6 @@ body {
     background: rgba(255,255,255,0.12);
 }
 
-
 /* =========================
    MAIN
 ========================= */
@@ -132,7 +131,6 @@ body {
     height: 100vh;
     position: relative;
 }
-
 
 /* =========================
    HEADER
@@ -152,7 +150,6 @@ body {
     position: relative;
     z-index: 20;
 }
-
 
 /* =========================
    OPÇÕES
@@ -181,7 +178,6 @@ body {
     accent-color: #7c3aed;
     cursor: pointer;
 }
-
 
 /* =========================
    SELETOR DE VOZ
@@ -214,13 +210,7 @@ body {
     color: white;
 }
 
-
-/* =========================
-   BOTÃO TESTAR VOZ
-========================= */
-
-.btn-testar-voz,
-.btn-parar-voz {
+.btn-testar-voz {
     padding: 7px 11px;
     border-radius: 9px;
     border: 1px solid rgba(255,255,255,0.1);
@@ -231,21 +221,10 @@ body {
     font-size: 12px;
 }
 
-.btn-testar-voz:hover,
-.btn-parar-voz:hover {
+.btn-testar-voz:hover {
     background: rgba(255,255,255,0.13);
     transform: translateY(-1px);
 }
-
-.btn-parar-voz {
-    background: rgba(239,68,68,0.15);
-    border-color: rgba(239,68,68,0.3);
-}
-
-.btn-parar-voz:hover {
-    background: rgba(239,68,68,0.25);
-}
-
 
 /* =========================
    ÁREA DO CHAT
@@ -259,7 +238,6 @@ body {
     flex-direction: column;
     overflow: hidden;
 }
-
 
 /* =========================
    CHAT
@@ -286,7 +264,6 @@ body {
     background: rgba(255,255,255,0.15);
     border-radius: 10px;
 }
-
 
 /* =========================
    MENSAGENS
@@ -318,7 +295,6 @@ body {
     backdrop-filter: blur(10px);
 }
 
-
 /* =========================
    CONTEÚDO
 ========================= */
@@ -349,7 +325,6 @@ body {
     height: 8px;
 }
 
-
 /* =========================
    TÍTULOS
 ========================= */
@@ -369,7 +344,6 @@ body {
     margin: 8px 0 6px;
 }
 
-
 /* =========================
    LISTAS
 ========================= */
@@ -384,7 +358,6 @@ body {
     margin-bottom: 7px;
     line-height: 1.55;
 }
-
 
 /* =========================
    CÓDIGO
@@ -407,7 +380,6 @@ body {
 .codigo-pedrogpt code {
     font-family: Consolas, Monaco, monospace;
 }
-
 
 /* =========================
    TYPING
@@ -438,7 +410,6 @@ body {
 .typing-dots span:nth-child(3) {
     animation-delay: .3s;
 }
-
 
 /* =========================
    WELCOME
@@ -471,7 +442,6 @@ body {
     color: rgba(255,255,255,0.6);
 }
 
-
 /* =========================
    QUICK ACTIONS
 ========================= */
@@ -500,6 +470,42 @@ body {
     background: rgba(255,255,255,0.13);
 }
 
+/* =========================
+   ARQUIVO SELECIONADO
+========================= */
+
+.arquivo-selecionado {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin: 0 14px 8px;
+    padding: 8px 11px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    font-size: 12px;
+    color: rgba(255,255,255,0.8);
+}
+
+.arquivo-selecionado.ativo {
+    display: flex;
+}
+
+.nome-arquivo {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.remover-arquivo {
+    border: none;
+    background: transparent;
+    color: #f87171;
+    cursor: pointer;
+    font-size: 14px;
+}
 
 /* =========================
    ENTRADA
@@ -517,7 +523,33 @@ body {
     z-index: 30;
 }
 
-.entrada input {
+/* =========================
+   BOTÃO ANEXAR
+========================= */
+
+.btn-arquivo {
+    width: 48px;
+    flex-shrink: 0;
+    padding: 14px 0;
+    border-radius: 13px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.07);
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+    transition: 0.2s;
+}
+
+.btn-arquivo:hover {
+    background: rgba(255,255,255,0.13);
+    transform: translateY(-1px);
+}
+
+/* =========================
+   INPUT
+========================= */
+
+.entrada input[type="text"] {
     flex: 1;
     min-width: 0;
     padding: 14px;
@@ -528,16 +560,20 @@ body {
     outline: none;
 }
 
-.entrada input:focus {
+.entrada input[type="text"]:focus {
     border-color: #7c3aed;
     box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
 }
 
-.entrada input::placeholder {
+.entrada input[type="text"]::placeholder {
     color: rgba(255,255,255,0.45);
 }
 
-.entrada button {
+/* =========================
+   BOTÃO ENVIAR
+========================= */
+
+.entrada button#btnEnviar {
     padding: 14px 20px;
     border-radius: 13px;
     border: none;
@@ -552,7 +588,7 @@ body {
     transition: 0.2s;
 }
 
-.entrada button:hover {
+.entrada button#btnEnviar:hover {
     transform: translateY(-1px);
 }
 
@@ -562,7 +598,6 @@ body {
     transform: none;
 }
 
-
 /* =========================
    HIDDEN
 ========================= */
@@ -570,7 +605,6 @@ body {
 .hidden {
     display: none !important;
 }
-
 
 /* =========================
    ANIMAÇÕES
@@ -592,7 +626,9 @@ body {
 
 @keyframes typing {
 
-    0%, 60%, 100% {
+    0%,
+    60%,
+    100% {
         opacity: .3;
         transform: translateY(0);
     }
@@ -603,7 +639,6 @@ body {
     }
 
 }
-
 
 /* =========================
    MOBILE
@@ -678,14 +713,20 @@ body {
 
     .entrada {
         padding: 9px;
+        gap: 7px;
     }
 
-    .entrada input {
+    .entrada input[type="text"] {
         padding: 12px;
     }
 
-    .entrada button {
+    .entrada button#btnEnviar {
         padding: 12px 15px;
+    }
+
+    .btn-arquivo {
+        width: 43px;
+        padding: 12px 0;
     }
 
 }
@@ -696,47 +737,44 @@ body {
 
 <body>
 
-
 <aside class="sidebar">
 
-    <div class="logo">
-        <h2>🤖 Orion AI</h2>
-    </div>
+<div class="logo">
+    <h2>🤖 Orion AI</h2>
+</div>
 
-    <div class="usuario">
-        Olá, {{ username }}
-    </div>
+<div class="usuario">
+    Olá, {{ username }}
+</div>
 
-    <div class="plano">
+<div class="plano">
 
-        {% if plan == "premium" %}
-            ⭐ Plano PREMIUM
-        {% else %}
-            🆓 Plano FREE
-        {% endif %}
+    {% if plan == "premium" %}
+        ⭐ Plano PREMIUM
+    {% else %}
+        🆓 Plano FREE
+    {% endif %}
 
-    </div>
+</div>
 
-    <button
-        class="nova-conversa"
-        type="button"
-        onclick="novaConversa()"
-    >
-        🆕 Nova conversa
-    </button>
+<button
+    class="nova-conversa"
+    type="button"
+    onclick="novaConversa()"
+>
+    🆕 Nova conversa
+</button>
 
-    <a
-        href="/logout"
-        class="logout"
-    >
-        🚪 Sair
-    </a>
+<a
+    href="/logout"
+    class="logout"
+>
+    🚪 Sair
+</a>
 
 </aside>
 
-
 <main class="main">
-
 
 <header class="header">
 
@@ -745,7 +783,6 @@ body {
     </span>
 
 </header>
-
 
 <div class="opcoes">
 
@@ -761,7 +798,6 @@ body {
 
     </label>
 
-
     <div class="seletor-voz">
 
         <span>🎙️ Voz:</span>
@@ -774,7 +810,6 @@ body {
 
         </select>
 
-
         <button
             type="button"
             id="btnTestarVoz"
@@ -783,30 +818,16 @@ body {
             ▶️ Testar
         </button>
 
-
-        <button
-            type="button"
-            id="btnPararVoz"
-            class="btn-parar-voz"
-            onclick="pararResposta()"
-            style="display:none;"
-        >
-            ⏹️ Parar
-        </button>
-
     </div>
 
 </div>
 
-
 <div class="chat-area">
-
 
     <div
         id="chat"
         class="chat"
     ></div>
-
 
     <div
         id="welcome"
@@ -821,9 +842,7 @@ body {
             Como posso ajudar hoje?
         </p>
 
-
         <div class="quick-actions">
-
 
             <div
                 class="quick"
@@ -832,14 +851,12 @@ body {
                 💻 Criar código
             </div>
 
-
             <div
                 class="quick"
                 onclick="atalho('Estudar')"
             >
                 📚 Estudar
             </div>
-
 
             <div
                 class="quick"
@@ -848,7 +865,6 @@ body {
                 📝 Fazer resumo
             </div>
 
-
             <div
                 class="quick"
                 onclick="atalho('Tirar dúvidas')"
@@ -856,15 +872,64 @@ body {
                 ❓ Tirar dúvidas
             </div>
 
-
         </div>
 
     </div>
 
 </div>
 
+<!-- =========================
+     ARQUIVO SELECIONADO
+========================= -->
+
+<div
+    id="arquivoSelecionado"
+    class="arquivo-selecionado"
+>
+
+    <span>📎</span>
+
+    <span
+        id="nomeArquivo"
+        class="nome-arquivo"
+    >
+        Nenhum arquivo selecionado
+    </span>
+
+    <button
+        type="button"
+        id="removerArquivo"
+        class="remover-arquivo"
+        title="Remover arquivo"
+    >
+        ✕
+    </button>
+
+</div>
 
 <div class="entrada">
+
+    <!-- INPUT DE ARQUIVO ESCONDIDO -->
+
+    <input
+        type="file"
+        id="arquivo"
+        hidden
+    >
+
+    <!-- BOTÃO ANEXAR -->
+
+    <button
+        type="button"
+        id="btnArquivo"
+        class="btn-arquivo"
+        title="Enviar arquivo"
+        aria-label="Enviar arquivo"
+    >
+        📎
+    </button>
+
+    <!-- CAMPO DE MENSAGEM -->
 
     <input
         type="text"
@@ -872,6 +937,8 @@ body {
         placeholder="Digite sua mensagem..."
         autocomplete="off"
     >
+
+    <!-- ENVIAR -->
 
     <button
         id="btnEnviar"
@@ -883,12 +950,11 @@ body {
 
 </div>
 
-
 </main>
-
 
 <script src="/static/script.js"></script>
 
 </body>
 
 </html>
+
