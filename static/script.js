@@ -4,6 +4,7 @@
 // ============================================================
 
 let enviando = false;
+let vozesDisponiveis = [];
 
 
 // ============================================================
@@ -396,13 +397,6 @@ async function copiarMensagem(texto, botao) {
 // SISTEMA DE VOZ
 // ============================================================
 
-let vozesDisponiveis = [];
-
-
-// ============================================================
-// CARREGAR VOZES
-// ============================================================
-
 function carregarVozes() {
 
     if (!("speechSynthesis" in window)) {
@@ -426,15 +420,9 @@ function carregarVozes() {
     vozesDisponiveis = vozes;
 
     const vozSalva =
-        localStorage.getItem(
-            "orion_voz"
-        );
+        localStorage.getItem("orion_voz");
 
     seletor.innerHTML = "";
-
-    // ========================================================
-    // ORDENAR
-    // ========================================================
 
     const ordenadas =
         [...vozes].sort(function (a, b) {
@@ -453,16 +441,10 @@ function carregarVozes() {
                 return 1;
             }
 
-            return a.name.localeCompare(
-                b.name
-            );
+            return a.name.localeCompare(b.name);
         });
 
-    // ========================================================
-    // ADICIONAR VOZES
-    // ========================================================
-
-    ordenadas.forEach(function (voz, index) {
+    ordenadas.forEach(function (voz) {
 
         const option =
             document.createElement("option");
@@ -479,14 +461,9 @@ function carregarVozes() {
             vozSalva &&
             voz.name === vozSalva
         ) {
-
             option.selected = true;
         }
     });
-
-    // ========================================================
-    // SE NENHUMA VOZ FOI SALVA
-    // ========================================================
 
     if (!vozSalva) {
 
@@ -502,9 +479,7 @@ function carregarVozes() {
         if (vozBrasileira) {
 
             seletor.value =
-                vozes.indexOf(
-                    vozBrasileira
-                );
+                vozes.indexOf(vozBrasileira);
 
         } else {
 
@@ -520,9 +495,7 @@ function carregarVozes() {
             if (vozPortugues) {
 
                 seletor.value =
-                    vozes.indexOf(
-                        vozPortugues
-                    );
+                    vozes.indexOf(vozPortugues);
             }
         }
     }
@@ -595,24 +568,14 @@ function testarVoz() {
         return;
     }
 
-    const seletor =
-        elemento("seletorVoz");
-
-    if (!seletor) {
-        return;
-    }
-
     const voz =
         obterVozSelecionada();
-
-    const texto =
-        "Olá! Eu sou a Orion AI. Essa é a voz selecionada.";
 
     speechSynthesis.cancel();
 
     const fala =
         new SpeechSynthesisUtterance(
-            texto
+            "Olá! Eu sou a Orion AI. Essa é a voz selecionada."
         );
 
     fala.lang =
@@ -625,9 +588,50 @@ function testarVoz() {
         fala.voice = voz;
     }
 
-    speechSynthesis.speak(
-        fala
-    );
+    speechSynthesis.speak(fala);
+}
+
+
+// ============================================================
+// FALAR RESPOSTA
+// ============================================================
+
+function falarResposta(texto) {
+
+    const opcaoVoz =
+        elemento("voz");
+
+    if (
+        !opcaoVoz ||
+        !opcaoVoz.checked
+    ) {
+        return;
+    }
+
+    if (!("speechSynthesis" in window)) {
+        return;
+    }
+
+    speechSynthesis.cancel();
+
+    const vozSelecionada =
+        obterVozSelecionada();
+
+    const fala =
+        new SpeechSynthesisUtterance(texto);
+
+    fala.lang =
+        vozSelecionada?.lang ||
+        "pt-BR";
+
+    fala.rate = 1;
+    fala.pitch = 1;
+
+    if (vozSelecionada) {
+        fala.voice = vozSelecionada;
+    }
+
+    speechSynthesis.speak(fala);
 }
 
 
@@ -637,16 +641,21 @@ function testarVoz() {
 
 function addMensagem(texto, tipo) {
 
-    const chat = elemento("chat");
+    const chat =
+        elemento("chat");
 
     if (!chat) {
         return null;
     }
 
-    const div = document.createElement("div");
+    const div =
+        document.createElement("div");
 
-    const ehUsuario = tipo === "user";
-    const ehTyping = tipo.includes("typing");
+    const ehUsuario =
+        tipo === "user";
+
+    const ehTyping =
+        tipo.includes("typing");
 
     div.classList.add(
         ehUsuario
@@ -660,7 +669,9 @@ function addMensagem(texto, tipo) {
 
     if (ehTyping) {
 
-        div.classList.add("typing-message");
+        div.classList.add(
+            "typing-message"
+        );
 
         div.innerHTML = `
             <div class="conteudo-mensagem">
@@ -685,14 +696,19 @@ function addMensagem(texto, tipo) {
     // HORA
     // ========================================================
 
-    const agora = new Date();
+    const agora =
+        new Date();
 
     const hora =
-        agora.getHours().toString().padStart(2, "0")
+        agora.getHours()
+            .toString()
+            .padStart(2, "0")
         +
         ":"
         +
-        agora.getMinutes().toString().padStart(2, "0");
+        agora.getMinutes()
+            .toString()
+            .padStart(2, "0");
 
     // ========================================================
     // CONTEÚDO
@@ -702,12 +718,14 @@ function addMensagem(texto, tipo) {
 
     if (ehUsuario) {
 
-        conteudo = escaparHTML(texto)
-            .replace(/\n/g, "<br>");
+        conteudo =
+            escaparHTML(texto)
+                .replace(/\n/g, "<br>");
 
     } else {
 
-        conteudo = formatarResposta(texto);
+        conteudo =
+            formatarResposta(texto);
     }
 
     // ========================================================
@@ -756,7 +774,7 @@ function addMensagem(texto, tipo) {
     `;
 
     // ========================================================
-    // EVENTO DO BOTÃO COPIAR
+    // BOTÃO COPIAR
     // ========================================================
 
     if (!ehUsuario) {
@@ -798,22 +816,21 @@ async function carregarHistorico() {
 
     try {
 
-        const resposta = await fetch(
-            "/history",
-            {
-                method: "GET",
-                credentials: "same-origin",
-                cache: "no-store",
-                headers: {
-                    "Accept": "application/json"
+        const resposta =
+            await fetch(
+                "/history",
+                {
+                    method: "GET",
+                    credentials: "same-origin",
+                    cache: "no-store",
+                    headers: {
+                        "Accept":
+                            "application/json"
+                    }
                 }
-            }
-        );
+            );
 
         if (resposta.status === 401) {
-            console.warn(
-                "Usuário não autenticado."
-            );
             return;
         }
 
@@ -827,9 +844,11 @@ async function carregarHistorico() {
             return;
         }
 
-        const historico = await resposta.json();
+        const historico =
+            await resposta.json();
 
-        const chat = elemento("chat");
+        const chat =
+            elemento("chat");
 
         if (!chat) {
             return;
@@ -851,18 +870,13 @@ async function carregarHistorico() {
 
         historico.forEach(function (item) {
 
-            const sender =
-                item?.sender ?? "bot";
-
-            const message =
-                item?.message ?? "";
-
             addMensagem(
-                message,
-                sender === "user"
+                item?.message ?? "",
+                item?.sender === "user"
                     ? "user"
                     : "bot"
             );
+
         });
 
         scrollBottom();
@@ -883,25 +897,22 @@ async function carregarHistorico() {
 
 async function enviar() {
 
-    console.log("Orion AI: botão enviar acionado.");
-
     if (enviando) {
         return;
     }
 
-    const campo = elemento("mensagem");
-    const botao = elemento("btnEnviar");
+    const campo =
+        elemento("mensagem");
+
+    const botao =
+        elemento("btnEnviar");
 
     if (!campo) {
-
-        console.error(
-            "Campo #mensagem não encontrado."
-        );
-
         return;
     }
 
-    const texto = campo.value.trim();
+    const texto =
+        campo.value.trim();
 
     if (!texto) {
 
@@ -914,20 +925,12 @@ async function enviar() {
 
     esconderWelcome();
 
-    // ========================================================
-    // MOSTRA MENSAGEM DO USUÁRIO
-    // ========================================================
-
     addMensagem(
         texto,
         "user"
     );
 
     campo.value = "";
-
-    // ========================================================
-    // DESABILITA BOTÃO
-    // ========================================================
 
     if (botao) {
 
@@ -937,46 +940,36 @@ async function enviar() {
             "Enviando...";
     }
 
-    // ========================================================
-    // MOSTRA DIGITANDO
-    // ========================================================
-
-    const typing = addMensagem(
-        "",
-        "bot typing"
-    );
+    const typing =
+        addMensagem(
+            "",
+            "bot typing"
+        );
 
     try {
 
-        console.log(
-            "Orion AI: enviando para /chat..."
-        );
+        const resposta =
+            await fetch(
+                "/chat",
+                {
+                    method: "POST",
 
-        const resposta = await fetch(
-            "/chat",
-            {
-                method: "POST",
+                    credentials:
+                        "same-origin",
 
-                credentials: "same-origin",
+                    headers: {
+                        "Content-Type":
+                            "application/json",
 
-                headers: {
-                    "Content-Type":
-                        "application/json",
+                        "Accept":
+                            "application/json"
+                    },
 
-                    "Accept":
-                        "application/json"
-                },
-
-                body: JSON.stringify({
-                    message: texto
-                })
-            }
-        );
-
-        console.log(
-            "Orion AI: resposta do servidor:",
-            resposta.status
-        );
+                    body: JSON.stringify({
+                        message: texto
+                    })
+                }
+            );
 
         if (typing) {
             typing.remove();
@@ -986,18 +979,19 @@ async function enviar() {
 
         try {
 
-            data = await resposta.json();
+            data =
+                await resposta.json();
 
         } catch (erroJSON) {
 
             console.error(
-                "Servidor não retornou JSON:",
+                "Erro ao interpretar JSON:",
                 erroJSON
             );
         }
 
         // ====================================================
-        // ERRO
+        // ERRO DO SERVIDOR
         // ====================================================
 
         if (!resposta.ok) {
@@ -1006,19 +1000,11 @@ async function enviar() {
                 "Erro ao conectar com o servidor.";
 
             if (data.reply) {
-
-                mensagemErro =
-                    data.reply;
-
+                mensagemErro = data.reply;
             } else if (data.message) {
-
-                mensagemErro =
-                    data.message;
-
+                mensagemErro = data.message;
             } else if (data.error) {
-
-                mensagemErro =
-                    data.error;
+                mensagemErro = data.error;
             }
 
             addMensagem(
@@ -1048,6 +1034,9 @@ async function enviar() {
         falarResposta(
             textoResposta
         );
+
+        // Atualiza a lista de conversas
+        await carregarConversas();
 
     } catch (erro) {
 
@@ -1083,55 +1072,6 @@ async function enviar() {
 
 
 // ============================================================
-// VOZ
-// ============================================================
-
-function falarResposta(texto) {
-
-    const opcaoVoz =
-        elemento("voz");
-
-    if (
-        !opcaoVoz ||
-        !opcaoVoz.checked
-    ) {
-        return;
-    }
-
-    if (
-        !("speechSynthesis" in window)
-    ) {
-        return;
-    }
-
-    speechSynthesis.cancel();
-
-    const vozSelecionada =
-        obterVozSelecionada();
-
-    const voz =
-        new SpeechSynthesisUtterance(
-            texto
-        );
-
-    voz.lang =
-        vozSelecionada?.lang ||
-        "pt-BR";
-
-    voz.rate = 1;
-    voz.pitch = 1;
-
-    if (vozSelecionada) {
-        voz.voice = vozSelecionada;
-    }
-
-    speechSynthesis.speak(
-        voz
-    );
-}
-
-
-// ============================================================
 // ATALHO
 // ============================================================
 
@@ -1146,7 +1086,8 @@ function atalho(texto) {
         return;
     }
 
-    campo.value = texto;
+    campo.value =
+        texto;
 
     campo.focus();
 }
@@ -1222,10 +1163,7 @@ async function novaConversa() {
 
         mostrarWelcome();
 
-        if (
-            "speechSynthesis" in window
-        ) {
-
+        if ("speechSynthesis" in window) {
             speechSynthesis.cancel();
         }
 
@@ -1233,12 +1171,9 @@ async function novaConversa() {
             elemento("tituloConversa");
 
         if (titulo) {
-
             titulo.textContent =
                 "Orion AI";
         }
-
-        await carregarHistorico();
 
         await carregarConversas();
 
@@ -1265,6 +1200,8 @@ async function carregarConversas() {
     const lista =
         elemento("conversas");
 
+    // O HTML atual não possui ainda uma lista
+    // de conversas na sidebar.
     if (!lista) {
         return;
     }
@@ -1295,12 +1232,6 @@ async function carregarConversas() {
         }
 
         if (!resposta.ok) {
-
-            console.warn(
-                "Erro ao carregar conversas:",
-                resposta.status
-            );
-
             return;
         }
 
@@ -1515,6 +1446,7 @@ async function abrirConversa(id) {
                             ? "user"
                             : "bot"
                     );
+
                 }
             );
         }
@@ -1531,6 +1463,7 @@ async function abrirConversa(id) {
                         String(item.dataset.id) ===
                         String(id)
                     );
+
                 }
             );
 
@@ -1603,6 +1536,7 @@ function configurarVoz() {
 
                     speechSynthesis.cancel();
                 }
+
             }
         );
     }
@@ -1624,6 +1558,7 @@ function configurarVoz() {
 
                     speechSynthesis.cancel();
                 }
+
             }
         );
     }
@@ -1635,10 +1570,7 @@ function configurarVoz() {
 
         botaoTestar.addEventListener(
             "click",
-            function () {
-
-                testarVoz();
-            }
+            testarVoz
         );
     }
 
@@ -1677,6 +1609,7 @@ function configurarFormulario() {
 
             campo.style.height =
                 "auto";
+
         }
     );
 }
@@ -1694,15 +1627,23 @@ document.addEventListener(
             "Orion AI: script carregado corretamente."
         );
 
-        await carregarHistorico();
-
-        await carregarConversas();
-
         configurarEnter();
 
         configurarVoz();
 
         configurarFormulario();
+
+        await carregarHistorico();
+
+        await carregarConversas();
+
+        const campo =
+            elemento("mensagem");
+
+        if (campo) {
+            campo.focus();
+        }
+
     }
 );
 
