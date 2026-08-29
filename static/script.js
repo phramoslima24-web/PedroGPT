@@ -1,3 +1,4 @@
+
 // ============================================================
 // ORION AI - SCRIPT.JS
 // ============================================================
@@ -69,7 +70,7 @@ function formatarResposta(texto) {
     // ========================================================
 
     protegido = protegido.replace(
-        /```([a-zA-Z0-9_+#.-]*)\s*\n?([\s\S]*?)```/g,
+        /([a-zA-Z0-9_+#.-]*)\s*\n?([\s\S]*?)```/g,
         function (_, linguagem, codigo) {
 
             const id = blocosCodigo.length;
@@ -149,7 +150,6 @@ function formatarResposta(texto) {
 
         const trim = linha.trim();
 
-        // Ignora linha vazia de aspas triplas
         if (trim === "'''") {
             return;
         }
@@ -308,6 +308,93 @@ function scrollBottom() {
 
 
 // ============================================================
+// COPIAR MENSAGEM
+// ============================================================
+
+async function copiarMensagem(texto, botao) {
+
+    try {
+
+        await navigator.clipboard.writeText(texto);
+
+        const textoOriginal =
+            botao.textContent;
+
+        botao.textContent =
+            "✅ Copiado!";
+
+        botao.disabled = true;
+
+        setTimeout(function () {
+
+            botao.textContent =
+                textoOriginal;
+
+            botao.disabled = false;
+
+        }, 1500);
+
+    } catch (erro) {
+
+        console.error(
+            "Erro ao copiar mensagem:",
+            erro
+        );
+
+        // Fallback para navegadores que não permitem
+        // navigator.clipboard
+        try {
+
+            const area =
+                document.createElement("textarea");
+
+            area.value = texto;
+
+            area.style.position = "fixed";
+            area.style.opacity = "0";
+
+            document.body.appendChild(area);
+
+            area.focus();
+            area.select();
+
+            document.execCommand("copy");
+
+            document.body.removeChild(area);
+
+            const textoOriginal =
+                botao.textContent;
+
+            botao.textContent =
+                "✅ Copiado!";
+
+            botao.disabled = true;
+
+            setTimeout(function () {
+
+                botao.textContent =
+                    textoOriginal;
+
+                botao.disabled = false;
+
+            }, 1500);
+
+        } catch (fallbackErro) {
+
+            console.error(
+                "Não foi possível copiar:",
+                fallbackErro
+            );
+
+            alert(
+                "Não foi possível copiar a mensagem."
+            );
+        }
+    }
+}
+
+
+// ============================================================
 // ADICIONAR MENSAGEM
 // ============================================================
 
@@ -387,6 +474,15 @@ function addMensagem(texto, tipo) {
     }
 
     // ========================================================
+    // BOTÃO COPIAR
+    // ========================================================
+
+    const textoParaCopiar =
+        escaparHTML(
+            limparAspasTriplas(texto)
+        );
+
+    // ========================================================
     // HTML
     // ========================================================
 
@@ -406,7 +502,57 @@ function addMensagem(texto, tipo) {
         >
             ${hora}
         </div>
+
+        ${
+            !ehUsuario
+            ? `
+                <button
+                    type="button"
+                    class="copiar-mensagem"
+                    style="
+                        margin-top:8px;
+                        padding:5px 9px;
+                        border-radius:8px;
+                        border:1px solid rgba(255,255,255,0.1);
+                        background:rgba(255,255,255,0.06);
+                        color:white;
+                        cursor:pointer;
+                        font-size:11px;
+                    "
+                >
+                    📋 Copiar
+                </button>
+            `
+            : ""
+        }
     `;
+
+    // ========================================================
+    // EVENTO DO BOTÃO COPIAR
+    // ========================================================
+
+    if (!ehUsuario) {
+
+        const botaoCopiar =
+            div.querySelector(
+                ".copiar-mensagem"
+            );
+
+        if (botaoCopiar) {
+
+            botaoCopiar.addEventListener(
+                "click",
+                function () {
+
+                    copiarMensagem(
+                        limparAspasTriplas(texto),
+                        botaoCopiar
+                    );
+
+                }
+            );
+        }
+    }
 
     chat.appendChild(div);
 
@@ -1198,7 +1344,7 @@ function configurarEnter() {
 
 
 // ============================================================
-// VOZ
+// CONFIGURAR VOZ
 // ============================================================
 
 function configurarVoz() {
