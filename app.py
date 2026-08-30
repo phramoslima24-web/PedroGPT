@@ -22,6 +22,10 @@ from werkzeug.security import (
 from groq import Groq
 
 
+# ============================================================
+# ORION AI - APP.PY
+# ============================================================
+
 app = Flask(__name__)
 
 
@@ -92,6 +96,11 @@ def init_db():
         """)
 
         cursor.execute("""
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'free'
+        """)
+
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS messages (
                 id SERIAL PRIMARY KEY,
                 username TEXT,
@@ -124,17 +133,14 @@ def init_db():
             )
         """)
 
-        cursor.execute("""
-            ALTER TABLE users
-            ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'free'
-        """)
-
         conn.commit()
 
 
 try:
 
     init_db()
+
+    print("BANCO DE DADOS INICIALIZADO COM SUCESSO.")
 
 except Exception as e:
 
@@ -154,7 +160,7 @@ def version():
     return jsonify({
 
         "version":
-            "1.2",
+            "1.3",
 
         "apk_url":
             "https://drive.google.com/file/d/1mdpeCrIJNcU2DlHLabjgh17zvM2ha703/view?usp=drive_link"
@@ -185,7 +191,14 @@ def criar_conversa(
             titulo
         ))
 
-        conversation_id = cursor.fetchone()[0]
+        resultado = cursor.fetchone()
+
+        if not resultado:
+            raise RuntimeError(
+                "Não foi possível criar a conversa."
+            )
+
+        conversation_id = resultado[0]
 
         conn.commit()
 
@@ -198,6 +211,19 @@ def verificar_conversa(
 ):
 
     if not conversation_id:
+        return False
+
+    try:
+
+        conversation_id = int(
+            conversation_id
+        )
+
+    except (
+        ValueError,
+        TypeError
+    ):
+
         return False
 
     with get_db() as conn:
@@ -230,18 +256,31 @@ def conversa_atual():
 
     if conversation_id:
 
-        if verificar_conversa(
-            username,
-            conversation_id
-        ):
-            return conversation_id
+        try:
+
+            if verificar_conversa(
+                username,
+                conversation_id
+            ):
+                return int(conversation_id)
+
+        except Exception as e:
+
+            print(
+                "ERRO AO VERIFICAR CONVERSA:",
+                repr(e)
+            )
 
     conversation_id = criar_conversa(
         username,
         "Nova conversa"
     )
 
-    session["conversation_id"] = conversation_id
+    session["conversation_id"] = (
+        conversation_id
+    )
+
+    session.modified = True
 
     return conversation_id
 
@@ -249,7 +288,7 @@ def conversa_atual():
 def gerar_titulo(mensagem):
 
     titulo = (
-        mensagem
+        str(mensagem or "")
         .replace("\n", " ")
         .strip()
     )
@@ -294,7 +333,7 @@ def atualizar_titulo_se_necessario(
 
         titulo_atual = (
             conversa["title"] or ""
-        )
+        ).strip()
 
         if titulo_atual != "Nova conversa":
             return
@@ -337,7 +376,10 @@ def obter_plan_usuario(username):
         if not usuario:
             return "free"
 
-        return usuario["plan"] or "free"
+        return (
+            usuario["plan"]
+            or "free"
+        ).lower()
 
 
 # ============================================================
@@ -365,11 +407,26 @@ def home():
             url_for("login")
         )
 
-    conversa_atual()
+    try:
 
-    session["plan"] = obter_plan_usuario(
-        session["user"]
-    )
+        conversa_atual()
+
+        session["plan"] = obter_plan_usuario(
+            session["user"]
+        )
+
+    except Exception as e:
+
+        print(
+            "ERRO AO CARREGAR HOME:",
+            repr(e)
+        )
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Erro ao carregar o banco de dados."
+        }), 500
 
     return render_template(
         "index.html",
@@ -595,7 +652,7 @@ def admin_users():
     premium = sum(
         1
         for usuario in usuarios
-        if (usuario["plan"] or "free") == "premium"
+        if (usuario["plan"] or "free").lower() == "premium"
     )
 
     free = total - premium
@@ -1057,6 +1114,7 @@ def api_login():
 
                 senha_correta = False
 
+            # Migração de senhas antigas em texto puro
             if not senha_correta:
 
                 senha_antiga = user["password"]
@@ -1092,7 +1150,10 @@ def api_login():
 
             session["user"] = user["username"]
             session["admin"] = False
-            session["plan"] = user["plan"] or "free"
+            session["plan"] = (
+                user["plan"]
+                or "free"
+            )
 
             conversation_id = criar_conversa(
                 user["username"],
@@ -1102,6 +1163,8 @@ def api_login():
             session["conversation_id"] = (
                 conversation_id
             )
+
+            session.modified = True
 
             return jsonify({
 
@@ -1149,228 +1212,252 @@ def chat():
                 False
         }), 401
 
-    # ========================================================
-    # RECEBER JSON
-    # ========================================================
-
-    data = request.get_json(
-        silent=True
-    ) or {}
-
-    mensagem = str(
-        data.get("message") or ""
-    ).strip()
-
-    imagem_base64 = data.get("image")
-    tipo_imagem = data.get("image_type")
-
-    # ========================================================
-    # VALIDAR MENSAGEM
-    # ========================================================
-
-    if len(mensagem) > 12000:
-
-        return jsonify({
-            "reply":
-                "Sua mensagem é muito grande. Tente enviar uma mensagem menor.",
-            "success":
-                False
-        }), 400
-
-    # ========================================================
-    # VALIDAR IMAGEM
-    # ========================================================
-
-    if imagem_base64:
-
-        if not isinstance(
-            imagem_base64,
-            str
-        ):
-
-            return jsonify({
-                "reply":
-                    "❌ Imagem inválida.",
-                "success":
-                    False
-            }), 400
-
-        if not tipo_imagem:
-
-            tipo_imagem = "image/jpeg"
-
-        tipos_permitidos = [
-
-            "image/jpeg",
-            "image/png",
-            "image/webp",
-            "image/gif"
-
-        ]
-
-        if tipo_imagem not in tipos_permitidos:
-
-            return jsonify({
-                "reply":
-                    "❌ Formato de imagem não suportado. Use JPG, PNG, WEBP ou GIF.",
-                "success":
-                    False
-            }), 400
-
-        # Limite aproximado do Base64.
-        # A Groq aceita imagens de até 20 MB.
-        if len(imagem_base64) > 28_000_000:
-
-            return jsonify({
-                "reply":
-                    "❌ A imagem é muito grande. Use uma imagem menor.",
-                "success":
-                    False
-            }), 400
-
-    # ========================================================
-    # PRECISA TER TEXTO OU IMAGEM
-    # ========================================================
-
-    if not mensagem and not imagem_base64:
-
-        return jsonify({
-            "reply":
-                "Digite uma mensagem ou envie uma imagem.",
-            "success":
-                False
-        }), 400
-
-    username = session["user"]
-
-    plan = obter_plan_usuario(
-        username
-    )
-
-    session["plan"] = plan
-
-    conversation_id = conversa_atual()
-
-    if not conversation_id:
-
-        return jsonify({
-            "reply":
-                "Não foi possível abrir a conversa.",
-            "success":
-                False
-        }), 500
-
-    # ========================================================
-    # LIMITE FREE
-    # ========================================================
-
-    with get_db() as conn:
-
-        cursor = conn.cursor()
-
-        if plan == "free":
-
-            cursor.execute("""
-                SELECT COUNT(*)
-                FROM chat_messages cm
-                INNER JOIN conversations c
-                ON cm.conversation_id = c.id
-                WHERE c.username = %s
-                AND cm.sender = 'user'
-                AND DATE(cm.created_at) = CURRENT_DATE
-            """, (
-                username,
-            ))
-
-            total = cursor.fetchone()[0]
-
-            if total >= 20:
-
-                return jsonify({
-                    "reply":
-                        "❌ Limite diário do plano FREE atingido (20 mensagens).",
-                    "limit_reached":
-                        True,
-                    "plan":
-                        plan
-                }), 429
+    try:
 
         # ====================================================
-        # SALVAR MENSAGEM NO HISTÓRICO
+        # RECEBER JSON
         # ====================================================
 
-        mensagem_salva = mensagem
+        data = request.get_json(
+            silent=True
+        ) or {}
+
+        mensagem = str(
+            data.get("message") or ""
+        ).strip()
+
+        imagem_base64 = data.get("image")
+        tipo_imagem = data.get("image_type")
+
+        # ====================================================
+        # VALIDAR MENSAGEM
+        # ====================================================
+
+        if len(mensagem) > 12000:
+
+            return jsonify({
+                "reply":
+                    "Sua mensagem é muito grande. Tente enviar uma mensagem menor.",
+                "success":
+                    False
+            }), 400
+
+        # ====================================================
+        # VALIDAR IMAGEM
+        # ====================================================
 
         if imagem_base64:
 
-            if mensagem:
+            if not isinstance(
+                imagem_base64,
+                str
+            ):
 
-                mensagem_salva = (
-                    "📷 [Imagem enviada]\n\n"
-                    + mensagem
-                )
+                return jsonify({
+                    "reply":
+                        "❌ Imagem inválida.",
+                    "success":
+                        False
+                }), 400
 
-            else:
+            if not tipo_imagem:
 
-                mensagem_salva = (
-                    "📷 [Imagem enviada]"
-                )
+                tipo_imagem = "image/jpeg"
 
-        cursor.execute("""
-            INSERT INTO chat_messages
-            (conversation_id, sender, message)
-            VALUES (%s, %s, %s)
-            RETURNING id
-        """, (
-            conversation_id,
-            "user",
-            mensagem_salva
-        ))
+            tipos_permitidos = [
 
-        mensagem_id = cursor.fetchone()[0]
+                "image/jpeg",
+                "image/png",
+                "image/webp",
+                "image/gif"
 
-        cursor.execute("""
-            UPDATE conversations
-            SET updated_at = CURRENT_TIMESTAMP
-            WHERE id = %s
-        """, (
-            conversation_id,
-        ))
+            ]
 
-        conn.commit()
+            if tipo_imagem not in tipos_permitidos:
 
-    # ========================================================
-    # TÍTULO
-    # ========================================================
+                return jsonify({
+                    "reply":
+                        "❌ Formato de imagem não suportado. Use JPG, PNG, WEBP ou GIF.",
+                    "success":
+                        False
+                }), 400
 
-    if mensagem:
+            # Limite aproximado
+            if len(imagem_base64) > 27_000_000:
 
-        atualizar_titulo_se_necessario(
-            conversation_id,
-            mensagem
+                return jsonify({
+                    "reply":
+                        "❌ A imagem é muito grande. Use uma imagem menor.",
+                    "success":
+                        False
+                }), 400
+
+        # ====================================================
+        # PRECISA TER TEXTO OU IMAGEM
+        # ====================================================
+
+        if not mensagem and not imagem_base64:
+
+            return jsonify({
+                "reply":
+                    "Digite uma mensagem ou envie uma imagem.",
+                "success":
+                    False
+            }), 400
+
+        username = session["user"]
+
+        plan = obter_plan_usuario(
+            username
         )
 
-    # ========================================================
-    # DATA E HORA
-    # ========================================================
+        session["plan"] = plan
 
-    agora = datetime.now()
+        # ====================================================
+        # CONVERSA ATUAL
+        # ====================================================
 
-    data_atual = agora.strftime(
-        "%d/%m/%Y"
-    )
+        conversation_id = conversa_atual()
 
-    hora_atual = agora.strftime(
-        "%H:%M"
-    )
+        if not conversation_id:
 
-    # ========================================================
-    # ESTILO
-    # ========================================================
+            return jsonify({
+                "reply":
+                    "Não foi possível abrir a conversa.",
+                "success":
+                    False
+            }), 500
 
-    if plan == "free":
+        # ====================================================
+        # LIMITE FREE
+        # ====================================================
 
-        estilo = """
+        with get_db() as conn:
+
+            cursor = conn.cursor()
+
+            if plan == "free":
+
+                cursor.execute("""
+                    SELECT COUNT(*)
+                    FROM chat_messages cm
+                    INNER JOIN conversations c
+                    ON cm.conversation_id = c.id
+                    WHERE c.username = %s
+                    AND cm.sender = 'user'
+                    AND DATE(cm.created_at) = CURRENT_DATE
+                """, (
+                    username,
+                ))
+
+                total = cursor.fetchone()[0]
+
+                if total >= 20:
+
+                    return jsonify({
+                        "reply":
+                            "❌ Limite diário do plano FREE atingido (20 mensagens).",
+                        "limit_reached":
+                            True,
+                        "success":
+                            False,
+                        "plan":
+                            plan
+                    }), 429
+
+            # =================================================
+            # SALVAR MENSAGEM
+            # =================================================
+
+            mensagem_salva = mensagem
+
+            if imagem_base64:
+
+                if mensagem:
+
+                    mensagem_salva = (
+                        "📷 [Imagem enviada]\n\n"
+                        + mensagem
+                    )
+
+                else:
+
+                    mensagem_salva = (
+                        "📷 [Imagem enviada]"
+                    )
+
+            cursor.execute("""
+                INSERT INTO chat_messages
+                (conversation_id, sender, message)
+                VALUES (%s, %s, %s)
+                RETURNING id
+            """, (
+                conversation_id,
+                "user",
+                mensagem_salva
+            ))
+
+            resultado = cursor.fetchone()
+
+            if not resultado:
+
+                raise RuntimeError(
+                    "Não foi possível salvar a mensagem."
+                )
+
+            mensagem_id = resultado[0]
+
+            cursor.execute("""
+                UPDATE conversations
+                SET updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (
+                conversation_id,
+            ))
+
+            conn.commit()
+
+        # ====================================================
+        # TÍTULO
+        # ====================================================
+
+        if mensagem:
+
+            try:
+
+                atualizar_titulo_se_necessario(
+                    conversation_id,
+                    mensagem
+                )
+
+            except Exception as erro_titulo:
+
+                print(
+                    "ERRO AO ATUALIZAR TÍTULO:",
+                    repr(erro_titulo)
+                )
+
+        # ====================================================
+        # DATA E HORA
+        # ====================================================
+
+        agora = datetime.now()
+
+        data_atual = agora.strftime(
+            "%d/%m/%Y"
+        )
+
+        hora_atual = agora.strftime(
+            "%H:%M"
+        )
+
+        # ====================================================
+        # ESTILO
+        # ====================================================
+
+        if plan == "free":
+
+            estilo = """
 Responda de forma clara, útil e objetiva.
 
 Prefira respostas relativamente curtas,
@@ -1379,9 +1466,9 @@ mas não deixe de explicar o necessário.
 Mantenha boa qualidade e organização.
 """
 
-    else:
+        else:
 
-        estilo = """
+            estilo = """
 Responda de forma completa, detalhada
 e inteligente.
 
@@ -1391,17 +1478,17 @@ Use exemplos quando eles ajudarem
 o usuário a entender.
 """
 
-    # ========================================================
-    # SYSTEM PROMPT
-    # ========================================================
+        # ====================================================
+        # SYSTEM PROMPT
+        # ====================================================
 
-    mensagens_ia = [
+        mensagens_ia = [
 
-        {
-            "role":
-                "system",
+            {
+                "role":
+                    "system",
 
-            "content": f"""
+                "content": f"""
 Você é o Orion AI, um assistente
 virtual brasileiro inteligente, útil,
 natural e amigável.
@@ -1425,11 +1512,9 @@ Quando o usuário enviar uma imagem:
 - não invente detalhes que não consegue identificar.
 
 A data atual é:
-
 {data_atual}
 
 A hora atual é:
-
 {hora_atual}
 
 Responda em português do Brasil
@@ -1468,104 +1553,100 @@ PLANO:
 
 {estilo}
 """
-        }
-
-    ]
-
-    # ========================================================
-    # HISTÓRICO
-    # ========================================================
-
-    with get_db() as conn:
-
-        cursor = conn.cursor(
-            cursor_factory=psycopg2.extras.RealDictCursor
-        )
-
-        cursor.execute("""
-            SELECT sender, message
-            FROM chat_messages
-            WHERE conversation_id = %s
-            ORDER BY id DESC
-            LIMIT 20
-        """, (
-            conversation_id,
-        ))
-
-        historico = cursor.fetchall()
-
-    for item in reversed(historico):
-
-        role = (
-            "assistant"
-            if item["sender"] == "bot"
-            else "user"
-        )
-
-        mensagens_ia.append({
-
-            "role":
-                role,
-
-            "content":
-                item["message"]
-
-        })
-
-    # ========================================================
-    # CONTEÚDO DA MENSAGEM ATUAL
-    # ========================================================
-
-    conteudo_usuario = []
-
-    if mensagem:
-
-        conteudo_usuario.append({
-
-            "type":
-                "text",
-
-            "text":
-                mensagem
-
-        })
-
-    if imagem_base64:
-
-        conteudo_usuario.append({
-
-            "type":
-                "image_url",
-
-            "image_url": {
-
-                "url":
-                    f"data:{tipo_imagem};base64,{imagem_base64}"
-
             }
 
-        })
+        ]
 
-    # ========================================================
-    # VERIFICAR API
-    # ========================================================
+        # ====================================================
+        # HISTÓRICO
+        # ====================================================
 
-    if client is None:
+        with get_db() as conn:
 
-        return jsonify({
-            "reply":
-                "❌ A chave GROQ_API_KEY não está configurada no servidor.",
-            "success":
-                False
-        }), 500
+            cursor = conn.cursor(
+                cursor_factory=psycopg2.extras.RealDictCursor
+            )
 
-    # ========================================================
-    # GROQ
-    # ========================================================
+            cursor.execute("""
+                SELECT
+                    sender,
+                    message
+                FROM chat_messages
+                WHERE conversation_id = %s
+                ORDER BY id DESC
+                LIMIT 20
+            """, (
+                conversation_id,
+            ))
 
-    try:
+            historico = cursor.fetchall()
 
-        # A mensagem atual precisa ser multimodal.
+        for item in reversed(historico):
+
+            role = (
+                "assistant"
+                if item["sender"] == "bot"
+                else "user"
+            )
+
+            mensagens_ia.append({
+
+                "role":
+                    role,
+
+                "content":
+                    item["message"]
+
+            })
+
+        # ====================================================
+        # CONTEÚDO DA MENSAGEM ATUAL
+        # ====================================================
+
+        conteudo_usuario = []
+
+        if mensagem:
+
+            conteudo_usuario.append({
+
+                "type":
+                    "text",
+
+                "text":
+                    mensagem
+
+            })
+
+        if imagem_base64:
+
+            conteudo_usuario.append({
+
+                "type":
+                    "image_url",
+
+                "image_url": {
+
+                    "url":
+                        f"data:{tipo_imagem};base64,{imagem_base64}"
+
+                }
+
+            })
+
+        # ====================================================
+        # VERIFICAR GROQ
+        # ====================================================
+
+        if client is None:
+
+            raise RuntimeError(
+                "GROQ_API_KEY não configurada."
+            )
+
+        # ====================================================
+        # CHAMADA GROQ
+        # ====================================================
+
         mensagens_para_api = list(
             mensagens_ia
         )
@@ -1588,7 +1669,9 @@ PLANO:
 
             temperature=0.7,
 
-            max_completion_tokens=2048
+            max_completion_tokens=2048,
+
+            reasoning_effort="none"
 
         )
 
@@ -1605,34 +1688,95 @@ PLANO:
                 "Não consegui gerar uma resposta."
             )
 
+        # ====================================================
+        # SALVAR RESPOSTA
+        # ====================================================
+
+        with get_db() as conn:
+
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                INSERT INTO chat_messages
+                (conversation_id, sender, message)
+                VALUES (%s, %s, %s)
+            """, (
+                conversation_id,
+                "bot",
+                texto
+            ))
+
+            cursor.execute("""
+                UPDATE conversations
+                SET updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (
+                conversation_id,
+            ))
+
+            conn.commit()
+
+        # ====================================================
+        # RESPOSTA
+        # ====================================================
+
+        return jsonify({
+
+            "success":
+                True,
+
+            "reply":
+                texto,
+
+            "conversation_id":
+                conversation_id,
+
+            "plan":
+                plan
+
+        })
+
     except Exception as e:
 
         print(
-            "ERRO GROQ:",
+            "=================================================="
+        )
+
+        print(
+            "ERRO NO CHAT:"
+        )
+
+        print(
             repr(e)
         )
 
+        print(
+            "=================================================="
+        )
+
         # ====================================================
-        # REVERTER MENSAGEM SE A IA FALHAR
+        # TENTAR REVERTER MENSAGEM DO USUÁRIO
         # ====================================================
 
         try:
 
-            with get_db() as conn:
+            if "mensagem_id" in locals():
 
-                cursor = conn.cursor()
+                with get_db() as conn:
 
-                cursor.execute("""
-                    DELETE FROM chat_messages
-                    WHERE id = %s
-                    AND conversation_id = %s
-                    AND sender = 'user'
-                """, (
-                    mensagem_id,
-                    conversation_id
-                ))
+                    cursor = conn.cursor()
 
-                conn.commit()
+                    cursor.execute("""
+                        DELETE FROM chat_messages
+                        WHERE id = %s
+                        AND conversation_id = %s
+                        AND sender = 'user'
+                    """, (
+                        mensagem_id,
+                        conversation_id
+                    ))
+
+                    conn.commit()
 
         except Exception as erro_db:
 
@@ -1641,60 +1785,52 @@ PLANO:
                 repr(erro_db)
             )
 
+        mensagem_erro = (
+            "❌ Ocorreu um erro ao processar sua mensagem."
+        )
+
+        # Erros conhecidos da Groq
+        texto_erro = str(e).lower()
+
+        if "api key" in texto_erro:
+
+            mensagem_erro = (
+                "❌ A GROQ_API_KEY não está configurada corretamente no Render."
+            )
+
+        elif "model" in texto_erro and (
+            "not found" in texto_erro
+            or "model_not_found" in texto_erro
+        ):
+
+            mensagem_erro = (
+                "❌ O modelo da IA não está disponível para esta chave da Groq."
+            )
+
+        elif "rate limit" in texto_erro or "429" in texto_erro:
+
+            mensagem_erro = (
+                "❌ A IA atingiu o limite temporário de requisições. Tente novamente em alguns segundos."
+            )
+
+        elif "database" in texto_erro or "postgres" in texto_erro:
+
+            mensagem_erro = (
+                "❌ Erro ao acessar o banco de dados PostgreSQL."
+            )
+
         return jsonify({
-            "reply":
-                "❌ Ocorreu um erro ao conectar com a IA. Tente novamente.",
+
             "success":
-                False
+                False,
+
+            "reply":
+                mensagem_erro,
+
+            "message":
+                mensagem_erro
+
         }), 500
-
-    # ========================================================
-    # SALVAR RESPOSTA
-    # ========================================================
-
-    with get_db() as conn:
-
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            INSERT INTO chat_messages
-            (conversation_id, sender, message)
-            VALUES (%s, %s, %s)
-        """, (
-            conversation_id,
-            "bot",
-            texto
-        ))
-
-        cursor.execute("""
-            UPDATE conversations
-            SET updated_at = CURRENT_TIMESTAMP
-            WHERE id = %s
-        """, (
-            conversation_id,
-        ))
-
-        conn.commit()
-
-    # ========================================================
-    # RESPOSTA
-    # ========================================================
-
-    return jsonify({
-
-        "success":
-            True,
-
-        "reply":
-            texto,
-
-        "conversation_id":
-            conversation_id,
-
-        "plan":
-            plan
-
-    })
 
 
 # ============================================================
@@ -1706,48 +1842,71 @@ def conversations():
 
     if "user" not in session:
 
-        return jsonify([]), 401
+        return jsonify({
+            "success": False,
+            "message":
+                "Faça login primeiro."
+        }), 401
 
-    with get_db() as conn:
+    try:
 
-        cursor = conn.cursor(
-            cursor_factory=psycopg2.extras.RealDictCursor
+        with get_db() as conn:
+
+            cursor = conn.cursor(
+                cursor_factory=psycopg2.extras.RealDictCursor
+            )
+
+            cursor.execute("""
+                SELECT
+                    id,
+                    title,
+                    created_at,
+                    updated_at
+                FROM conversations
+                WHERE username = %s
+                ORDER BY updated_at DESC, id DESC
+            """, (
+                session["user"],
+            ))
+
+            lista = cursor.fetchall()
+
+        return jsonify([
+
+            {
+                "id":
+                    item["id"],
+
+                "title":
+                    item["title"] or "Nova conversa",
+
+                "created_at":
+                    item["created_at"].isoformat()
+                    if item["created_at"]
+                    else None,
+
+                "updated_at":
+                    item["updated_at"].isoformat()
+                    if item["updated_at"]
+                    else None
+            }
+
+            for item in lista
+
+        ])
+
+    except Exception as e:
+
+        print(
+            "ERRO CONVERSATIONS:",
+            repr(e)
         )
 
-        cursor.execute("""
-            SELECT
-                id,
-                title,
-                created_at,
-                updated_at
-            FROM conversations
-            WHERE username = %s
-            ORDER BY updated_at DESC, id DESC
-        """, (
-            session["user"],
-        ))
-
-        lista = cursor.fetchall()
-
-    return jsonify([
-
-        {
-            "id":
-                item["id"],
-
-            "title":
-                item["title"] or "Nova conversa",
-
-            "created_at":
-                item["created_at"],
-
-            "updated_at":
-                item["updated_at"]
-        }
-
-        for item in lista
-
-    ])
+        return jsonify({
+            "success": False,
+            "message":
+                "Erro ao carregar conversas."
+        }), 500
 
 
 # ============================================================
@@ -1771,102 +1930,121 @@ def open_conversation(
                 "Faça login primeiro."
         }), 401
 
-    if not verificar_conversa(
-        session["user"],
-        conversation_id
-    ):
+    try:
 
-        return jsonify({
-            "success":
-                False,
+        if not verificar_conversa(
+            session["user"],
+            conversation_id
+        ):
 
-            "message":
-                "Conversa não encontrada."
-        }), 404
-
-    session["conversation_id"] = (
-        conversation_id
-    )
-
-    with get_db() as conn:
-
-        cursor = conn.cursor(
-            cursor_factory=psycopg2.extras.RealDictCursor
-        )
-
-        cursor.execute("""
-            SELECT
-                sender,
-                message,
-                created_at
-            FROM chat_messages
-            WHERE conversation_id = %s
-            ORDER BY id ASC
-        """, (
-            conversation_id,
-        ))
-
-        mensagens = cursor.fetchall()
-
-        cursor.execute("""
-            SELECT
-                title,
-                created_at,
-                updated_at
-            FROM conversations
-            WHERE id = %s
-            AND username = %s
-        """, (
-            conversation_id,
-            session["user"]
-        ))
-
-        conversa = cursor.fetchone()
-
-    return jsonify({
-
-        "success":
-            True,
-
-        "conversation_id":
-            conversation_id,
-
-        "title": (
-            conversa["title"]
-            if conversa
-            else "Nova conversa"
-        ),
-
-        "created_at": (
-            conversa["created_at"]
-            if conversa
-            else None
-        ),
-
-        "updated_at": (
-            conversa["updated_at"]
-            if conversa
-            else None
-        ),
-
-        "messages": [
-
-            {
-                "sender":
-                    item["sender"],
+            return jsonify({
+                "success":
+                    False,
 
                 "message":
-                    item["message"],
+                    "Conversa não encontrada."
+            }), 404
 
-                "created_at":
-                    item["created_at"]
-            }
+        session["conversation_id"] = (
+            conversation_id
+        )
 
-            for item in mensagens
+        session.modified = True
 
-        ]
+        with get_db() as conn:
 
-    })
+            cursor = conn.cursor(
+                cursor_factory=psycopg2.extras.RealDictCursor
+            )
+
+            cursor.execute("""
+                SELECT
+                    sender,
+                    message,
+                    created_at
+                FROM chat_messages
+                WHERE conversation_id = %s
+                ORDER BY id ASC
+            """, (
+                conversation_id,
+            ))
+
+            mensagens = cursor.fetchall()
+
+            cursor.execute("""
+                SELECT
+                    title,
+                    created_at,
+                    updated_at
+                FROM conversations
+                WHERE id = %s
+                AND username = %s
+            """, (
+                conversation_id,
+                session["user"]
+            ))
+
+            conversa = cursor.fetchone()
+
+        return jsonify({
+
+            "success":
+                True,
+
+            "conversation_id":
+                conversation_id,
+
+            "title": (
+                conversa["title"]
+                if conversa
+                else "Nova conversa"
+            ),
+
+            "created_at": (
+                conversa["created_at"].isoformat()
+                if conversa and conversa["created_at"]
+                else None
+            ),
+
+            "updated_at": (
+                conversa["updated_at"].isoformat()
+                if conversa and conversa["updated_at"]
+                else None
+            ),
+
+            "messages": [
+
+                {
+                    "sender":
+                        item["sender"],
+
+                    "message":
+                        item["message"],
+
+                    "created_at":
+                        item["created_at"].isoformat()
+                        if item["created_at"]
+                        else None
+                }
+
+                for item in mensagens
+
+            ]
+
+        })
+
+    except Exception as e:
+
+        print(
+            "ERRO OPEN CONVERSATION:",
+            repr(e)
+        )
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Erro ao abrir a conversa."
+        }), 500
 
 
 # ============================================================
@@ -1880,44 +2058,65 @@ def history():
 
         return jsonify([]), 401
 
-    conversation_id = conversa_atual()
+    try:
 
-    with get_db() as conn:
+        conversation_id = conversa_atual()
 
-        cursor = conn.cursor(
-            cursor_factory=psycopg2.extras.RealDictCursor
+        if not conversation_id:
+
+            return jsonify([])
+
+        with get_db() as conn:
+
+            cursor = conn.cursor(
+                cursor_factory=psycopg2.extras.RealDictCursor
+            )
+
+            cursor.execute("""
+                SELECT
+                    sender,
+                    message,
+                    created_at
+                FROM chat_messages
+                WHERE conversation_id = %s
+                ORDER BY id ASC
+            """, (
+                conversation_id,
+            ))
+
+            mensagens = cursor.fetchall()
+
+        return jsonify([
+
+            {
+                "sender":
+                    item["sender"],
+
+                "message":
+                    item["message"],
+
+                "created_at":
+                    item["created_at"].isoformat()
+                    if item["created_at"]
+                    else None
+            }
+
+            for item in mensagens
+
+        ])
+
+    except Exception as e:
+
+        print(
+            "ERRO HISTORY:",
+            repr(e)
         )
 
-        cursor.execute("""
-            SELECT
-                sender,
-                message,
-                created_at
-            FROM chat_messages
-            WHERE conversation_id = %s
-            ORDER BY id ASC
-        """, (
-            conversation_id,
-        ))
-
-        mensagens = cursor.fetchall()
-
-    return jsonify([
-
-        {
-            "sender":
-                item["sender"],
-
+        return jsonify({
+            "success": False,
             "message":
-                item["message"],
-
-            "created_at":
-                item["created_at"]
-        }
-
-        for item in mensagens
-
-    ])
+                "Erro ao carregar histórico."
+        }), 500
 
 
 # ============================================================
@@ -1940,27 +2139,55 @@ def new_chat():
                 "Faça login primeiro."
         }), 401
 
-    conversation_id = criar_conversa(
-        session["user"],
-        "Nova conversa"
-    )
+    try:
 
-    session["conversation_id"] = (
-        conversation_id
-    )
+        username = session["user"]
 
-    return jsonify({
-
-        "success":
-            True,
-
-        "conversation_id":
-            conversation_id,
-
-        "title":
+        conversation_id = criar_conversa(
+            username,
             "Nova conversa"
+        )
 
-    })
+        session["conversation_id"] = (
+            conversation_id
+        )
+
+        session.modified = True
+
+        print(
+            f"Nova conversa criada: "
+            f"{conversation_id} - {username}"
+        )
+
+        return jsonify({
+
+            "success":
+                True,
+
+            "conversation_id":
+                conversation_id,
+
+            "title":
+                "Nova conversa"
+
+        })
+
+    except Exception as e:
+
+        print(
+            "ERRO NEW CHAT:",
+            repr(e)
+        )
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Erro ao criar uma nova conversa."
+
+        }), 500
 
 
 # ============================================================
@@ -1985,68 +2212,83 @@ def rename_conversation(
                 "Faça login primeiro."
         }), 401
 
-    if not verificar_conversa(
-        session["user"],
-        conversation_id
-    ):
+    try:
+
+        if not verificar_conversa(
+            session["user"],
+            conversation_id
+        ):
+
+            return jsonify({
+                "success":
+                    False,
+
+                "message":
+                    "Conversa não encontrada."
+            }), 404
+
+        data = request.get_json(
+            silent=True
+        ) or {}
+
+        title = str(
+            data.get("title") or ""
+        ).strip()
+
+        if not title:
+
+            return jsonify({
+                "success":
+                    False,
+
+                "message":
+                    "Digite um nome para a conversa."
+            }), 400
+
+        if len(title) > 100:
+
+            title = title[:100].rstrip()
+
+        with get_db() as conn:
+
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                UPDATE conversations
+                SET title = %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+                AND username = %s
+            """, (
+                title,
+                conversation_id,
+                session["user"]
+            ))
+
+            conn.commit()
 
         return jsonify({
+
             "success":
-                False,
+                True,
 
-            "message":
-                "Conversa não encontrada."
-        }), 404
+            "title":
+                title
 
-    data = request.get_json(
-        silent=True
-    ) or {}
+        })
 
-    title = str(
-        data.get("title") or ""
-    ).strip()
+    except Exception as e:
 
-    if not title:
+        print(
+            "ERRO RENAME:",
+            repr(e)
+        )
 
         return jsonify({
-            "success":
-                False,
-
+            "success": False,
             "message":
-                "Digite um nome para a conversa."
-        }), 400
-
-    if len(title) > 100:
-
-        title = title[:100].rstrip()
-
-    with get_db() as conn:
-
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            UPDATE conversations
-            SET title = %s,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = %s
-            AND username = %s
-        """, (
-            title,
-            conversation_id,
-            session["user"]
-        ))
-
-        conn.commit()
-
-    return jsonify({
-
-        "success":
-            True,
-
-        "title":
-            title
-
-    })
+                "Erro ao renomear conversa."
+        }), 500
 
 
 # ============================================================
@@ -2071,58 +2313,77 @@ def delete_conversation(
                 "Faça login primeiro."
         }), 401
 
-    if not verificar_conversa(
-        session["user"],
-        conversation_id
-    ):
+    try:
 
-        return jsonify({
-            "success":
-                False,
-
-            "message":
-                "Conversa não encontrada."
-        }), 404
-
-    with get_db() as conn:
-
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            DELETE FROM conversations
-            WHERE id = %s
-            AND username = %s
-        """, (
-            conversation_id,
-            session["user"]
-        ))
-
-        conn.commit()
-
-    if session.get(
-        "conversation_id"
-    ) == conversation_id:
-
-        nova_conversa = criar_conversa(
+        if not verificar_conversa(
             session["user"],
-            "Nova conversa"
-        )
+            conversation_id
+        ):
 
-        session["conversation_id"] = (
-            nova_conversa
-        )
+            return jsonify({
+                "success":
+                    False,
 
-    return jsonify({
+                "message":
+                    "Conversa não encontrada."
+            }), 404
 
-        "success":
-            True,
+        with get_db() as conn:
 
-        "conversation_id":
-            session.get(
-                "conversation_id"
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                DELETE FROM conversations
+                WHERE id = %s
+                AND username = %s
+            """, (
+                conversation_id,
+                session["user"]
+            ))
+
+            conn.commit()
+
+        # Se apagou a conversa atual,
+        # cria outra automaticamente.
+        if session.get(
+            "conversation_id"
+        ) == conversation_id:
+
+            nova_conversa = criar_conversa(
+                session["user"],
+                "Nova conversa"
             )
 
-    })
+            session["conversation_id"] = (
+                nova_conversa
+            )
+
+            session.modified = True
+
+        return jsonify({
+
+            "success":
+                True,
+
+            "conversation_id":
+                session.get(
+                    "conversation_id"
+                )
+
+        })
+
+    except Exception as e:
+
+        print(
+            "ERRO DELETE CONVERSATION:",
+            repr(e)
+        )
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Erro ao excluir conversa."
+        }), 500
 
 
 # ============================================================
@@ -2142,21 +2403,36 @@ def api_plan():
                 "Faça login primeiro."
         }), 401
 
-    plan = obter_plan_usuario(
-        session["user"]
-    )
+    try:
 
-    session["plan"] = plan
+        plan = obter_plan_usuario(
+            session["user"]
+        )
 
-    return jsonify({
+        session["plan"] = plan
 
-        "success":
-            True,
+        return jsonify({
 
-        "plan":
-            plan
+            "success":
+                True,
 
-    })
+            "plan":
+                plan
+
+        })
+
+    except Exception as e:
+
+        print(
+            "ERRO PLAN:",
+            repr(e)
+        )
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Erro ao consultar plano."
+        }), 500
 
 
 # ============================================================
@@ -2173,28 +2449,98 @@ def api_status():
                 False
         })
 
-    return jsonify({
+    try:
 
-        "logged":
-            True,
+        return jsonify({
 
-        "username":
-            session["user"],
+            "logged":
+                True,
 
-        "plan":
-            obter_plan_usuario(
-                session["user"]
-            ),
+            "username":
+                session["user"],
 
-        "conversation_id":
-            session.get(
-                "conversation_id"
-            ),
+            "plan":
+                obter_plan_usuario(
+                    session["user"]
+                ),
 
-        "admin":
-            verificar_admin()
+            "conversation_id":
+                session.get(
+                    "conversation_id"
+                ),
 
-    })
+            "admin":
+                verificar_admin()
+
+        })
+
+    except Exception as e:
+
+        print(
+            "ERRO STATUS:",
+            repr(e)
+        )
+
+        return jsonify({
+            "logged": True,
+            "username": session["user"],
+            "plan": "free",
+            "conversation_id":
+                session.get("conversation_id"),
+            "admin":
+                verificar_admin()
+        })
+
+
+# ============================================================
+# TRATAMENTO DE ERROS
+# ============================================================
+
+@app.errorhandler(404)
+def erro_404(error):
+
+    if request.path.startswith("/api/") \
+       or request.path in [
+           "/chat",
+           "/history",
+           "/new_chat",
+           "/conversations"
+       ] \
+       or request.path.startswith("/conversation/"):
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Rota não encontrada."
+        }), 404
+
+    return "Página não encontrada.", 404
+
+
+@app.errorhandler(500)
+def erro_500(error):
+
+    print(
+        "ERRO 500 GLOBAL:",
+        repr(error)
+    )
+
+    if request.path.startswith("/api/") \
+       or request.path in [
+           "/chat",
+           "/history",
+           "/new_chat",
+           "/conversations"
+       ] \
+       or request.path.startswith("/conversation/"):
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Erro interno no servidor."
+        }), 500
+
+    return "Erro interno no servidor.", 500
 
 
 # ============================================================
