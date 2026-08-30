@@ -410,6 +410,31 @@ body {
 
 
     <!-- ====================================================
+         E-MAIL
+    ===================================================== -->
+
+    <div class="campo">
+
+        <label for="email">
+            E-mail
+        </label>
+
+        <div class="input-box">
+
+            <input
+                type="email"
+                id="email"
+                placeholder="seuemail@exemplo.com"
+                autocomplete="email"
+                maxlength="320"
+            >
+
+        </div>
+
+    </div>
+
+
+    <!-- ====================================================
          SENHA
     ===================================================== -->
 
@@ -550,6 +575,9 @@ body {
 const username =
     document.getElementById("username");
 
+const email =
+    document.getElementById("email");
+
 const password =
     document.getElementById("password");
 
@@ -682,12 +710,21 @@ function toggleConfirmacao() {
    FORÇA DA SENHA
 ============================================================ */
 
-password.addEventListener(
-    "input",
-    atualizarForca
-);
+if (password) {
+
+    password.addEventListener(
+        "input",
+        atualizarForca
+    );
+
+}
+
 
 function atualizarForca() {
+
+    if (!password) {
+        return;
+    }
 
     const senha =
         password.value;
@@ -714,7 +751,6 @@ function atualizarForca() {
     ) {
         return;
     }
-
 
     let pontos = 0;
 
@@ -823,6 +859,9 @@ async function register() {
     const nome =
         username.value.trim();
 
+    const emailValor =
+        email.value.trim().toLowerCase();
+
     const senha =
         password.value;
 
@@ -830,7 +869,9 @@ async function register() {
         confirmPassword.value;
 
 
-    /* VALIDAÇÕES */
+    /* ========================================================
+       VALIDAR USUÁRIO
+    ======================================================== */
 
     if (!nome) {
 
@@ -857,6 +898,72 @@ async function register() {
         return;
     }
 
+
+    if (
+        nome.length > 30
+    ) {
+
+        mostrarMensagem(
+            "O usuário pode ter no máximo 30 caracteres."
+        );
+
+        username.focus();
+
+        return;
+    }
+
+
+    if (
+        !/^[A-Za-z0-9_]+$/.test(nome)
+    ) {
+
+        mostrarMensagem(
+            "Use apenas letras, números e _ no nome de usuário."
+        );
+
+        username.focus();
+
+        return;
+    }
+
+
+    /* ========================================================
+       VALIDAR E-MAIL
+    ======================================================== */
+
+    if (!emailValor) {
+
+        mostrarMensagem(
+            "Digite seu e-mail."
+        );
+
+        email.focus();
+
+        return;
+    }
+
+
+    if (
+        emailValor.length > 320
+        ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+            emailValor
+        )
+    ) {
+
+        mostrarMensagem(
+            "Digite um e-mail válido."
+        );
+
+        email.focus();
+
+        return;
+    }
+
+
+    /* ========================================================
+       VALIDAR SENHA
+    ======================================================== */
 
     if (
         senha.length < 6
@@ -887,6 +994,24 @@ async function register() {
 
 
     if (
+        senha.length > 200
+    ) {
+
+        mostrarMensagem(
+            "A senha é muito longa."
+        );
+
+        password.focus();
+
+        return;
+    }
+
+
+    /* ========================================================
+       CONFIRMAR SENHA
+    ======================================================== */
+
+    if (
         senha !== confirmacao
     ) {
 
@@ -900,7 +1025,9 @@ async function register() {
     }
 
 
-    /* CARREGANDO */
+    /* ========================================================
+       CARREGANDO
+    ======================================================== */
 
     btn.disabled = true;
 
@@ -931,11 +1058,16 @@ async function register() {
 
                     body:
                         JSON.stringify({
+
                             username:
                                 nome,
 
+                            email:
+                                emailValor,
+
                             password:
                                 senha
+
                         })
                 }
             );
@@ -955,7 +1087,9 @@ async function register() {
         }
 
 
-        /* SUCESSO */
+        /* ====================================================
+           SUCESSO
+        ==================================================== */
 
         if (
             resposta.ok &&
@@ -984,7 +1118,9 @@ async function register() {
         }
 
 
-        /* ERRO */
+        /* ====================================================
+           ERRO
+        ==================================================== */
 
         mostrarMensagem(
             data.message ||
@@ -1020,6 +1156,7 @@ async function register() {
 
 [
     username,
+    email,
     password,
     confirmPassword
 ].forEach(
