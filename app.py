@@ -1,4 +1,3 @@
-
 import os
 from datetime import datetime
 
@@ -1254,12 +1253,18 @@ def chat():
 
         if len(mensagem) > 12000:
 
+            mensagem_erro = (
+                "Sua mensagem é muito grande. "
+                "Tente enviar uma mensagem menor."
+            )
+
             return jsonify({
+
                 "reply":
-                    "Sua mensagem é muito grande. Tente enviar uma mensagem menor.",
+                    mensagem_erro,
 
                 "message":
-                    "Sua mensagem é muito grande. Tente enviar uma mensagem menor.",
+                    mensagem_erro,
 
                 "success":
                     False
@@ -1273,12 +1278,17 @@ def chat():
                 str
             ):
 
+                mensagem_erro = (
+                    "❌ Imagem inválida."
+                )
+
                 return jsonify({
+
                     "reply":
-                        "❌ Imagem inválida.",
+                        mensagem_erro,
 
                     "message":
-                        "❌ Imagem inválida.",
+                        mensagem_erro,
 
                     "success":
                         False
@@ -1298,12 +1308,18 @@ def chat():
 
             if tipo_imagem not in tipos_permitidos:
 
+                mensagem_erro = (
+                    "❌ Formato de imagem não suportado. "
+                    "Use JPG, PNG, WEBP ou GIF."
+                )
+
                 return jsonify({
+
                     "reply":
-                        "❌ Formato de imagem não suportado. Use JPG, PNG, WEBP ou GIF.",
+                        mensagem_erro,
 
                     "message":
-                        "❌ Formato de imagem não suportado. Use JPG, PNG, WEBP ou GIF.",
+                        mensagem_erro,
 
                     "success":
                         False
@@ -1312,12 +1328,18 @@ def chat():
 
             if len(imagem_base64) > 27_000_000:
 
+                mensagem_erro = (
+                    "❌ A imagem é muito grande. "
+                    "Use uma imagem menor."
+                )
+
                 return jsonify({
+
                     "reply":
-                        "❌ A imagem é muito grande. Use uma imagem menor.",
+                        mensagem_erro,
 
                     "message":
-                        "❌ A imagem é muito grande. Use uma imagem menor.",
+                        mensagem_erro,
 
                     "success":
                         False
@@ -1326,12 +1348,17 @@ def chat():
 
         if not mensagem and not imagem_base64:
 
+            mensagem_erro = (
+                "Digite uma mensagem ou envie uma imagem."
+            )
+
             return jsonify({
+
                 "reply":
-                    "Digite uma mensagem ou envie uma imagem.",
+                    mensagem_erro,
 
                 "message":
-                    "Digite uma mensagem ou envie uma imagem.",
+                    mensagem_erro,
 
                 "success":
                     False
@@ -1350,12 +1377,17 @@ def chat():
 
         if not conversation_id:
 
+            mensagem_erro = (
+                "Não foi possível abrir a conversa."
+            )
+
             return jsonify({
+
                 "reply":
-                    "Não foi possível abrir a conversa.",
+                    mensagem_erro,
 
                 "message":
-                    "Não foi possível abrir a conversa.",
+                    mensagem_erro,
 
                 "success":
                     False
@@ -2377,21 +2409,7 @@ def api_rename_conversation(
 
 
 # ============================================================
-# EXCLUIR CONVERSA
-# ============================================================
-#
-# IMPORTANTE:
-#
-# Foram adicionadas várias rotas compatíveis para impedir
-# erro "Rota não encontrada" caso o frontend esteja usando
-# uma das formas abaixo:
-#
-# DELETE /conversation/123
-# DELETE /api/conversation/123
-# DELETE /conversation/123/delete
-# DELETE /api/conversation/123/delete
-#
-# As rotas /delete também aceitam POST.
+# FUNÇÃO INTERNA - EXCLUIR UMA CONVERSA
 # ============================================================
 
 def executar_exclusao_conversa(
@@ -2412,9 +2430,24 @@ def executar_exclusao_conversa(
 
         username = session["user"]
 
-        # ====================================================
-        # VERIFICAR SE A CONVERSA EXISTE E PERTENCE AO USUÁRIO
-        # ====================================================
+        try:
+
+            conversation_id = int(
+                conversation_id
+            )
+
+        except (
+            ValueError,
+            TypeError
+        ):
+
+            return jsonify({
+                "success":
+                    False,
+
+                "message":
+                    "ID da conversa inválido."
+            }), 400
 
         if not verificar_conversa(
             username,
@@ -2429,22 +2462,11 @@ def executar_exclusao_conversa(
                     "Conversa não encontrada."
             }), 404
 
-        # ====================================================
-        # EXCLUIR CONVERSA
-        # ====================================================
-        #
-        # chat_messages é excluído automaticamente pelo
-        # ON DELETE CASCADE.
-        #
-        # Também fazemos DELETE manual como segurança para
-        # bancos onde a constraint antiga possa não estar
-        # configurada.
-        # ====================================================
-
         with get_db() as conn:
 
             cursor = conn.cursor()
 
+            # Excluir mensagens primeiro
             cursor.execute("""
                 DELETE FROM chat_messages
                 WHERE conversation_id = %s
@@ -2452,6 +2474,7 @@ def executar_exclusao_conversa(
                 conversation_id,
             ))
 
+            # Excluir conversa
             cursor.execute("""
                 DELETE FROM conversations
                 WHERE id = %s
@@ -2477,10 +2500,6 @@ def executar_exclusao_conversa(
 
             conn.commit()
 
-        # ====================================================
-        # SE ERA A CONVERSA ATUAL
-        # ====================================================
-
         conversa_atual_id = session.get(
             "conversation_id"
         )
@@ -2504,18 +2523,24 @@ def executar_exclusao_conversa(
 
         else:
 
-            # Se a conversa excluída não era a atual,
-            # verificamos se a conversa atual ainda existe.
             atual = session.get(
                 "conversation_id"
             )
 
             if atual:
 
-                if not verificar_conversa(
-                    username,
-                    atual
-                ):
+                try:
+
+                    atual_existe = verificar_conversa(
+                        username,
+                        atual
+                    )
+
+                except Exception:
+
+                    atual_existe = False
+
+                if not atual_existe:
 
                     nova_conversa = criar_conversa(
                         username,
@@ -2599,7 +2624,7 @@ def executar_exclusao_conversa(
 
 
 # ============================================================
-# ROTA PRINCIPAL DE EXCLUSÃO
+# EXCLUIR UMA CONVERSA - ROTA PRINCIPAL
 # ============================================================
 
 @app.route(
@@ -2616,7 +2641,41 @@ def delete_conversation(
 
 
 # ============================================================
-# ALIAS API - EXCLUSÃO
+# EXCLUIR UMA CONVERSA - ROTA QUE O SCRIPT.JS USA
+# ============================================================
+
+@app.route(
+    "/delete_conversation",
+    methods=["POST"]
+)
+def delete_conversation_legacy():
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    conversation_id = (
+        data.get("conversation_id")
+        or data.get("id")
+    )
+
+    if not conversation_id:
+
+        return jsonify({
+            "success":
+                False,
+
+            "message":
+                "ID da conversa não informado."
+        }), 400
+
+    return executar_exclusao_conversa(
+        conversation_id
+    )
+
+
+# ============================================================
+# ALIAS API - EXCLUSÃO INDIVIDUAL
 # ============================================================
 
 @app.route(
@@ -2667,35 +2726,34 @@ def api_delete_conversation_with_delete(
 
 
 # ============================================================
-# EXCLUIR VÁRIAS CONVERSAS
+# FUNÇÃO INTERNA - EXCLUIR VÁRIAS CONVERSAS
 # ============================================================
 
-@app.route(
-    "/conversations/delete-multiple",
-    methods=["POST"]
-)
-def delete_multiple_conversations():
+def executar_exclusao_varias_conversas(
+    ids
+):
 
     if "user" not in session:
 
         return jsonify({
-            "success": False,
+            "success":
+                False,
+
             "message":
                 "Faça login primeiro."
         }), 401
 
     try:
 
-        data = request.get_json(
-            silent=True
-        ) or {}
-
-        ids = data.get("ids")
-
-        if not isinstance(ids, list):
+        if not isinstance(
+            ids,
+            list
+        ):
 
             return jsonify({
-                "success": False,
+                "success":
+                    False,
+
                 "message":
                     "Lista de conversas inválida."
             }), 400
@@ -2703,7 +2761,9 @@ def delete_multiple_conversations():
         if not ids:
 
             return jsonify({
-                "success": False,
+                "success":
+                    False,
+
                 "message":
                     "Nenhuma conversa foi selecionada."
             }), 400
@@ -2738,7 +2798,9 @@ def delete_multiple_conversations():
         if not conversation_ids:
 
             return jsonify({
-                "success": False,
+                "success":
+                    False,
+
                 "message":
                     "Nenhuma conversa válida foi selecionada."
             }), 400
@@ -2753,18 +2815,54 @@ def delete_multiple_conversations():
 
             cursor = conn.cursor()
 
+            # ------------------------------------------------
+            # Descobrir quais conversas realmente pertencem
+            # ao usuário.
+            # ------------------------------------------------
+
             cursor.execute("""
-                DELETE FROM chat_messages
-                WHERE conversation_id IN (
-                    SELECT id
-                    FROM conversations
-                    WHERE username = %s
-                    AND id = ANY(%s)
-                )
+                SELECT id
+                FROM conversations
+                WHERE username = %s
+                AND id = ANY(%s)
             """, (
                 username,
                 conversation_ids
             ))
+
+            conversas_validas = cursor.fetchall()
+
+            ids_validos = [
+                item[0]
+                for item in conversas_validas
+            ]
+
+            if not ids_validos:
+
+                conn.rollback()
+
+                return jsonify({
+                    "success":
+                        False,
+
+                    "message":
+                        "Nenhuma das conversas selecionadas pertence ao usuário."
+                }), 404
+
+            # ------------------------------------------------
+            # Excluir mensagens
+            # ------------------------------------------------
+
+            cursor.execute("""
+                DELETE FROM chat_messages
+                WHERE conversation_id = ANY(%s)
+            """, (
+                ids_validos,
+            ))
+
+            # ------------------------------------------------
+            # Excluir conversas
+            # ------------------------------------------------
 
             cursor.execute("""
                 DELETE FROM conversations
@@ -2773,7 +2871,7 @@ def delete_multiple_conversations():
                 RETURNING id
             """, (
                 username,
-                conversation_ids
+                ids_validos
             ))
 
             excluidas = cursor.fetchall()
@@ -2781,9 +2879,13 @@ def delete_multiple_conversations():
             conn.commit()
 
         ids_excluidos = [
-            item[0]
+            int(item[0])
             for item in excluidas
         ]
+
+        # ====================================================
+        # VERIFICAR SE A CONVERSA ATUAL FOI EXCLUÍDA
+        # ====================================================
 
         conversa_atual_excluida = (
             conversa_atual_id is not None
@@ -2804,20 +2906,57 @@ def delete_multiple_conversations():
 
             session.modified = True
 
-        elif not session.get(
-            "conversation_id"
-        ):
+        else:
 
-            nova_conversa = criar_conversa(
-                username,
-                "Nova conversa"
+            atual = session.get(
+                "conversation_id"
             )
 
-            session["conversation_id"] = (
-                nova_conversa
-            )
+            if atual:
 
-            session.modified = True
+                try:
+
+                    atual_existe = verificar_conversa(
+                        username,
+                        atual
+                    )
+
+                except Exception:
+
+                    atual_existe = False
+
+                if not atual_existe:
+
+                    nova_conversa = criar_conversa(
+                        username,
+                        "Nova conversa"
+                    )
+
+                    session["conversation_id"] = (
+                        nova_conversa
+                    )
+
+                    session.modified = True
+
+            else:
+
+                nova_conversa = criar_conversa(
+                    username,
+                    "Nova conversa"
+                )
+
+                session["conversation_id"] = (
+                    nova_conversa
+                )
+
+                session.modified = True
+
+        print(
+            "CONVERSAS EXCLUÍDAS:",
+            ids_excluidos,
+            "USUÁRIO:",
+            username
+        )
 
         return jsonify({
 
@@ -2843,15 +2982,86 @@ def delete_multiple_conversations():
     except Exception as e:
 
         print(
-            "ERRO DELETE MULTIPLE CONVERSATIONS:",
+            "=================================================="
+        )
+
+        print(
+            "ERRO DELETE MULTIPLE CONVERSATIONS:"
+        )
+
+        print(
             repr(e)
         )
 
+        print(
+            "=================================================="
+        )
+
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
-                "Erro ao excluir as conversas."
+                "Erro ao excluir as conversas.",
+
+            "error":
+                str(e)
+
         }), 500
+
+
+# ============================================================
+# EXCLUIR VÁRIAS CONVERSAS - ROTA PRINCIPAL
+# ============================================================
+
+@app.route(
+    "/conversations/delete-multiple",
+    methods=["POST"]
+)
+def delete_multiple_conversations():
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    # Aceita "ids" e "conversation_ids"
+    # para compatibilidade com diferentes versões
+    # do script.js.
+    ids = (
+        data.get("ids")
+        if data.get("ids") is not None
+        else data.get("conversation_ids")
+    )
+
+    return executar_exclusao_varias_conversas(
+        ids
+    )
+
+
+# ============================================================
+# ROTA QUE O SCRIPT.JS ATUAL USA
+# ============================================================
+
+@app.route(
+    "/delete_conversations",
+    methods=["POST"]
+)
+def delete_conversations_legacy():
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    ids = (
+        data.get("conversation_ids")
+        if data.get("conversation_ids") is not None
+        else data.get("ids")
+    )
+
+    return executar_exclusao_varias_conversas(
+        ids
+    )
 
 
 # ============================================================
@@ -2864,7 +3074,19 @@ def delete_multiple_conversations():
 )
 def api_delete_multiple_conversations():
 
-    return delete_multiple_conversations()
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    ids = (
+        data.get("ids")
+        if data.get("ids") is not None
+        else data.get("conversation_ids")
+    )
+
+    return executar_exclusao_varias_conversas(
+        ids
+    )
 
 
 # ============================================================
@@ -3058,4 +3280,3 @@ if __name__ == "__main__":
         port=port,
         debug=False
     )
-
