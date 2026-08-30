@@ -1,0 +1,1224 @@
+
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>Configurações - Orion AI</title>
+
+<style>
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+
+    min-height: 100vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background:
+        radial-gradient(
+            circle at top,
+            #111827,
+            #0b0f19 60%,
+            #05070d
+        );
+
+    color: white;
+
+    transition:
+        background .25s ease,
+        color .25s ease;
+}
+
+.container {
+
+    width: 100%;
+
+    max-width: 620px;
+}
+
+.card {
+
+    background:
+        rgba(255,255,255,.05);
+
+    border:
+        1px solid
+        rgba(255,255,255,.09);
+
+    backdrop-filter:
+        blur(20px);
+
+    border-radius:
+        24px;
+
+    padding:
+        28px;
+
+    box-shadow:
+        0 20px 70px
+        rgba(0,0,0,.35);
+}
+
+.topo {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    margin-bottom: 28px;
+}
+
+.voltar {
+
+    color:
+        rgba(255,255,255,.72);
+
+    text-decoration: none;
+
+    font-size: 14px;
+
+    padding: 9px 12px;
+
+    border-radius: 10px;
+
+    background:
+        rgba(255,255,255,.06);
+
+    transition: .18s ease;
+}
+
+.voltar:hover {
+
+    color: white;
+
+    background:
+        rgba(255,255,255,.10);
+}
+
+.titulo {
+
+    font-size: 22px;
+
+    font-weight: bold;
+}
+
+.subtitulo {
+
+    margin-top: 6px;
+
+    color:
+        rgba(255,255,255,.48);
+
+    font-size: 13px;
+}
+
+
+/* ============================================================
+   SEÇÕES
+============================================================ */
+
+.secao {
+
+    margin-bottom: 16px;
+
+    padding: 18px;
+
+    border-radius: 16px;
+
+    background:
+        rgba(255,255,255,.035);
+
+    border:
+        1px solid
+        rgba(255,255,255,.065);
+}
+
+.secao-titulo {
+
+    font-size: 15px;
+
+    font-weight: bold;
+
+    margin-bottom: 5px;
+}
+
+.secao-descricao {
+
+    color:
+        rgba(255,255,255,.45);
+
+    font-size: 12px;
+
+    line-height: 1.5;
+
+    margin-bottom: 15px;
+}
+
+
+/* ============================================================
+   OPÇÃO
+============================================================ */
+
+.opcao {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 12px 0;
+
+    border-top:
+        1px solid
+        rgba(255,255,255,.05);
+}
+
+.opcao:first-of-type {
+
+    border-top: none;
+
+    padding-top: 0;
+}
+
+.opcao:last-of-type {
+
+    padding-bottom: 0;
+}
+
+.opcao-info {
+
+    min-width: 0;
+}
+
+.opcao-nome {
+
+    font-size: 14px;
+
+    font-weight: 600;
+
+    margin-bottom: 4px;
+}
+
+.opcao-ajuda {
+
+    font-size: 11px;
+
+    color:
+        rgba(255,255,255,.42);
+
+    line-height: 1.4;
+}
+
+
+/* ============================================================
+   SELECT
+============================================================ */
+
+select {
+
+    min-width: 190px;
+
+    padding: 10px 12px;
+
+    border-radius: 10px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.10);
+
+    background:
+        rgba(255,255,255,.07);
+
+    color: white;
+
+    outline: none;
+
+    cursor: pointer;
+}
+
+select:focus {
+
+    border-color:
+        #7c3aed;
+}
+
+select option {
+
+    background:
+        #111827;
+
+    color: white;
+}
+
+
+/* ============================================================
+   SWITCH
+============================================================ */
+
+.switch {
+
+    position: relative;
+
+    width: 48px;
+
+    height: 26px;
+
+    flex-shrink: 0;
+}
+
+.switch input {
+
+    opacity: 0;
+
+    width: 0;
+
+    height: 0;
+}
+
+.slider {
+
+    position: absolute;
+
+    inset: 0;
+
+    cursor: pointer;
+
+    background:
+        rgba(255,255,255,.14);
+
+    border-radius: 30px;
+
+    transition: .2s;
+}
+
+.slider::before {
+
+    content: "";
+
+    position: absolute;
+
+    width: 20px;
+
+    height: 20px;
+
+    left: 3px;
+
+    top: 3px;
+
+    background: white;
+
+    border-radius: 50%;
+
+    transition: .2s;
+
+    box-shadow:
+        0 2px 8px
+        rgba(0,0,0,.25);
+}
+
+.switch input:checked + .slider {
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #4f46e5
+        );
+}
+
+.switch input:checked + .slider::before {
+
+    transform:
+        translateX(22px);
+}
+
+
+/* ============================================================
+   BOTÃO
+============================================================ */
+
+.btn-voltar {
+
+    width: 100%;
+
+    padding: 13px;
+
+    border: none;
+
+    border-radius: 12px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #4f46e5
+        );
+
+    color: white;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition: .18s ease;
+
+    margin-top: 4px;
+}
+
+.btn-voltar:hover {
+
+    filter: brightness(1.08);
+
+    transform:
+        translateY(-1px);
+}
+
+
+/* ============================================================
+   TEMA CLARO
+============================================================ */
+
+body.tema-claro {
+
+    background:
+        radial-gradient(
+            circle at top,
+            #e9d5ff,
+            #eef2ff 50%,
+            #f8fafc
+        );
+
+    color:
+        #111827;
+}
+
+body.tema-claro .card {
+
+    background:
+        rgba(255,255,255,.72);
+
+    border-color:
+        rgba(15,23,42,.10);
+
+    box-shadow:
+        0 20px 70px
+        rgba(15,23,42,.12);
+}
+
+body.tema-claro .voltar {
+
+    color:
+        rgba(15,23,42,.65);
+
+    background:
+        rgba(15,23,42,.06);
+}
+
+body.tema-claro .voltar:hover {
+
+    color:
+        #111827;
+
+    background:
+        rgba(15,23,42,.10);
+}
+
+body.tema-claro .subtitulo,
+body.tema-claro .secao-descricao,
+body.tema-claro .opcao-ajuda {
+
+    color:
+        rgba(15,23,42,.52);
+}
+
+body.tema-claro .secao {
+
+    background:
+        rgba(255,255,255,.52);
+
+    border-color:
+        rgba(15,23,42,.08);
+}
+
+body.tema-claro .opcao {
+
+    border-color:
+        rgba(15,23,42,.07);
+}
+
+body.tema-claro select {
+
+    background:
+        rgba(15,23,42,.06);
+
+    color:
+        #111827;
+
+    border-color:
+        rgba(15,23,42,.10);
+}
+
+body.tema-claro select option {
+
+    background:
+        white;
+
+    color:
+        #111827;
+}
+
+
+/* ============================================================
+   MOBILE
+============================================================ */
+
+@media(max-width:650px) {
+
+    .card {
+
+        padding:
+            20px;
+
+        border-radius:
+            20px;
+    }
+
+    .topo {
+
+        align-items:
+            flex-start;
+
+        gap: 12px;
+    }
+
+    .titulo {
+
+        font-size:
+            19px;
+    }
+
+    .opcao {
+
+        align-items:
+            flex-start;
+    }
+
+    select {
+
+        min-width:
+            150px;
+    }
+
+}
+
+@media(max-width:480px) {
+
+    .opcao {
+
+        flex-direction:
+            column;
+
+        align-items:
+            flex-start;
+    }
+
+    select {
+
+        width: 100%;
+    }
+
+}
+
+
+/* ============================================================
+   STATUS
+============================================================ */
+
+.status {
+
+    margin-top: 12px;
+
+    min-height: 18px;
+
+    text-align: center;
+
+    font-size: 12px;
+
+    color:
+        rgba(255,255,255,.45);
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="card">
+
+
+    <!-- =====================================================
+         TOPO
+    ====================================================== -->
+
+    <div class="topo">
+
+        <a
+            href="/"
+            class="voltar"
+        >
+            ← Voltar
+        </a>
+
+        <div>
+
+            <div class="titulo">
+                ⚙️ Configurações
+            </div>
+
+            <div class="subtitulo">
+                Personalize sua experiência no Orion AI
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         APARÊNCIA
+    ====================================================== -->
+
+    <div class="secao">
+
+        <div class="secao-titulo">
+            🎨 Aparência
+        </div>
+
+        <div class="secao-descricao">
+            Escolha como o Orion AI será exibido.
+        </div>
+
+
+        <div class="opcao">
+
+            <div class="opcao-info">
+
+                <div class="opcao-nome">
+                    Tema
+                </div>
+
+                <div class="opcao-ajuda">
+                    Escolha entre o modo escuro ou claro.
+                </div>
+
+            </div>
+
+
+            <select id="tema">
+
+                <option value="escuro">
+                    🌙 Escuro
+                </option>
+
+                <option value="claro">
+                    ☀️ Claro
+                </option>
+
+            </select>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         SOM
+    ====================================================== -->
+
+    <div class="secao">
+
+        <div class="secao-titulo">
+            🔊 Som
+        </div>
+
+        <div class="secao-descricao">
+            Controle a reprodução de respostas por voz.
+        </div>
+
+
+        <div class="opcao">
+
+            <div class="opcao-info">
+
+                <div class="opcao-nome">
+                    Ouvir respostas
+                </div>
+
+                <div class="opcao-ajuda">
+                    O Orion AI poderá falar as respostas em voz alta.
+                </div>
+
+            </div>
+
+
+            <label class="switch">
+
+                <input
+                    type="checkbox"
+                    id="som"
+                >
+
+                <span class="slider"></span>
+
+            </label>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         VOZ
+    ====================================================== -->
+
+    <div class="secao">
+
+        <div class="secao-titulo">
+            🎙️ Voz
+        </div>
+
+        <div class="secao-descricao">
+            Escolha a voz usada para as respostas.
+        </div>
+
+
+        <div class="opcao">
+
+            <div class="opcao-info">
+
+                <div class="opcao-nome">
+                    Voz padrão
+                </div>
+
+                <div class="opcao-ajuda">
+                    A voz selecionada será usada nas respostas faladas.
+                </div>
+
+            </div>
+
+
+            <select id="voz">
+
+                <option value="padrao">
+                    Voz padrão
+                </option>
+
+            </select>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         CHAT
+    ====================================================== -->
+
+    <div class="secao">
+
+        <div class="secao-titulo">
+            💬 Chat
+        </div>
+
+        <div class="secao-descricao">
+            Ajuste alguns comportamentos da conversa.
+        </div>
+
+
+        <div class="opcao">
+
+            <div class="opcao-info">
+
+                <div class="opcao-nome">
+                    Animações
+                </div>
+
+                <div class="opcao-ajuda">
+                    Mostrar pequenas animações nas mensagens.
+                </div>
+
+            </div>
+
+
+            <label class="switch">
+
+                <input
+                    type="checkbox"
+                    id="animacoes"
+                    checked
+                >
+
+                <span class="slider"></span>
+
+            </label>
+
+        </div>
+
+
+        <div class="opcao">
+
+            <div class="opcao-info">
+
+                <div class="opcao-nome">
+                    Enter para enviar
+                </div>
+
+                <div class="opcao-ajuda">
+                    Pressionar Enter envia a mensagem.
+                </div>
+
+            </div>
+
+
+            <label class="switch">
+
+                <input
+                    type="checkbox"
+                    id="enterEnviar"
+                    checked
+                >
+
+                <span class="slider"></span>
+
+            </label>
+
+        </div>
+
+    </div>
+
+
+    <button
+        type="button"
+        class="btn-voltar"
+        onclick="window.location.href='/'"
+    >
+        Salvar e voltar
+    </button>
+
+
+    <div
+        id="status"
+        class="status"
+    ></div>
+
+
+</div>
+
+</div>
+
+
+<script>
+
+/* ============================================================
+   ELEMENTOS
+============================================================ */
+
+const tema =
+    document.getElementById("tema");
+
+const som =
+    document.getElementById("som");
+
+const voz =
+    document.getElementById("voz");
+
+const animacoes =
+    document.getElementById("animacoes");
+
+const enterEnviar =
+    document.getElementById("enterEnviar");
+
+const status =
+    document.getElementById("status");
+
+
+/* ============================================================
+   CHAVE DAS CONFIGURAÇÕES
+============================================================ */
+
+const CHAVE_CONFIG =
+    "orion_ai_config";
+
+
+/* ============================================================
+   CONFIGURAÇÃO PADRÃO
+============================================================ */
+
+const configuracaoPadrao = {
+
+    tema:
+        "escuro",
+
+    som:
+        true,
+
+    voz:
+        "padrao",
+
+    animacoes:
+        true,
+
+    enterEnviar:
+        true
+
+};
+
+
+/* ============================================================
+   CARREGAR CONFIGURAÇÕES
+============================================================ */
+
+function carregarConfiguracoes() {
+
+    let config = {};
+
+    try {
+
+        config =
+            JSON.parse(
+                localStorage.getItem(
+                    CHAVE_CONFIG
+                )
+            ) || {};
+
+    } catch (erro) {
+
+        config = {};
+
+    }
+
+
+    config = {
+
+        ...configuracaoPadrao,
+        ...config
+
+    };
+
+
+    tema.value =
+        config.tema;
+
+    som.checked =
+        config.som;
+
+    voz.value =
+        config.voz;
+
+    animacoes.checked =
+        config.animacoes;
+
+    enterEnviar.checked =
+        config.enterEnviar;
+
+
+    aplicarTema(
+        config.tema
+    );
+
+}
+
+
+/* ============================================================
+   SALVAR CONFIGURAÇÕES
+============================================================ */
+
+function salvarConfiguracoes() {
+
+    const config = {
+
+        tema:
+            tema.value,
+
+        som:
+            som.checked,
+
+        voz:
+            voz.value,
+
+        animacoes:
+            animacoes.checked,
+
+        enterEnviar:
+            enterEnviar.checked
+
+    };
+
+
+    localStorage.setItem(
+
+        CHAVE_CONFIG,
+
+        JSON.stringify(config)
+
+    );
+
+
+    aplicarTema(
+        config.tema
+    );
+
+
+    status.textContent =
+        "✅ Configurações salvas";
+}
+
+
+/* ============================================================
+   APLICAR TEMA
+============================================================ */
+
+function aplicarTema(
+    valor
+) {
+
+    if (
+        valor === "claro"
+    ) {
+
+        document.body.classList.add(
+            "tema-claro"
+        );
+
+    } else {
+
+        document.body.classList.remove(
+            "tema-claro"
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   CARREGAR VOZES
+============================================================ */
+
+function carregarVozes() {
+
+    if (
+        !("speechSynthesis" in window)
+    ) {
+
+        voz.innerHTML = `
+            <option value="padrao">
+                Voz não disponível
+            </option>
+        `;
+
+        voz.disabled =
+            true;
+
+        return;
+
+    }
+
+
+    const vozes =
+        window.speechSynthesis
+            .getVoices();
+
+
+    voz.innerHTML = "";
+
+
+    const opcoes =
+        vozes.filter(
+            vozItem =>
+                vozItem.lang &&
+                vozItem.lang
+                    .toLowerCase()
+                    .startsWith("pt")
+        );
+
+
+    const lista =
+        opcoes.length
+            ? opcoes
+            : vozes;
+
+
+    if (!lista.length) {
+
+        voz.innerHTML = `
+            <option value="padrao">
+                Voz padrão
+            </option>
+        `;
+
+        return;
+
+    }
+
+
+    const opcaoPadrao =
+        document.createElement(
+            "option"
+        );
+
+    opcaoPadrao.value =
+        "padrao";
+
+    opcaoPadrao.textContent =
+        "🔊 Voz padrão";
+
+    voz.appendChild(
+        opcaoPadrao
+    );
+
+
+    lista.forEach(
+        vozItem => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value =
+                vozItem.name +
+                "|" +
+                vozItem.lang;
+
+            option.textContent =
+                `${vozItem.name} (${vozItem.lang})`;
+
+            voz.appendChild(
+                option
+            );
+
+        }
+    );
+
+
+    let config = {};
+
+    try {
+
+        config =
+            JSON.parse(
+                localStorage.getItem(
+                    CHAVE_CONFIG
+                )
+            ) || {};
+
+    } catch (
+        erro
+    ) {
+
+        config = {};
+
+    }
+
+
+    if (
+        config.voz
+    ) {
+
+        voz.value =
+            config.voz;
+
+    }
+
+}
+
+
+if (
+    "speechSynthesis" in window
+) {
+
+    carregarVozes();
+
+    window.speechSynthesis.onvoiceschanged =
+        carregarVozes;
+
+}
+
+
+/* ============================================================
+   SALVAR AUTOMATICAMENTE
+============================================================ */
+
+tema.addEventListener(
+    "change",
+    salvarConfiguracoes
+);
+
+som.addEventListener(
+    "change",
+    salvarConfiguracoes
+);
+
+voz.addEventListener(
+    "change",
+    salvarConfiguracoes
+);
+
+animacoes.addEventListener(
+    "change",
+    salvarConfiguracoes
+);
+
+enterEnviar.addEventListener(
+    "change",
+    salvarConfiguracoes
+);
+
+
+/* ============================================================
+   INICIALIZAÇÃO
+============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        carregarConfiguracoes();
+
+    }
+);
+
+</script>
+
+</body>
+
+</html>
+
