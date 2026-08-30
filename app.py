@@ -1789,7 +1789,6 @@ PLANO:
             "❌ Ocorreu um erro ao processar sua mensagem."
         )
 
-        # Erros conhecidos da Groq
         texto_erro = str(e).lower()
 
         if "api key" in texto_erro:
@@ -2383,6 +2382,197 @@ def delete_conversation(
             "success": False,
             "message":
                 "Erro ao excluir conversa."
+        }), 500
+
+
+# ============================================================
+# EXCLUIR VÁRIAS CONVERSAS
+# ============================================================
+
+@app.route(
+    "/conversations/delete-multiple",
+    methods=["POST"]
+)
+def delete_multiple_conversations():
+
+    if "user" not in session:
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Faça login primeiro."
+        }), 401
+
+    try:
+
+        data = request.get_json(
+            silent=True
+        ) or {}
+
+        ids = data.get("ids")
+
+        if not isinstance(ids, list):
+
+            return jsonify({
+                "success": False,
+                "message":
+                    "Lista de conversas inválida."
+            }), 400
+
+        if not ids:
+
+            return jsonify({
+                "success": False,
+                "message":
+                    "Nenhuma conversa foi selecionada."
+            }), 400
+
+        # ====================================================
+        # CONVERTER IDs
+        # ====================================================
+
+        conversation_ids = []
+
+        for item in ids:
+
+            try:
+
+                conversation_id = int(item)
+
+            except (
+                ValueError,
+                TypeError
+            ):
+
+                continue
+
+            if conversation_id > 0:
+                conversation_ids.append(
+                    conversation_id
+                )
+
+        # Remover IDs duplicados
+        conversation_ids = list(
+            dict.fromkeys(
+                conversation_ids
+            )
+        )
+
+        if not conversation_ids:
+
+            return jsonify({
+                "success": False,
+                "message":
+                    "Nenhuma conversa válida foi selecionada."
+            }), 400
+
+        username = session["user"]
+
+        conversa_atual_id = session.get(
+            "conversation_id"
+        )
+
+        # ====================================================
+        # EXCLUIR SOMENTE CONVERSAS DO USUÁRIO
+        # ====================================================
+
+        with get_db() as conn:
+
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                DELETE FROM conversations
+                WHERE username = %s
+                AND id = ANY(%s)
+                RETURNING id
+            """, (
+                username,
+                conversation_ids
+            ))
+
+            excluidas = cursor.fetchall()
+
+            conn.commit()
+
+        ids_excluidos = [
+            item[0]
+            for item in excluidas
+        ]
+
+        # ====================================================
+        # VERIFICAR SE A CONVERSA ATUAL FOI EXCLUÍDA
+        # ====================================================
+
+        conversa_atual_excluida = (
+            conversa_atual_id is not None
+            and int(conversa_atual_id)
+            in ids_excluidos
+        )
+
+        if conversa_atual_excluida:
+
+            nova_conversa = criar_conversa(
+                username,
+                "Nova conversa"
+            )
+
+            session["conversation_id"] = (
+                nova_conversa
+            )
+
+            session.modified = True
+
+        # ====================================================
+        # GARANTIR QUE EXISTE UMA CONVERSA ATUAL
+        # ====================================================
+
+        elif not session.get(
+            "conversation_id"
+        ):
+
+            nova_conversa = criar_conversa(
+                username,
+                "Nova conversa"
+            )
+
+            session["conversation_id"] = (
+                nova_conversa
+            )
+
+            session.modified = True
+
+        return jsonify({
+
+            "success":
+                True,
+
+            "message":
+                f"{len(ids_excluidos)} conversa(s) excluída(s) permanentemente.",
+
+            "deleted_ids":
+                ids_excluidos,
+
+            "deleted_count":
+                len(ids_excluidos),
+
+            "conversation_id":
+                session.get(
+                    "conversation_id"
+                )
+
+        })
+
+    except Exception as e:
+
+        print(
+            "ERRO DELETE MULTIPLE CONVERSATIONS:",
+            repr(e)
+        )
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Erro ao excluir as conversas."
         }), 500
 
 
