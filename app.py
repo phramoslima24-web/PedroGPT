@@ -1,3 +1,4 @@
+```
 import os
 from datetime import datetime
 
@@ -66,6 +67,7 @@ if GROQ_API_KEY:
 def get_db():
 
     if not DATABASE_URL:
+
         raise RuntimeError(
             "DATABASE_URL não está configurada no servidor."
         )
@@ -140,7 +142,9 @@ try:
 
     init_db()
 
-    print("BANCO DE DADOS INICIALIZADO COM SUCESSO.")
+    print(
+        "BANCO DE DADOS INICIALIZADO COM SUCESSO."
+    )
 
 except Exception as e:
 
@@ -158,6 +162,9 @@ except Exception as e:
 def version():
 
     return jsonify({
+
+        "success":
+            True,
 
         "version":
             "1.3",
@@ -194,6 +201,7 @@ def criar_conversa(
         resultado = cursor.fetchone()
 
         if not resultado:
+
             raise RuntimeError(
                 "Não foi possível criar a conversa."
             )
@@ -262,7 +270,10 @@ def conversa_atual():
                 username,
                 conversation_id
             ):
-                return int(conversation_id)
+
+                return int(
+                    conversation_id
+                )
 
         except Exception as e:
 
@@ -294,6 +305,7 @@ def gerar_titulo(mensagem):
     )
 
     if not titulo:
+
         return "Nova conversa"
 
     if len(titulo) > 45:
@@ -374,6 +386,7 @@ def obter_plan_usuario(username):
         usuario = cursor.fetchone()
 
         if not usuario:
+
             return "free"
 
         return (
@@ -652,7 +665,10 @@ def admin_users():
     premium = sum(
         1
         for usuario in usuarios
-        if (usuario["plan"] or "free").lower() == "premium"
+        if (
+            usuario["plan"]
+            or "free"
+        ).lower() == "premium"
     )
 
     free = total - premium
@@ -663,9 +679,16 @@ def admin_users():
             True,
 
         "stats": {
-            "total": total,
-            "free": free,
-            "premium": premium
+
+            "total":
+                total,
+
+            "free":
+                free,
+
+            "premium":
+                premium
+
         },
 
         "users": [
@@ -1114,7 +1137,10 @@ def api_login():
 
                 senha_correta = False
 
-            # Migração de senhas antigas em texto puro
+            # =================================================
+            # MIGRAÇÃO DE SENHAS ANTIGAS
+            # =================================================
+
             if not senha_correta:
 
                 senha_antiga = user["password"]
@@ -1208,8 +1234,13 @@ def chat():
         return jsonify({
             "reply":
                 "Faça login primeiro.",
+
+            "message":
+                "Faça login primeiro.",
+
             "success":
                 False
+
         }), 401
 
     try:
@@ -1238,8 +1269,13 @@ def chat():
             return jsonify({
                 "reply":
                     "Sua mensagem é muito grande. Tente enviar uma mensagem menor.",
+
+                "message":
+                    "Sua mensagem é muito grande. Tente enviar uma mensagem menor.",
+
                 "success":
                     False
+
             }), 400
 
         # ====================================================
@@ -1256,8 +1292,13 @@ def chat():
                 return jsonify({
                     "reply":
                         "❌ Imagem inválida.",
+
+                    "message":
+                        "❌ Imagem inválida.",
+
                     "success":
                         False
+
                 }), 400
 
             if not tipo_imagem:
@@ -1278,18 +1319,27 @@ def chat():
                 return jsonify({
                     "reply":
                         "❌ Formato de imagem não suportado. Use JPG, PNG, WEBP ou GIF.",
+
+                    "message":
+                        "❌ Formato de imagem não suportado. Use JPG, PNG, WEBP ou GIF.",
+
                     "success":
                         False
+
                 }), 400
 
-            # Limite aproximado
             if len(imagem_base64) > 27_000_000:
 
                 return jsonify({
                     "reply":
                         "❌ A imagem é muito grande. Use uma imagem menor.",
+
+                    "message":
+                        "❌ A imagem é muito grande. Use uma imagem menor.",
+
                     "success":
                         False
+
                 }), 400
 
         # ====================================================
@@ -1301,8 +1351,13 @@ def chat():
             return jsonify({
                 "reply":
                     "Digite uma mensagem ou envie uma imagem.",
+
+                "message":
+                    "Digite uma mensagem ou envie uma imagem.",
+
                 "success":
                     False
+
             }), 400
 
         username = session["user"]
@@ -1324,8 +1379,13 @@ def chat():
             return jsonify({
                 "reply":
                     "Não foi possível abrir a conversa.",
+
+                "message":
+                    "Não foi possível abrir a conversa.",
+
                 "success":
                     False
+
             }), 500
 
         # ====================================================
@@ -1354,15 +1414,28 @@ def chat():
 
                 if total >= 20:
 
+                    mensagem_limite = (
+                        "❌ Limite diário do plano FREE "
+                        "atingido (20 mensagens)."
+                    )
+
                     return jsonify({
+
                         "reply":
-                            "❌ Limite diário do plano FREE atingido (20 mensagens).",
+                            mensagem_limite,
+
+                        "message":
+                            mensagem_limite,
+
                         "limit_reached":
                             True,
+
                         "success":
                             False,
+
                         "plan":
                             plan
+
                     }), 429
 
             # =================================================
@@ -1728,6 +1801,9 @@ PLANO:
             "reply":
                 texto,
 
+            "message":
+                texto,
+
             "conversation_id":
                 conversation_id,
 
@@ -1755,7 +1831,7 @@ PLANO:
         )
 
         # ====================================================
-        # TENTAR REVERTER MENSAGEM DO USUÁRIO
+        # REVERTER MENSAGEM
         # ====================================================
 
         try:
@@ -1806,13 +1882,20 @@ PLANO:
                 "❌ O modelo da IA não está disponível para esta chave da Groq."
             )
 
-        elif "rate limit" in texto_erro or "429" in texto_erro:
+        elif (
+            "rate limit" in texto_erro
+            or "429" in texto_erro
+        ):
 
             mensagem_erro = (
                 "❌ A IA atingiu o limite temporário de requisições. Tente novamente em alguns segundos."
             )
 
-        elif "database" in texto_erro or "postgres" in texto_erro:
+        elif (
+            "database" in texto_erro
+            or "postgres" in texto_erro
+            or "psycopg2" in texto_erro
+        ):
 
             mensagem_erro = (
                 "❌ Erro ao acessar o banco de dados PostgreSQL."
@@ -1844,7 +1927,9 @@ def conversations():
         return jsonify({
             "success": False,
             "message":
-                "Faça login primeiro."
+                "Faça login primeiro.",
+            "conversations":
+                []
         }), 401
 
     try:
@@ -1904,8 +1989,20 @@ def conversations():
         return jsonify({
             "success": False,
             "message":
-                "Erro ao carregar conversas."
+                "Erro ao carregar conversas.",
+            "conversations":
+                []
         }), 500
+
+
+# ============================================================
+# ALIAS API - CONVERSAS
+# ============================================================
+
+@app.route("/api/conversations")
+def api_conversations():
+
+    return conversations()
 
 
 # ============================================================
@@ -2047,6 +2144,22 @@ def open_conversation(
 
 
 # ============================================================
+# ALIAS API - ABRIR CONVERSA
+# ============================================================
+
+@app.route(
+    "/api/conversation/<int:conversation_id>"
+)
+def api_open_conversation(
+    conversation_id
+):
+
+    return open_conversation(
+        conversation_id
+    )
+
+
+# ============================================================
 # HISTORY
 # ============================================================
 
@@ -2055,7 +2168,17 @@ def history():
 
     if "user" not in session:
 
-        return jsonify([]), 401
+        return jsonify({
+            "success":
+                False,
+
+            "message":
+                "Faça login primeiro.",
+
+            "history":
+                []
+
+        }), 401
 
     try:
 
@@ -2114,8 +2237,20 @@ def history():
         return jsonify({
             "success": False,
             "message":
-                "Erro ao carregar histórico."
+                "Erro ao carregar histórico.",
+            "history":
+                []
         }), 500
+
+
+# ============================================================
+# ALIAS API - HISTORY
+# ============================================================
+
+@app.route("/api/history")
+def api_history():
+
+    return history()
 
 
 # ============================================================
@@ -2187,6 +2322,19 @@ def new_chat():
                 "Erro ao criar uma nova conversa."
 
         }), 500
+
+
+# ============================================================
+# ALIAS API - NOVA CONVERSA
+# ============================================================
+
+@app.route(
+    "/api/new_chat",
+    methods=["POST"]
+)
+def api_new_chat():
+
+    return new_chat()
 
 
 # ============================================================
@@ -2291,6 +2439,23 @@ def rename_conversation(
 
 
 # ============================================================
+# ALIAS API - RENOMEAR
+# ============================================================
+
+@app.route(
+    "/api/conversation/<int:conversation_id>/rename",
+    methods=["POST"]
+)
+def api_rename_conversation(
+    conversation_id
+):
+
+    return rename_conversation(
+        conversation_id
+    )
+
+
+# ============================================================
 # EXCLUIR CONVERSA
 # ============================================================
 
@@ -2342,8 +2507,6 @@ def delete_conversation(
 
             conn.commit()
 
-        # Se apagou a conversa atual,
-        # cria outra automaticamente.
         if session.get(
             "conversation_id"
         ) == conversation_id:
@@ -2427,10 +2590,6 @@ def delete_multiple_conversations():
                     "Nenhuma conversa foi selecionada."
             }), 400
 
-        # ====================================================
-        # CONVERTER IDs
-        # ====================================================
-
         conversation_ids = []
 
         for item in ids:
@@ -2447,11 +2606,11 @@ def delete_multiple_conversations():
                 continue
 
             if conversation_id > 0:
+
                 conversation_ids.append(
                     conversation_id
                 )
 
-        # Remover IDs duplicados
         conversation_ids = list(
             dict.fromkeys(
                 conversation_ids
@@ -2471,10 +2630,6 @@ def delete_multiple_conversations():
         conversa_atual_id = session.get(
             "conversation_id"
         )
-
-        # ====================================================
-        # EXCLUIR SOMENTE CONVERSAS DO USUÁRIO
-        # ====================================================
 
         with get_db() as conn:
 
@@ -2499,10 +2654,6 @@ def delete_multiple_conversations():
             for item in excluidas
         ]
 
-        # ====================================================
-        # VERIFICAR SE A CONVERSA ATUAL FOI EXCLUÍDA
-        # ====================================================
-
         conversa_atual_excluida = (
             conversa_atual_id is not None
             and int(conversa_atual_id)
@@ -2521,10 +2672,6 @@ def delete_multiple_conversations():
             )
 
             session.modified = True
-
-        # ====================================================
-        # GARANTIR QUE EXISTE UMA CONVERSA ATUAL
-        # ====================================================
 
         elif not session.get(
             "conversation_id"
@@ -2574,6 +2721,19 @@ def delete_multiple_conversations():
             "message":
                 "Erro ao excluir as conversas."
         }), 500
+
+
+# ============================================================
+# ALIAS API - EXCLUIR VÁRIAS
+# ============================================================
+
+@app.route(
+    "/api/conversations/delete-multiple",
+    methods=["POST"]
+)
+def api_delete_multiple_conversations():
+
+    return delete_multiple_conversations()
 
 
 # ============================================================
@@ -2672,40 +2832,74 @@ def api_status():
         )
 
         return jsonify({
-            "logged": True,
-            "username": session["user"],
-            "plan": "free",
+
+            "logged":
+                True,
+
+            "username":
+                session["user"],
+
+            "plan":
+                "free",
+
             "conversation_id":
-                session.get("conversation_id"),
+                session.get(
+                    "conversation_id"
+                ),
+
             "admin":
                 verificar_admin()
+
         })
 
 
 # ============================================================
-# TRATAMENTO DE ERROS
+# TRATAMENTO DE ERRO 404
+# ============================================================
+#
+# IMPORTANTE:
+#
+# O erro:
+#
+# Unexpected token 'P', "Página não..." is not valid JSON
+#
+# acontecia porque o navegador fazia fetch()
+# esperando JSON, mas o Flask devolvia:
+#
+# Página não encontrada.
+#
+# Agora TODA rota desconhecida retorna JSON.
 # ============================================================
 
 @app.errorhandler(404)
 def erro_404(error):
 
-    if request.path.startswith("/api/") \
-       or request.path in [
-           "/chat",
-           "/history",
-           "/new_chat",
-           "/conversations"
-       ] \
-       or request.path.startswith("/conversation/"):
+    print(
+        "ROTA 404:",
+        request.method,
+        request.path
+    )
 
-        return jsonify({
-            "success": False,
-            "message":
-                "Rota não encontrada."
-        }), 404
+    return jsonify({
 
-    return "Página não encontrada.", 404
+        "success":
+            False,
 
+        "error":
+            "not_found",
+
+        "message":
+            "Rota não encontrada.",
+
+        "path":
+            request.path
+
+    }), 404
+
+
+# ============================================================
+# TRATAMENTO DE ERRO 500
+# ============================================================
 
 @app.errorhandler(500)
 def erro_500(error):
@@ -2715,22 +2909,18 @@ def erro_500(error):
         repr(error)
     )
 
-    if request.path.startswith("/api/") \
-       or request.path in [
-           "/chat",
-           "/history",
-           "/new_chat",
-           "/conversations"
-       ] \
-       or request.path.startswith("/conversation/"):
+    return jsonify({
 
-        return jsonify({
-            "success": False,
-            "message":
-                "Erro interno no servidor."
-        }), 500
+        "success":
+            False,
 
-    return "Erro interno no servidor.", 500
+        "error":
+            "internal_server_error",
+
+        "message":
+            "Erro interno no servidor."
+
+    }), 500
 
 
 # ============================================================
@@ -2751,3 +2941,4 @@ if __name__ == "__main__":
         port=port,
         debug=False
     )
+
