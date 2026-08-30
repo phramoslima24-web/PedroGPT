@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 
 <head>
@@ -95,6 +96,123 @@ body {
     font-weight: bold;
 }
 
+.nova-conversa:hover {
+    filter: brightness(1.08);
+}
+
+.nova-conversa:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+/* =========================
+   HISTÓRICO
+========================= */
+
+.historico-titulo {
+    font-size: 12px;
+    color: rgba(255,255,255,.5);
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    padding: 2px 4px;
+}
+
+.historico {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-right: 3px;
+}
+
+.historico::-webkit-scrollbar {
+    width: 5px;
+}
+
+.historico::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,.12);
+    border-radius: 10px;
+}
+
+.conversa-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.035);
+    border: 1px solid transparent;
+    transition: .15s;
+}
+
+.conversa-item:hover {
+    background: rgba(255,255,255,.07);
+    border-color: rgba(255,255,255,.07);
+}
+
+.conversa-item.ativa {
+    background: rgba(124,58,237,.16);
+    border-color: rgba(124,58,237,.28);
+}
+
+.conversa-abrir {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    color: white;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.conversa-titulo {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+.conversa-acoes {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.btn-conversa {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: rgba(255,255,255,.65);
+    cursor: pointer;
+}
+
+.btn-conversa:hover {
+    background: rgba(255,255,255,.09);
+    color: white;
+}
+
+.btn-excluir:hover {
+    color: #f87171;
+}
+
+.historico-vazio {
+    text-align: center;
+    padding: 14px 5px;
+    color: rgba(255,255,255,.35);
+    font-size: 12px;
+}
+
+/* =========================
+   LOGOUT
+========================= */
+
 .logout {
     display: block;
     text-decoration: none;
@@ -165,10 +283,6 @@ body {
     accent-color: #7c3aed;
     cursor: pointer;
 }
-
-/* =========================
-   VOZ
-========================= */
 
 .seletor-voz {
     display: flex;
@@ -256,14 +370,6 @@ body {
     line-height: 1.6;
     word-wrap: break-word;
     overflow-wrap: break-word;
-}
-
-.linha-resposta {
-    margin-bottom: 6px;
-}
-
-.quebra-linha {
-    height: 8px;
 }
 
 .conteudo-mensagem h2 {
@@ -385,6 +491,7 @@ body {
     border: 1px solid rgba(255,255,255,.08);
     cursor: pointer;
     pointer-events: auto;
+    color: white;
 }
 
 /* =========================
@@ -533,15 +640,19 @@ body {
     .sidebar {
         width: 100%;
         height: auto;
-        max-height: 190px;
+        max-height: 250px;
         padding: 10px;
         gap: 8px;
         border-right: none;
         border-bottom: 1px solid rgba(255,255,255,.08);
     }
 
+    .historico {
+        max-height: 100px;
+    }
+
     .main {
-        height: calc(100vh - 190px);
+        height: calc(100vh - 250px);
     }
 
     .chat {
@@ -594,38 +705,59 @@ body {
 
 <aside class="sidebar">
 
-    <div class="logo">
-        <h2>🤖 Orion AI</h2>
+```
+<div class="logo">
+    <h2>🤖 Orion AI</h2>
+</div>
+
+<div class="usuario">
+    Olá, {{ username }}
+</div>
+
+<div class="plano">
+
+    {% if plan == "premium" %}
+        ⭐ Plano PREMIUM
+    {% else %}
+        🆓 Plano FREE
+    {% endif %}
+
+</div>
+
+<button
+    class="nova-conversa"
+    type="button"
+    id="btnNovaConversa"
+>
+    🆕 Nova conversa
+</button>
+
+<!-- =========================
+     HISTÓRICO
+========================== -->
+
+<div class="historico-titulo">
+    🗂️ Suas conversas
+</div>
+
+<div
+    id="historicoConversas"
+    class="historico"
+>
+
+    <div class="historico-vazio">
+        Carregando conversas...
     </div>
 
-    <div class="usuario">
-        Olá, {{ username }}
-    </div>
+</div>
 
-    <div class="plano">
-
-        {% if plan == "premium" %}
-            ⭐ Plano PREMIUM
-        {% else %}
-            🆓 Plano FREE
-        {% endif %}
-
-    </div>
-
-    <button
-        class="nova-conversa"
-        type="button"
-        id="btnNovaConversa"
-    >
-        🆕 Nova conversa
-    </button>
-
-    <a
-        href="/logout"
-        class="logout"
-    >
-        🚪 Sair
-    </a>
+<a
+    href="/logout"
+    class="logout"
+>
+    🚪 Sair
+</a>
+```
 
 </aside>
 
@@ -633,103 +765,109 @@ body {
 
 <header class="header">
 
-    <span id="tituloConversa">
-        Orion AI
-    </span>
+```
+<span id="tituloConversa">
+    Orion AI
+</span>
+```
 
 </header>
 
 <div class="opcoes">
 
-    <label>
+```
+<label>
 
-        <input
-            type="checkbox"
-            id="voz"
-            checked
-        >
+    <input
+        type="checkbox"
+        id="voz"
+        checked
+    >
 
-        🔊 Ouvir respostas
+    🔊 Ouvir respostas
 
-    </label>
+</label>
 
-    <div class="seletor-voz">
+<div class="seletor-voz">
 
-        <span>🎙️ Voz:</span>
+    <span>🎙️ Voz:</span>
 
-        <select id="seletorVoz">
+    <select id="seletorVoz">
 
-            <option value="default">
-                Voz padrão do navegador
-            </option>
+        <option value="default">
+            Voz padrão do navegador
+        </option>
 
-        </select>
+    </select>
 
-        <button
-            type="button"
-            id="btnTestarVoz"
-            class="btn-testar-voz"
-        >
-            ▶️ Testar
-        </button>
+    <button
+        type="button"
+        id="btnTestarVoz"
+        class="btn-testar-voz"
+    >
+        ▶️ Testar
+    </button>
 
-    </div>
+</div>
+```
 
 </div>
 
 <div class="chat-area">
 
-    <div
-        id="chat"
-        class="chat"
-    ></div>
+```
+<div
+    id="chat"
+    class="chat"
+></div>
 
-    <div
-        id="welcome"
-        class="welcome"
-    >
+<div
+    id="welcome"
+    class="welcome"
+>
 
-        <h2>🤖 Orion AI</h2>
+    <h2>🤖 Orion AI</h2>
 
-        <p>Como posso ajudar hoje?</p>
+    <p>Como posso ajudar hoje?</p>
 
-        <div class="quick-actions">
+    <div class="quick-actions">
 
-            <button
-                type="button"
-                class="quick"
-                data-texto="Criar código"
-            >
-                💻 Criar código
-            </button>
+        <button
+            type="button"
+            class="quick"
+            data-texto="Criar código"
+        >
+            💻 Criar código
+        </button>
 
-            <button
-                type="button"
-                class="quick"
-                data-texto="Estudar"
-            >
-                📚 Estudar
-            </button>
+        <button
+            type="button"
+            class="quick"
+            data-texto="Estudar"
+        >
+            📚 Estudar
+        </button>
 
-            <button
-                type="button"
-                class="quick"
-                data-texto="Fazer resumo"
-            >
-                📝 Fazer resumo
-            </button>
+        <button
+            type="button"
+            class="quick"
+            data-texto="Fazer resumo"
+        >
+            📝 Fazer resumo
+        </button>
 
-            <button
-                type="button"
-                class="quick"
-                data-texto="Tirar dúvidas"
-            >
-                ❓ Tirar dúvidas
-            </button>
-
-        </div>
+        <button
+            type="button"
+            class="quick"
+            data-texto="Tirar dúvidas"
+        >
+            ❓ Tirar dúvidas
+        </button>
 
     </div>
+
+</div>
+```
 
 </div>
 
@@ -738,56 +876,60 @@ body {
     class="arquivo-selecionado"
 >
 
-    <span>📎</span>
+```
+<span>📎</span>
 
-    <span
-        id="nomeArquivo"
-        class="nome-arquivo"
-    >
-        Nenhum arquivo selecionado
-    </span>
+<span
+    id="nomeArquivo"
+    class="nome-arquivo"
+>
+    Nenhum arquivo selecionado
+</span>
 
-    <button
-        type="button"
-        id="removerArquivo"
-        class="remover-arquivo"
-    >
-        ✕
-    </button>
+<button
+    type="button"
+    id="removerArquivo"
+    class="remover-arquivo"
+>
+    ✕
+</button>
+```
 
 </div>
 
 <div class="entrada">
 
-    <input
-        type="file"
-        id="arquivo"
-        accept="image/*"
-        hidden
-    >
+```
+<input
+    type="file"
+    id="arquivo"
+    accept="image/*"
+    hidden
+>
 
-    <button
-        type="button"
-        id="btnArquivo"
-        class="btn-arquivo"
-    >
-        📎
-    </button>
+<button
+    type="button"
+    id="btnArquivo"
+    class="btn-arquivo"
+>
+    📎
+</button>
 
-    <input
-        type="text"
-        id="mensagem"
-        placeholder="Digite sua mensagem..."
-        autocomplete="off"
-        spellcheck="true"
-    >
+<input
+    type="text"
+    id="mensagem"
+    placeholder="Digite sua mensagem..."
+    autocomplete="off"
+    spellcheck="true"
+>
 
-    <button
-        id="btnEnviar"
-        type="button"
-    >
-        Enviar
-    </button>
+<button
+    id="btnEnviar"
+    type="button"
+>
+    Enviar
+</button>
+```
 
 </div>
 
