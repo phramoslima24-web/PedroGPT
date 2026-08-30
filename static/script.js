@@ -5,7 +5,9 @@
 let enviando = false;
 let arquivoSelecionado = null;
 let vozes = [];
-let conversationId = window.conversationId || null;
+
+let conversaSelecionada = null;
+let modoSelecao = false;
 
 
 // ============================================================
@@ -25,8 +27,6 @@ const arquivoInput = elemento("arquivo");
 const arquivoBox = elemento("arquivoSelecionado");
 const nomeArquivo = elemento("nomeArquivo");
 const removerArquivo = elemento("removerArquivo");
-const historicoConversas = elemento("historicoConversas");
-const tituloConversa = elemento("tituloConversa");
 
 
 // ============================================================
@@ -34,6 +34,7 @@ const tituloConversa = elemento("tituloConversa");
 // ============================================================
 
 function escaparHTML(texto) {
+
     return String(texto ?? "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -80,9 +81,11 @@ function adicionarMensagem(texto, tipo = "user") {
 
     const conteudo = document.createElement("div");
 
-    conteudo.className = "conteudo-mensagem";
+    conteudo.className =
+        "conteudo-mensagem";
 
-    conteudo.textContent = texto;
+    conteudo.textContent =
+        texto;
 
     div.appendChild(conteudo);
 
@@ -90,7 +93,8 @@ function adicionarMensagem(texto, tipo = "user") {
 
     atualizarWelcome();
 
-    chat.scrollTop = chat.scrollHeight;
+    chat.scrollTop =
+        chat.scrollHeight;
 
     return div;
 }
@@ -102,11 +106,13 @@ function adicionarMensagem(texto, tipo = "user") {
 
 function formatarResposta(texto) {
 
-    let html = escaparHTML(texto);
+    let html =
+        escaparHTML(texto);
 
     html = html.replace(
         /```([\s\S]*?)```/g,
         function (_, codigo) {
+
             return `
                 <pre class="codigo-pedrogpt"><code>${codigo.trim()}</code></pre>
             `;
@@ -157,15 +163,20 @@ function adicionarResposta(texto, falar = true) {
         return null;
     }
 
-    const div = document.createElement("div");
+    const div =
+        document.createElement("div");
 
-    div.className = "msg-bot";
+    div.className =
+        "msg-bot";
 
-    const conteudo = document.createElement("div");
+    const conteudo =
+        document.createElement("div");
 
-    conteudo.className = "conteudo-mensagem";
+    conteudo.className =
+        "conteudo-mensagem";
 
-    conteudo.innerHTML = formatarResposta(texto);
+    conteudo.innerHTML =
+        formatarResposta(texto);
 
     div.appendChild(conteudo);
 
@@ -173,7 +184,8 @@ function adicionarResposta(texto, falar = true) {
 
     atualizarWelcome();
 
-    chat.scrollTop = chat.scrollHeight;
+    chat.scrollTop =
+        chat.scrollHeight;
 
     if (falar) {
         falarResposta(texto);
@@ -195,11 +207,14 @@ function mostrarTyping() {
 
     removerTyping();
 
-    const div = document.createElement("div");
+    const div =
+        document.createElement("div");
 
-    div.className = "msg-bot typing-message";
+    div.className =
+        "msg-bot typing-message";
 
-    div.id = "typingMessage";
+    div.id =
+        "typingMessage";
 
     div.innerHTML = `
         <div class="conteudo-mensagem">
@@ -216,7 +231,8 @@ function mostrarTyping() {
 
     atualizarWelcome();
 
-    chat.scrollTop = chat.scrollHeight;
+    chat.scrollTop =
+        chat.scrollHeight;
 
     return div;
 }
@@ -224,689 +240,11 @@ function mostrarTyping() {
 
 function removerTyping() {
 
-    const typing = elemento("typingMessage");
+    const typing =
+        elemento("typingMessage");
 
     if (typing) {
         typing.remove();
-    }
-}
-
-
-// ============================================================
-// CARREGAR HISTÓRICO DE CONVERSAS
-// ============================================================
-
-async function carregarListaConversas() {
-
-    if (!historicoConversas) {
-        return;
-    }
-
-    try {
-
-        historicoConversas.innerHTML = `
-            <div class="historico-vazio">
-                ⏳ Carregando conversas...
-            </div>
-        `;
-
-        const resposta = await fetch(
-            "/conversations",
-            {
-                method: "GET",
-                credentials: "same-origin",
-                headers: {
-                    "Accept": "application/json"
-                }
-            }
-        );
-
-        if (resposta.status === 401) {
-
-            window.location.href = "/login";
-
-            return;
-        }
-
-        if (!resposta.ok) {
-
-            throw new Error(
-                "Erro ao carregar conversas."
-            );
-        }
-
-        const conversas = await resposta.json();
-
-        historicoConversas.innerHTML = "";
-
-        if (
-            !Array.isArray(conversas) ||
-            conversas.length === 0
-        ) {
-
-            historicoConversas.innerHTML = `
-                <div class="historico-vazio">
-                    Nenhuma conversa ainda.
-                </div>
-            `;
-
-            return;
-        }
-
-        conversas.forEach(function (conversa) {
-
-            criarItemHistorico(conversa);
-
-        });
-
-    } catch (erro) {
-
-        console.error(
-            "ERRO AO CARREGAR CONVERSAS:",
-            erro
-        );
-
-        historicoConversas.innerHTML = `
-            <div class="historico-vazio">
-                ❌ Erro ao carregar histórico.
-            </div>
-        `;
-    }
-}
-
-
-// ============================================================
-// CRIAR ITEM DO HISTÓRICO
-// ============================================================
-
-function criarItemHistorico(conversa) {
-
-    if (!historicoConversas) {
-        return;
-    }
-
-    const id =
-        conversa.id ??
-        conversa.conversation_id;
-
-    if (!id) {
-        return;
-    }
-
-    const titulo =
-        conversa.title ||
-        conversa.titulo ||
-        "Nova conversa";
-
-    const item =
-        document.createElement("div");
-
-    item.className = "conversa-item";
-
-    if (
-        String(id) ===
-        String(conversationId)
-    ) {
-        item.classList.add("ativa");
-    }
-
-    item.dataset.id = id;
-
-    // --------------------------------------------------------
-    // BOTÃO ABRIR
-    // --------------------------------------------------------
-
-    const abrir =
-        document.createElement("button");
-
-    abrir.type = "button";
-
-    abrir.className = "conversa-abrir";
-
-    abrir.title = titulo;
-
-    abrir.innerHTML = `
-        <span class="conversa-titulo">
-            ${escaparHTML(titulo)}
-        </span>
-    `;
-
-    abrir.addEventListener(
-        "click",
-        function () {
-
-            abrirConversa(id);
-
-        }
-    );
-
-    // --------------------------------------------------------
-    // AÇÕES
-    // --------------------------------------------------------
-
-    const acoes =
-        document.createElement("div");
-
-    acoes.className =
-        "conversa-acoes";
-
-    // --------------------------------------------------------
-    // RENOMEAR
-    // --------------------------------------------------------
-
-    const btnRenomear =
-        document.createElement("button");
-
-    btnRenomear.type = "button";
-
-    btnRenomear.className =
-        "btn-conversa btn-renomear";
-
-    btnRenomear.title =
-        "Renomear conversa";
-
-    btnRenomear.textContent =
-        "✏️";
-
-    btnRenomear.addEventListener(
-        "click",
-        function (event) {
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            renomearConversa(
-                id,
-                titulo
-            );
-        }
-    );
-
-    // --------------------------------------------------------
-    // EXCLUIR
-    // --------------------------------------------------------
-
-    const btnExcluir =
-        document.createElement("button");
-
-    btnExcluir.type = "button";
-
-    btnExcluir.className =
-        "btn-conversa btn-excluir";
-
-    btnExcluir.title =
-        "Excluir conversa permanentemente";
-
-    btnExcluir.textContent =
-        "🗑️";
-
-    btnExcluir.addEventListener(
-        "click",
-        function (event) {
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            excluirConversa(id);
-
-        }
-    );
-
-    acoes.appendChild(
-        btnRenomear
-    );
-
-    acoes.appendChild(
-        btnExcluir
-    );
-
-    item.appendChild(
-        abrir
-    );
-
-    item.appendChild(
-        acoes
-    );
-
-    historicoConversas.appendChild(
-        item
-    );
-}
-
-
-// ============================================================
-// ABRIR CONVERSA
-// ============================================================
-
-async function abrirConversa(id) {
-
-    if (enviando) {
-        return;
-    }
-
-    try {
-
-        const resposta =
-            await fetch(
-                `/conversation/${encodeURIComponent(id)}`,
-                {
-                    method: "GET",
-                    credentials: "same-origin",
-                    headers: {
-                        "Accept": "application/json"
-                    }
-                }
-            );
-
-        if (resposta.status === 401) {
-
-            window.location.href = "/login";
-
-            return;
-        }
-
-        const texto =
-            await resposta.text();
-
-        let dados;
-
-        try {
-
-            dados = JSON.parse(texto);
-
-        } catch (erro) {
-
-            console.error(
-                "Resposta inválida:",
-                texto
-            );
-
-            throw new Error(
-                "O servidor retornou uma resposta inválida."
-            );
-        }
-
-        if (!resposta.ok) {
-
-            throw new Error(
-                dados.message ||
-                "Não foi possível abrir a conversa."
-            );
-        }
-
-        conversationId =
-            dados.conversation_id ??
-            dados.id ??
-            id;
-
-        window.conversationId =
-            conversationId;
-
-        if (chat) {
-            chat.innerHTML = "";
-        }
-
-        removerTyping();
-
-        limparArquivo();
-
-        const mensagens =
-            dados.messages ||
-            dados.historico ||
-            dados.history ||
-            [];
-
-        if (Array.isArray(mensagens)) {
-
-            mensagens.forEach(
-                function (item) {
-
-                    const sender =
-                        item.sender ||
-                        item.role;
-
-                    const texto =
-                        item.message ??
-                        item.content ??
-                        "";
-
-                    if (!texto) {
-                        return;
-                    }
-
-                    if (
-                        sender === "user" ||
-                        sender === "human"
-                    ) {
-
-                        adicionarMensagem(
-                            texto,
-                            "user"
-                        );
-
-                    } else {
-
-                        adicionarResposta(
-                            texto,
-                            false
-                        );
-                    }
-
-                }
-            );
-        }
-
-        const titulo =
-            dados.title ||
-            dados.titulo ||
-            "Nova conversa";
-
-        if (tituloConversa) {
-
-            tituloConversa.textContent =
-                titulo;
-        }
-
-        atualizarWelcome();
-
-        atualizarItensAtivos();
-
-        if (mensagemInput) {
-            mensagemInput.focus();
-        }
-
-        chat.scrollTop =
-            chat.scrollHeight;
-
-    } catch (erro) {
-
-        console.error(
-            "ERRO AO ABRIR CONVERSA:",
-            erro
-        );
-
-        alert(
-            "❌ Não foi possível abrir a conversa.\n\n" +
-            erro.message
-        );
-    }
-}
-
-
-// ============================================================
-// ATUALIZAR CONVERSA ATIVA
-// ============================================================
-
-function atualizarItensAtivos() {
-
-    if (!historicoConversas) {
-        return;
-    }
-
-    const itens =
-        historicoConversas.querySelectorAll(
-            ".conversa-item"
-        );
-
-    itens.forEach(function (item) {
-
-        if (
-            String(item.dataset.id) ===
-            String(conversationId)
-        ) {
-
-            item.classList.add("ativa");
-
-        } else {
-
-            item.classList.remove("ativa");
-        }
-    });
-}
-
-
-// ============================================================
-// RENOMEAR CONVERSA
-// ============================================================
-
-async function renomearConversa(id, tituloAtual) {
-
-    const novoTitulo =
-        prompt(
-            "Digite o novo nome da conversa:",
-            tituloAtual
-        );
-
-    if (novoTitulo === null) {
-        return;
-    }
-
-    const titulo =
-        novoTitulo.trim();
-
-    if (!titulo) {
-
-        alert(
-            "❌ O nome da conversa não pode ficar vazio."
-        );
-
-        return;
-    }
-
-    if (titulo.length > 100) {
-
-        alert(
-            "❌ O nome pode ter no máximo 100 caracteres."
-        );
-
-        return;
-    }
-
-    try {
-
-        const resposta =
-            await fetch(
-                `/conversation/${encodeURIComponent(id)}`,
-                {
-                    method: "PUT",
-                    credentials: "same-origin",
-                    headers: {
-                        "Accept":
-                            "application/json",
-                        "Content-Type":
-                            "application/json"
-                    },
-                    body: JSON.stringify({
-                        title: titulo
-                    })
-                }
-            );
-
-        const texto =
-            await resposta.text();
-
-        let dados = {};
-
-        try {
-            dados = JSON.parse(texto);
-        } catch (erro) {
-            console.warn(
-                "Resposta não JSON:",
-                texto
-            );
-        }
-
-        if (!resposta.ok) {
-
-            throw new Error(
-                dados.message ||
-                "Não foi possível renomear a conversa."
-            );
-        }
-
-        if (
-            String(id) ===
-            String(conversationId)
-        ) {
-
-            if (tituloConversa) {
-
-                tituloConversa.textContent =
-                    titulo;
-            }
-        }
-
-        await carregarListaConversas();
-
-    } catch (erro) {
-
-        console.error(
-            "ERRO AO RENOMEAR:",
-            erro
-        );
-
-        alert(
-            "❌ Não foi possível renomear a conversa.\n\n" +
-            erro.message
-        );
-    }
-}
-
-
-// ============================================================
-// EXCLUIR CONVERSA PERMANENTEMENTE
-// ============================================================
-
-async function excluirConversa(id) {
-
-    const item =
-        historicoConversas
-            ? historicoConversas.querySelector(
-                `.conversa-item[data-id="${CSS.escape(String(id))}"]`
-            )
-            : null;
-
-    let titulo = "esta conversa";
-
-    if (item) {
-
-        const tituloElemento =
-            item.querySelector(
-                ".conversa-titulo"
-            );
-
-        if (tituloElemento) {
-
-            titulo =
-                tituloElemento.textContent.trim();
-        }
-    }
-
-    const confirmar =
-        confirm(
-            `⚠️ Excluir conversa?\n\n` +
-            `"${titulo}"\n\n` +
-            `Essa ação apagará permanentemente ` +
-            `a conversa e suas mensagens.\n\n` +
-            `Essa ação não pode ser desfeita.`
-        );
-
-    if (!confirmar) {
-        return;
-    }
-
-    try {
-
-        const resposta =
-            await fetch(
-                `/conversation/${encodeURIComponent(id)}`,
-                {
-                    method: "DELETE",
-                    credentials: "same-origin",
-                    headers: {
-                        "Accept":
-                            "application/json"
-                    }
-                }
-            );
-
-        const texto =
-            await resposta.text();
-
-        let dados = {};
-
-        try {
-            dados =
-                JSON.parse(texto);
-        } catch (erro) {
-            console.warn(
-                "Resposta não JSON:",
-                texto
-            );
-        }
-
-        if (!resposta.ok) {
-
-            throw new Error(
-                dados.message ||
-                "Não foi possível excluir a conversa."
-            );
-        }
-
-        // ----------------------------------------------------
-        // SE ERA A CONVERSA ATUAL
-        // ----------------------------------------------------
-
-        if (
-            String(id) ===
-            String(conversationId)
-        ) {
-
-            conversationId = null;
-
-            window.conversationId =
-                null;
-
-            if (chat) {
-                chat.innerHTML = "";
-            }
-
-            removerTyping();
-
-            limparArquivo();
-
-            if (tituloConversa) {
-
-                tituloConversa.textContent =
-                    "Orion AI";
-            }
-
-            atualizarWelcome();
-
-            // Cria uma nova conversa
-            await novaConversa();
-
-        } else {
-
-            await carregarListaConversas();
-        }
-
-        console.log(
-            "Conversa excluída permanentemente:",
-            id
-        );
-
-    } catch (erro) {
-
-        console.error(
-            "ERRO AO EXCLUIR:",
-            erro
-        );
-
-        alert(
-            "❌ Não foi possível excluir a conversa.\n\n" +
-            erro.message
-        );
     }
 }
 
@@ -921,10 +259,10 @@ async function novaConversa() {
         return;
     }
 
+    sairModoSelecao();
+
     const botao =
-        document.querySelector(
-            ".nova-conversa"
-        );
+        document.querySelector(".nova-conversa");
 
     const textoOriginal =
         botao
@@ -1003,11 +341,11 @@ async function novaConversa() {
             );
         }
 
-        conversationId =
-            dados.conversation_id;
+        if (dados.conversation_id) {
 
-        window.conversationId =
-            conversationId;
+            window.conversationId =
+                dados.conversation_id;
+        }
 
         if (chat) {
             chat.innerHTML = "";
@@ -1021,16 +359,19 @@ async function novaConversa() {
 
         limparArquivo();
 
-        if (tituloConversa) {
+        const titulo =
+            elemento("tituloConversa");
 
-            tituloConversa.textContent =
+        if (titulo) {
+
+            titulo.textContent =
                 dados.title ||
                 "Nova conversa";
         }
 
         atualizarWelcome();
 
-        await carregarListaConversas();
+        await carregarHistoricoConversas();
 
         if (mensagemInput) {
             mensagemInput.focus();
@@ -1126,12 +467,6 @@ async function enviar() {
         const dadosEnvio = {
             message: texto
         };
-
-        if (conversationId) {
-
-            dadosEnvio.conversation_id =
-                conversationId;
-        }
 
         if (arquivoSelecionado) {
 
@@ -1239,11 +574,8 @@ async function enviar() {
 
         if (dados.conversation_id) {
 
-            conversationId =
-                dados.conversation_id;
-
             window.conversationId =
-                conversationId;
+                dados.conversation_id;
         }
 
         adicionarResposta(
@@ -1253,16 +585,20 @@ async function enviar() {
 
         if (dados.title) {
 
-            if (tituloConversa) {
+            const titulo =
+                elemento("tituloConversa");
 
-                tituloConversa.textContent =
+            if (titulo) {
+
+                titulo.textContent =
                     dados.title;
             }
         }
 
         limparArquivo();
 
-        await carregarListaConversas();
+        // Atualiza lista lateral
+        carregarHistoricoConversas();
 
     } catch (erro) {
 
@@ -1299,13 +635,13 @@ async function enviar() {
 
 
 // ============================================================
-// CONVERTER ARQUIVO PARA BASE64
+// CONVERTER ARQUIVO
 // ============================================================
 
 function converterArquivoBase64(arquivo) {
 
     return new Promise(
-        function (resolve, reject) {
+        (resolve, reject) => {
 
             const leitor =
                 new FileReader();
@@ -1458,7 +794,9 @@ if (arquivoInput) {
 
             if (
                 arquivo.type &&
-                !arquivo.type.startsWith("image/")
+                !arquivo.type.startsWith(
+                    "image/"
+                )
             ) {
 
                 alert(
@@ -1514,9 +852,7 @@ function limparArquivo() {
         null;
 
     if (arquivoInput) {
-
-        arquivoInput.value =
-            "";
+        arquivoInput.value = "";
     }
 
     if (arquivoBox) {
@@ -1734,7 +1070,7 @@ if (btnTestarVoz) {
 
 
 // ============================================================
-// CARREGAR MENSAGENS DA CONVERSA ATUAL
+// HISTÓRICO - CARREGAR CONVERSA ATUAL
 // ============================================================
 
 async function carregarHistorico() {
@@ -1831,21 +1167,1147 @@ async function carregarHistorico() {
 
 
 // ============================================================
+// HISTÓRICO - LISTA DE CONVERSAS
+// ============================================================
+
+async function carregarHistoricoConversas() {
+
+    const container =
+        elemento("historicoConversas");
+
+    if (!container) {
+        return;
+    }
+
+    try {
+
+        const resposta =
+            await fetch(
+                "/conversations",
+                {
+                    method: "GET",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept":
+                            "application/json"
+                    }
+                }
+            );
+
+        if (
+            resposta.status === 401
+        ) {
+
+            window.location.href =
+                "/login";
+
+            return;
+        }
+
+        if (!resposta.ok) {
+
+            console.warn(
+                "Erro ao carregar conversas:",
+                resposta.status
+            );
+
+            container.innerHTML = `
+                <div class="historico-vazio">
+                    Erro ao carregar conversas
+                </div>
+            `;
+
+            return;
+        }
+
+        const dados =
+            await resposta.json();
+
+        const conversas =
+            Array.isArray(dados)
+                ? dados
+                : dados.conversations || [];
+
+        container.innerHTML = "";
+
+        if (!conversas.length) {
+
+            container.innerHTML = `
+                <div class="historico-vazio">
+                    Nenhuma conversa ainda
+                </div>
+            `;
+
+            return;
+        }
+
+        conversas.forEach(
+            function (conversa) {
+
+                criarItemConversa(
+                    conversa
+                );
+            }
+        );
+
+        atualizarSelecaoVisual();
+
+    } catch (erro) {
+
+        console.error(
+            "ERRO AO CARREGAR CONVERSAS:",
+            erro
+        );
+
+        container.innerHTML = `
+            <div class="historico-vazio">
+                Erro ao carregar conversas
+            </div>
+        `;
+    }
+}
+
+
+// ============================================================
+// CRIAR ITEM DA CONVERSA
+// ============================================================
+
+function criarItemConversa(conversa) {
+
+    const container =
+        elemento("historicoConversas");
+
+    if (!container) {
+        return;
+    }
+
+    const id =
+        conversa.id ||
+        conversa.conversation_id;
+
+    const titulo =
+        conversa.title ||
+        conversa.titulo ||
+        "Nova conversa";
+
+    const item =
+        document.createElement("div");
+
+    item.className =
+        "conversa-item";
+
+    item.dataset.id =
+        id;
+
+    const abrir =
+        document.createElement("button");
+
+    abrir.type = "button";
+
+    abrir.className =
+        "conversa-abrir";
+
+    abrir.innerHTML = `
+        <span class="conversa-titulo">
+            ${escaparHTML(titulo)}
+        </span>
+    `;
+
+    abrir.addEventListener(
+        "click",
+        function () {
+
+            if (modoSelecao) {
+
+                alternarSelecaoConversa(
+                    id,
+                    item
+                );
+
+                return;
+            }
+
+            abrirConversa(id);
+        }
+    );
+
+    const acoes =
+        document.createElement("div");
+
+    acoes.className =
+        "conversa-acoes";
+
+    // Botão selecionar
+    const btnSelecionar =
+        document.createElement("button");
+
+    btnSelecionar.type =
+        "button";
+
+    btnSelecionar.className =
+        "btn-conversa btn-selecionar";
+
+    btnSelecionar.title =
+        "Selecionar";
+
+    btnSelecionar.textContent =
+        "☐";
+
+    btnSelecionar.addEventListener(
+        "click",
+        function (event) {
+
+            event.stopPropagation();
+
+            alternarSelecaoConversa(
+                id,
+                item
+            );
+        }
+    );
+
+    // Botão renomear
+    const btnRenomear =
+        document.createElement("button");
+
+    btnRenomear.type =
+        "button";
+
+    btnRenomear.className =
+        "btn-conversa btn-renomear";
+
+    btnRenomear.title =
+        "Renomear";
+
+    btnRenomear.textContent =
+        "✏️";
+
+    btnRenomear.addEventListener(
+        "click",
+        function (event) {
+
+            event.stopPropagation();
+
+            renomearConversa(
+                id,
+                titulo
+            );
+        }
+    );
+
+    // Botão excluir individual
+    const btnExcluir =
+        document.createElement("button");
+
+    btnExcluir.type =
+        "button";
+
+    btnExcluir.className =
+        "btn-conversa btn-excluir";
+
+    btnExcluir.title =
+        "Excluir";
+
+    btnExcluir.textContent =
+        "🗑️";
+
+    btnExcluir.addEventListener(
+        "click",
+        function (event) {
+
+            event.stopPropagation();
+
+            excluirConversa(
+                id
+            );
+        }
+    );
+
+    acoes.appendChild(
+        btnSelecionar
+    );
+
+    acoes.appendChild(
+        btnRenomear
+    );
+
+    acoes.appendChild(
+        btnExcluir
+    );
+
+    item.appendChild(
+        abrir
+    );
+
+    item.appendChild(
+        acoes
+    );
+
+    container.appendChild(
+        item
+    );
+}
+
+
+// ============================================================
+// ABRIR CONVERSA
+// ============================================================
+
+async function abrirConversa(id) {
+
+    if (modoSelecao) {
+        return;
+    }
+
+    if (!id) {
+        return;
+    }
+
+    try {
+
+        const resposta =
+            await fetch(
+                `/conversation/${encodeURIComponent(id)}`,
+                {
+                    method: "GET",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept":
+                            "application/json"
+                    }
+                }
+            );
+
+        if (
+            resposta.status === 401
+        ) {
+
+            window.location.href =
+                "/login";
+
+            return;
+        }
+
+        const dados =
+            await resposta.json();
+
+        if (!resposta.ok) {
+
+            alert(
+                dados.message ||
+                "❌ Não foi possível abrir a conversa."
+            );
+
+            return;
+        }
+
+        window.conversationId =
+            id;
+
+        if (chat) {
+            chat.innerHTML = "";
+        }
+
+        const mensagens =
+            dados.messages ||
+            dados.history ||
+            [];
+
+        mensagens.forEach(
+            function (item) {
+
+                if (
+                    item.sender ===
+                    "user"
+                ) {
+
+                    adicionarMensagem(
+                        item.message,
+                        "user"
+                    );
+
+                } else {
+
+                    adicionarResposta(
+                        item.message,
+                        false
+                    );
+                }
+            }
+        );
+
+        const titulo =
+            elemento("tituloConversa");
+
+        if (titulo) {
+
+            titulo.textContent =
+                dados.title ||
+                dados.titulo ||
+                "Orion AI";
+        }
+
+        document
+            .querySelectorAll(
+                ".conversa-item"
+            )
+            .forEach(
+                function (item) {
+
+                    item.classList.toggle(
+                        "ativa",
+                        String(
+                            item.dataset.id
+                        ) === String(id)
+                    );
+                }
+            );
+
+        atualizarWelcome();
+
+        if (chat) {
+            chat.scrollTop =
+                chat.scrollHeight;
+        }
+
+    } catch (erro) {
+
+        console.error(
+            "ERRO AO ABRIR CONVERSA:",
+            erro
+        );
+
+        alert(
+            "❌ Erro ao abrir a conversa."
+        );
+    }
+}
+
+
+// ============================================================
+// RENOMEAR CONVERSA
+// ============================================================
+
+async function renomearConversa(
+    id,
+    tituloAtual
+) {
+
+    const novoTitulo =
+        prompt(
+            "Digite o novo nome da conversa:",
+            tituloAtual
+        );
+
+    if (
+        novoTitulo === null
+    ) {
+        return;
+    }
+
+    const titulo =
+        novoTitulo.trim();
+
+    if (!titulo) {
+
+        alert(
+            "❌ O nome não pode ficar vazio."
+        );
+
+        return;
+    }
+
+    try {
+
+        const resposta =
+            await fetch(
+                "/rename_conversation",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept":
+                            "application/json",
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body:
+                        JSON.stringify({
+                            conversation_id:
+                                id,
+                            title:
+                                titulo
+                        })
+                }
+            );
+
+        const dados =
+            await resposta.json();
+
+        if (
+            !resposta.ok ||
+            dados.success === false
+        ) {
+
+            throw new Error(
+                dados.message ||
+                "Não foi possível renomear."
+            );
+        }
+
+        const item =
+            document.querySelector(
+                `.conversa-item[data-id="${CSS.escape(String(id))}"]`
+            );
+
+        if (item) {
+
+            const tituloElemento =
+                item.querySelector(
+                    ".conversa-titulo"
+                );
+
+            if (tituloElemento) {
+
+                tituloElemento.textContent =
+                    titulo;
+            }
+        }
+
+        if (
+            String(window.conversationId) ===
+            String(id)
+        ) {
+
+            const tituloHeader =
+                elemento(
+                    "tituloConversa"
+                );
+
+            if (tituloHeader) {
+
+                tituloHeader.textContent =
+                    titulo;
+            }
+        }
+
+    } catch (erro) {
+
+        console.error(
+            "ERRO AO RENOMEAR:",
+            erro
+        );
+
+        alert(
+            "❌ " +
+            erro.message
+        );
+    }
+}
+
+
+// ============================================================
+// EXCLUIR UMA CONVERSA
+// ============================================================
+
+async function excluirConversa(id) {
+
+    if (!id) {
+        return;
+    }
+
+    const confirmar =
+        confirm(
+            "⚠️ Tem certeza que deseja excluir esta conversa?\n\n" +
+            "As mensagens serão apagadas permanentemente."
+        );
+
+    if (!confirmar) {
+        return;
+    }
+
+    try {
+
+        const resposta =
+            await fetch(
+                "/delete_conversation",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept":
+                            "application/json",
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body:
+                        JSON.stringify({
+                            conversation_id:
+                                id
+                        })
+                }
+            );
+
+        const dados =
+            await resposta.json();
+
+        if (
+            !resposta.ok ||
+            dados.success === false
+        ) {
+
+            throw new Error(
+                dados.message ||
+                "Não foi possível excluir a conversa."
+            );
+        }
+
+        if (
+            String(window.conversationId) ===
+            String(id)
+        ) {
+
+            window.conversationId =
+                null;
+
+            if (chat) {
+                chat.innerHTML = "";
+            }
+
+            const titulo =
+                elemento(
+                    "tituloConversa"
+                );
+
+            if (titulo) {
+
+                titulo.textContent =
+                    "Orion AI";
+            }
+
+            atualizarWelcome();
+        }
+
+        await carregarHistoricoConversas();
+
+    } catch (erro) {
+
+        console.error(
+            "ERRO AO EXCLUIR:",
+            erro
+        );
+
+        alert(
+            "❌ " +
+            erro.message
+        );
+    }
+}
+
+
+// ============================================================
+// CRIAR BARRA DE SELEÇÃO
+// ============================================================
+
+function criarBarraSelecao() {
+
+    if (
+        elemento("barraSelecao")
+    ) {
+        return;
+    }
+
+    const sidebar =
+        document.querySelector(
+            ".sidebar"
+        );
+
+    const historicoTitulo =
+        document.querySelector(
+            ".historico-titulo"
+        );
+
+    if (!sidebar || !historicoTitulo) {
+        return;
+    }
+
+    const barra =
+        document.createElement("div");
+
+    barra.id =
+        "barraSelecao";
+
+    barra.style.display =
+        "none";
+
+    barra.style.flexDirection =
+        "column";
+
+    barra.style.gap =
+        "7px";
+
+    barra.innerHTML = `
+
+        <div style="
+            display:flex;
+            gap:6px;
+        ">
+
+            <button
+                type="button"
+                id="btnSelecionarTudo"
+                style="
+                    flex:1;
+                    border:none;
+                    padding:8px;
+                    border-radius:8px;
+                    background:rgba(255,255,255,.07);
+                    color:white;
+                    cursor:pointer;
+                    font-size:12px;
+                "
+            >
+                ☑️ Selecionar tudo
+            </button>
+
+            <button
+                type="button"
+                id="btnCancelarSelecao"
+                style="
+                    flex:1;
+                    border:none;
+                    padding:8px;
+                    border-radius:8px;
+                    background:rgba(255,255,255,.07);
+                    color:white;
+                    cursor:pointer;
+                    font-size:12px;
+                "
+            >
+                ❌ Cancelar
+            </button>
+
+        </div>
+
+        <button
+            type="button"
+            id="btnExcluirSelecionadas"
+            style="
+                border:none;
+                padding:9px;
+                border-radius:8px;
+                background:rgba(239,68,68,.18);
+                border:1px solid rgba(239,68,68,.25);
+                color:#fca5a5;
+                cursor:pointer;
+                font-weight:bold;
+                font-size:12px;
+            "
+        >
+            🗑️ Excluir selecionadas (<span id="contadorSelecionadas">0</span>)
+        </button>
+    `;
+
+    sidebar.insertBefore(
+        barra,
+        historicoTitulo
+    );
+
+    elemento(
+        "btnSelecionarTudo"
+    ).addEventListener(
+        "click",
+        selecionarTodasConversas
+    );
+
+    elemento(
+        "btnCancelarSelecao"
+    ).addEventListener(
+        "click",
+        sairModoSelecao
+    );
+
+    elemento(
+        "btnExcluirSelecionadas"
+    ).addEventListener(
+        "click",
+        excluirSelecionadas
+    );
+}
+
+
+// ============================================================
+// ENTRAR NO MODO SELEÇÃO
+// ============================================================
+
+function entrarModoSelecao() {
+
+    modoSelecao = true;
+
+    criarBarraSelecao();
+
+    const barra =
+        elemento("barraSelecao");
+
+    if (barra) {
+
+        barra.style.display =
+            "flex";
+    }
+
+    atualizarSelecaoVisual();
+}
+
+
+// ============================================================
+// SAIR DO MODO SELEÇÃO
+// ============================================================
+
+function sairModoSelecao() {
+
+    modoSelecao = false;
+
+    document
+        .querySelectorAll(
+            ".conversa-item.selecionada"
+        )
+        .forEach(
+            function (item) {
+
+                item.classList.remove(
+                    "selecionada"
+                );
+            }
+        );
+
+    const barra =
+        elemento("barraSelecao");
+
+    if (barra) {
+
+        barra.style.display =
+            "none";
+    }
+
+    atualizarSelecaoVisual();
+}
+
+
+// ============================================================
+// SELECIONAR / DESSELECIONAR
+// ============================================================
+
+function alternarSelecaoConversa(
+    id,
+    item
+) {
+
+    if (!modoSelecao) {
+        entrarModoSelecao();
+    }
+
+    item.classList.toggle(
+        "selecionada"
+    );
+
+    atualizarSelecaoVisual();
+}
+
+
+// ============================================================
+// ATUALIZAR VISUAL DA SELEÇÃO
+// ============================================================
+
+function atualizarSelecaoVisual() {
+
+    const itens =
+        document.querySelectorAll(
+            ".conversa-item"
+        );
+
+    itens.forEach(
+        function (item) {
+
+            const selecionada =
+                item.classList.contains(
+                    "selecionada"
+                );
+
+            const botao =
+                item.querySelector(
+                    ".btn-selecionar"
+                );
+
+            if (botao) {
+
+                botao.textContent =
+                    selecionada
+                        ? "☑️"
+                        : "☐";
+            }
+
+            if (modoSelecao) {
+
+                item.style.background =
+                    selecionada
+                        ? "rgba(124,58,237,.28)"
+                        : "";
+
+            } else {
+
+                item.style.background =
+                    "";
+            }
+        }
+    );
+
+    const selecionadas =
+        document.querySelectorAll(
+            ".conversa-item.selecionada"
+        );
+
+    const contador =
+        elemento(
+            "contadorSelecionadas"
+        );
+
+    if (contador) {
+
+        contador.textContent =
+            selecionadas.length;
+    }
+}
+
+
+// ============================================================
+// SELECIONAR TODAS
+// ============================================================
+
+function selecionarTodasConversas() {
+
+    entrarModoSelecao();
+
+    const itens =
+        document.querySelectorAll(
+            ".conversa-item"
+        );
+
+    itens.forEach(
+        function (item) {
+
+            item.classList.add(
+                "selecionada"
+            );
+        }
+    );
+
+    atualizarSelecaoVisual();
+}
+
+
+// ============================================================
+// PEGAR IDS SELECIONADOS
+// ============================================================
+
+function obterIdsSelecionados() {
+
+    return Array.from(
+        document.querySelectorAll(
+            ".conversa-item.selecionada"
+        )
+    )
+        .map(
+            item =>
+                item.dataset.id
+        )
+        .filter(Boolean);
+}
+
+
+// ============================================================
+// EXCLUIR VÁRIAS CONVERSAS
+// ============================================================
+
+async function excluirSelecionadas() {
+
+    const ids =
+        obterIdsSelecionados();
+
+    if (!ids.length) {
+
+        alert(
+            "⚠️ Selecione pelo menos uma conversa."
+        );
+
+        return;
+    }
+
+    const confirmar =
+        confirm(
+            `⚠️ Você selecionou ${ids.length} conversa(s).\n\n` +
+            "Todas as mensagens dessas conversas serão apagadas permanentemente.\n\n" +
+            "Deseja continuar?"
+        );
+
+    if (!confirmar) {
+        return;
+    }
+
+    const botao =
+        elemento(
+            "btnExcluirSelecionadas"
+        );
+
+    if (botao) {
+
+        botao.disabled = true;
+
+        botao.textContent =
+            "⏳ Excluindo...";
+    }
+
+    try {
+
+        const resposta =
+            await fetch(
+                "/delete_conversations",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept":
+                            "application/json",
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body:
+                        JSON.stringify({
+                            conversation_ids:
+                                ids
+                        })
+                }
+            );
+
+        const dados =
+            await resposta.json();
+
+        if (
+            !resposta.ok ||
+            dados.success === false
+        ) {
+
+            throw new Error(
+                dados.message ||
+                "Não foi possível excluir as conversas."
+            );
+        }
+
+        if (
+            window.conversationId &&
+            ids.some(
+                id =>
+                    String(id) ===
+                    String(
+                        window.conversationId
+                    )
+            )
+        ) {
+
+            window.conversationId =
+                null;
+
+            if (chat) {
+                chat.innerHTML = "";
+            }
+
+            const titulo =
+                elemento(
+                    "tituloConversa"
+                );
+
+            if (titulo) {
+
+                titulo.textContent =
+                    "Orion AI";
+            }
+
+            atualizarWelcome();
+        }
+
+        sairModoSelecao();
+
+        await carregarHistoricoConversas();
+
+    } catch (erro) {
+
+        console.error(
+            "ERRO AO EXCLUIR VÁRIAS:",
+            erro
+        );
+
+        alert(
+            "❌ " +
+            erro.message
+        );
+
+    } finally {
+
+        if (botao) {
+
+            botao.disabled = false;
+
+            botao.innerHTML =
+                `🗑️ Excluir selecionadas (<span id="contadorSelecionadas">0</span>)`;
+        }
+    }
+}
+
+
+// ============================================================
+// BOTÃO PARA ATIVAR SELEÇÃO
+// ============================================================
+
+document.addEventListener(
+    "dblclick",
+    function (event) {
+
+        const item =
+            event.target.closest(
+                ".conversa-item"
+            );
+
+        if (!item) {
+            return;
+        }
+
+        entrarModoSelecao();
+
+        item.classList.add(
+            "selecionada"
+        );
+
+        atualizarSelecaoVisual();
+    }
+);
+
+
+// ============================================================
 // INICIALIZAÇÃO
 // ============================================================
 
 document.addEventListener(
     "DOMContentLoaded",
-    async function () {
+    function () {
+
+        criarBarraSelecao();
 
         atualizarWelcome();
 
-        await carregarListaConversas();
+        carregarHistorico();
 
-        await carregarHistorico();
+        carregarHistoricoConversas();
 
         if (mensagemInput) {
-
             mensagemInput.focus();
         }
     }
@@ -1868,8 +2330,8 @@ window.atalho =
 window.limparArquivo =
     limparArquivo;
 
-window.carregarListaConversas =
-    carregarListaConversas;
+window.carregarHistoricoConversas =
+    carregarHistoricoConversas;
 
 window.abrirConversa =
     abrirConversa;
@@ -1879,3 +2341,12 @@ window.renomearConversa =
 
 window.excluirConversa =
     excluirConversa;
+
+window.entrarModoSelecao =
+    entrarModoSelecao;
+
+window.sairModoSelecao =
+    sairModoSelecao;
+
+window.excluirSelecionadas =
+    excluirSelecionadas;
