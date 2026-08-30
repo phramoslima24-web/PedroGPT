@@ -698,10 +698,6 @@ def login_com_google(
             psycopg2.extras.RealDictCursor
         )
 
-        # ----------------------------------------------------
-        # PROCURAR PELO GOOGLE ID
-        # ----------------------------------------------------
-
         cursor.execute("""
             SELECT
                 id,
@@ -743,10 +739,6 @@ def login_com_google(
 
             return usuario["username"]
 
-        # ----------------------------------------------------
-        # PROCURAR PELO EMAIL
-        # ----------------------------------------------------
-
         usuario = None
 
         if email:
@@ -763,10 +755,6 @@ def login_com_google(
             ))
 
             usuario = cursor.fetchone()
-
-        # ----------------------------------------------------
-        # VINCULAR GOOGLE
-        # ----------------------------------------------------
 
         if usuario:
 
@@ -808,10 +796,6 @@ def login_com_google(
             session.modified = True
 
             return usuario["username"]
-
-        # ----------------------------------------------------
-        # CRIAR NOVA CONTA GOOGLE
-        # ----------------------------------------------------
 
         username = gerar_username_google(
             nome,
@@ -965,7 +949,6 @@ def criar_token_recuperacao(
         48
     )
 
-    # O token real nunca é salvo no banco.
     token_hash = generate_password_hash(
         token
     )
@@ -981,7 +964,6 @@ def criar_token_recuperacao(
 
         cursor = conn.cursor()
 
-        # Invalida tokens antigos
         cursor.execute("""
             UPDATE password_reset_tokens
             SET used = TRUE
@@ -1327,17 +1309,26 @@ def recuperar_conta():
 # REDEFINIR SENHA - PÁGINA
 # ============================================================
 
-@app.route(
-    "/redefinir-senha/<token>"
-)
-def reset_password_page(
-    token
-):
+@app.route("/reset-password")
+def reset_password_page():
 
     if "user" in session:
 
         return redirect(
             url_for("home")
+        )
+
+    token = request.args.get(
+        "token",
+        ""
+    ).strip()
+
+    if not token:
+
+        return render_template(
+            "reset.html",
+            token_invalido=True,
+            token=""
         )
 
     item = validar_token_recuperacao(
@@ -1347,15 +1338,15 @@ def reset_password_page(
     if not item:
 
         return render_template(
-            "reset_password.html",
-            token="",
-            token_invalido=True
+            "reset.html",
+            token_invalido=True,
+            token=""
         )
 
     return render_template(
-        "reset_password.html",
-        token=token,
-        token_invalido=False
+        "reset.html",
+        token_invalido=False,
+        token=token
     )
 
 
@@ -2238,6 +2229,10 @@ def forgot_password():
             usuario["id"]
         )
 
+        # ====================================================
+        # LINK CORRETO PARA reset.html
+        # ====================================================
+
         link = url_for(
             "reset_password_page",
             token=token,
@@ -2432,7 +2427,6 @@ def reset_password():
 
                 }), 404
 
-            # Token usado não pode ser reutilizado
             cursor.execute("""
                 UPDATE password_reset_tokens
                 SET used = TRUE
@@ -2441,7 +2435,6 @@ def reset_password():
                 item["id"],
             ))
 
-            # Invalidar todos os outros tokens
             cursor.execute("""
                 UPDATE password_reset_tokens
                 SET used = TRUE
@@ -2972,8 +2965,8 @@ def admin_delete_user(user_id):
                 }), 404
 
             if (
-                usuario["username"] ==
-                ADMIN_USERNAME
+                usuario["username"]
+                == ADMIN_USERNAME
             ):
 
                 return jsonify({
@@ -3217,10 +3210,6 @@ def api_register():
         with get_db() as conn:
 
             cursor = conn.cursor()
-
-            # ------------------------------------------------
-            # VERIFICAR E-MAIL
-            # ------------------------------------------------
 
             cursor.execute("""
                 SELECT id
