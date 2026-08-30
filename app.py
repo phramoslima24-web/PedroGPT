@@ -109,7 +109,7 @@ if (
         client_kwargs={
 
             "scope":
-                "openid email profile",
+                "openid email profile"
 
         }
 
@@ -308,6 +308,7 @@ def verificar_conversa(
 ):
 
     if not conversation_id:
+
         return False
 
     try:
@@ -346,6 +347,7 @@ def verificar_conversa(
 def conversa_atual():
 
     if "user" not in session:
+
         return None
 
     username = session["user"]
@@ -434,6 +436,7 @@ def atualizar_titulo_se_necessario(
         conversa = cursor.fetchone()
 
         if not conversa:
+
             return
 
         titulo_atual = (
@@ -441,6 +444,7 @@ def atualizar_titulo_se_necessario(
         ).strip()
 
         if titulo_atual != "Nova conversa":
+
             return
 
         novo_titulo = gerar_titulo(
@@ -647,7 +651,7 @@ def login_com_google(
             return usuario["username"]
 
         # ----------------------------------------------------
-        # TENTAR LOCALIZAR PELO EMAIL
+        # PROCURAR PELO EMAIL
         # ----------------------------------------------------
 
         usuario = None
@@ -668,17 +672,19 @@ def login_com_google(
             usuario = cursor.fetchone()
 
         # ----------------------------------------------------
-        # VINCULAR GOOGLE A UMA CONTA EXISTENTE
+        # VINCULAR GOOGLE
         # ----------------------------------------------------
 
         if usuario:
 
             cursor.execute("""
                 UPDATE users
-                SET google_id = %s
+                SET google_id = %s,
+                    email = %s
                 WHERE id = %s
             """, (
                 google_id,
+                email or None,
                 usuario["id"]
             ))
 
@@ -866,9 +872,7 @@ def google_callback():
 
         nome = (
             userinfo.get("name")
-            or userinfo.get(
-                "given_name"
-            )
+            or userinfo.get("given_name")
             or "Google User"
         )
 
@@ -1041,7 +1045,9 @@ def perfil():
                 SELECT
                     id,
                     username,
-                    plan
+                    plan,
+                    email,
+                    google_id
                 FROM users
                 WHERE username = %s
             """, (
@@ -1101,7 +1107,11 @@ def perfil():
             username=usuario["username"],
             plan=usuario["plan"] or "free",
             total_conversas=total_conversas,
-            total_mensagens=total_mensagens
+            total_mensagens=total_mensagens,
+            email=usuario["email"] or "",
+            login_google=bool(
+                usuario["google_id"]
+            )
         )
 
     except Exception as e:
@@ -1266,6 +1276,314 @@ def api_profile():
 
             "message":
                 "Erro ao carregar o perfil.",
+
+            "error":
+                str(e)
+
+        }), 500
+
+
+# ============================================================
+# ALTERAR NOME DE USUÁRIO
+# ============================================================
+
+@app.route(
+    "/api/change-username",
+    methods=["POST"]
+)
+def change_username():
+
+    if "user" not in session:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Faça login primeiro."
+
+        }), 401
+
+    # --------------------------------------------------------
+    # ADMIN NÃO PODE TROCAR O PRÓPRIO USUÁRIO
+    # --------------------------------------------------------
+
+    if verificar_admin():
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "O administrador não pode alterar o nome de usuário."
+
+        }), 400
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    novo_username = str(
+        data.get("username")
+        or data.get("new_username")
+        or ""
+    ).strip()
+
+    if not novo_username:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Digite um novo nome de usuário."
+
+        }), 400
+
+    # --------------------------------------------------------
+    # VALIDAR TAMANHO
+    # --------------------------------------------------------
+
+    if len(novo_username) < 3:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "O usuário precisa ter pelo menos 3 caracteres."
+
+        }), 400
+
+    if len(novo_username) > 30:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "O usuário pode ter no máximo 30 caracteres."
+
+        }), 400
+
+    # --------------------------------------------------------
+    # VALIDAR CARACTERES
+    # --------------------------------------------------------
+
+    if not re.fullmatch(
+        r"[A-Za-z0-9_]+",
+        novo_username
+    ):
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Use apenas letras, números e _ no nome de usuário."
+
+        }), 400
+
+    # --------------------------------------------------------
+    # PROTEGER NOME DO ADMINISTRADOR
+    # --------------------------------------------------------
+
+    if (
+        novo_username.lower()
+        == ADMIN_USERNAME.lower()
+    ):
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Esse nome de usuário não está disponível."
+
+        }), 409
+
+    username_atual = session["user"]
+
+    # --------------------------------------------------------
+    # NÃO ALTERAR PARA O MESMO NOME
+    # --------------------------------------------------------
+
+    if (
+        novo_username
+        == username_atual
+    ):
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Digite um nome de usuário diferente do atual."
+
+        }), 400
+
+    try:
+
+        with get_db() as conn:
+
+            cursor = conn.cursor()
+
+            # ------------------------------------------------
+            # VERIFICAR SE JÁ EXISTE
+            # ------------------------------------------------
+
+            cursor.execute("""
+                SELECT id
+                FROM users
+                WHERE username = %s
+            """, (
+                novo_username,
+            ))
+
+            if cursor.fetchone():
+
+                return jsonify({
+
+                    "success":
+                        False,
+
+                    "message":
+                        "Esse nome de usuário já está em uso."
+
+                }), 409
+
+            # ------------------------------------------------
+            # ATUALIZAR USUÁRIO
+            # ------------------------------------------------
+
+            cursor.execute("""
+                UPDATE users
+                SET username = %s
+                WHERE username = %s
+            """, (
+                novo_username,
+                username_atual
+            ))
+
+            if cursor.rowcount == 0:
+
+                conn.rollback()
+
+                return jsonify({
+
+                    "success":
+                        False,
+
+                    "message":
+                        "Usuário atual não foi encontrado."
+
+                }), 404
+
+            # ------------------------------------------------
+            # ATUALIZAR CONVERSAS
+            # ------------------------------------------------
+
+            cursor.execute("""
+                UPDATE conversations
+                SET username = %s
+                WHERE username = %s
+            """, (
+                novo_username,
+                username_atual
+            ))
+
+            # ------------------------------------------------
+            # ATUALIZAR TABELA ANTIGA DE MENSAGENS
+            # ------------------------------------------------
+
+            cursor.execute("""
+                UPDATE messages
+                SET username = %s
+                WHERE username = %s
+            """, (
+                novo_username,
+                username_atual
+            ))
+
+            conn.commit()
+
+        # ----------------------------------------------------
+        # ATUALIZAR SESSÃO
+        # ----------------------------------------------------
+
+        session["user"] = novo_username
+
+        # plan permanece na sessão.
+        # conversation_id continua válido porque o ID
+        # da conversa não mudou.
+
+        session.modified = True
+
+        print(
+            "USUÁRIO ALTERADO:",
+            username_atual,
+            "->",
+            novo_username
+        )
+
+        return jsonify({
+
+            "success":
+                True,
+
+            "message":
+                "Nome de usuário alterado com sucesso.",
+
+            "username":
+                novo_username
+
+        })
+
+    except psycopg2.IntegrityError:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Esse nome de usuário já está em uso."
+
+        }), 409
+
+    except Exception as e:
+
+        print(
+            "=================================================="
+        )
+
+        print(
+            "ERRO AO ALTERAR NOME DE USUÁRIO:"
+        )
+
+        print(
+            repr(e)
+        )
+
+        print(
+            "=================================================="
+        )
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Erro interno ao alterar o nome de usuário.",
 
             "error":
                 str(e)
@@ -4674,3 +4992,4 @@ if __name__ == "__main__":
         port=port,
         debug=False
     )
+
