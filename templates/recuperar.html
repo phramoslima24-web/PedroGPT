@@ -1,0 +1,539 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>Recuperar conta - Orion AI</title>
+
+<style>
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+
+    min-height: 100vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 20px;
+
+    background:
+        radial-gradient(
+            circle at top,
+            #312e81,
+            #111827 55%,
+            #05070d
+        );
+
+    color: white;
+}
+
+.card {
+
+    width: 390px;
+    max-width: 100%;
+
+    padding: 35px;
+
+    border-radius: 24px;
+
+    background:
+        rgba(255,255,255,0.07);
+
+    backdrop-filter:
+        blur(18px);
+
+    border:
+        1px solid
+        rgba(255,255,255,0.12);
+
+    box-shadow:
+        0 25px 70px
+        rgba(0,0,0,0.5);
+}
+
+.logo {
+
+    text-align: center;
+
+    margin-bottom: 28px;
+}
+
+.logo h1 {
+
+    font-size: 30px;
+
+    margin-bottom: 7px;
+}
+
+.logo p {
+
+    color:
+        rgba(255,255,255,0.65);
+
+    font-size: 14px;
+
+    line-height: 1.5;
+}
+
+.campo {
+
+    margin-bottom: 17px;
+}
+
+.campo label {
+
+    display: block;
+
+    margin-bottom: 7px;
+
+    font-size: 14px;
+
+    color:
+        rgba(255,255,255,0.85);
+}
+
+.input-box {
+
+    position: relative;
+}
+
+.input-box input {
+
+    width: 100%;
+
+    padding: 14px;
+
+    border-radius: 12px;
+
+    border:
+        1px solid
+        rgba(255,255,255,0.1);
+
+    outline: none;
+
+    background:
+        rgba(255,255,255,0.08);
+
+    color: white;
+
+    font-size: 14px;
+
+    transition: 0.2s;
+}
+
+.input-box input:focus {
+
+    border-color:
+        #8b5cf6;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(139,92,246,0.15);
+}
+
+.input-box input::placeholder {
+
+    color:
+        rgba(255,255,255,0.4);
+}
+
+.btn {
+
+    width: 100%;
+
+    padding: 14px;
+
+    margin-top: 8px;
+
+    border: none;
+
+    border-radius: 12px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #7c3aed,
+            #4f46e5
+        );
+
+    color: white;
+
+    font-size: 15px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+}
+
+.btn:hover {
+
+    transform:
+        translateY(-2px);
+
+    box-shadow:
+        0 8px 25px
+        rgba(79,70,229,0.35);
+}
+
+.btn:disabled {
+
+    opacity: 0.55;
+
+    cursor: not-allowed;
+
+    transform: none;
+
+    box-shadow: none;
+}
+
+.msg {
+
+    min-height: 22px;
+
+    margin-top: 15px;
+
+    text-align: center;
+
+    font-size: 14px;
+
+    line-height: 1.4;
+}
+
+.erro {
+
+    color:
+        #f87171;
+}
+
+.sucesso {
+
+    color:
+        #4ade80;
+}
+
+.info {
+
+    margin-top: 17px;
+
+    padding: 12px;
+
+    border-radius: 11px;
+
+    background:
+        rgba(255,255,255,0.04);
+
+    border:
+        1px solid
+        rgba(255,255,255,0.07);
+
+    color:
+        rgba(255,255,255,0.5);
+
+    font-size: 12px;
+
+    line-height: 1.5;
+
+    text-align: center;
+}
+
+.footer {
+
+    text-align: center;
+
+    margin-top: 20px;
+
+    font-size: 14px;
+
+    color:
+        rgba(255,255,255,0.65);
+}
+
+.footer a {
+
+    color:
+        #a78bfa;
+
+    text-decoration: none;
+
+    font-weight: bold;
+}
+
+.footer a:hover {
+
+    text-decoration: underline;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+    <div class="logo">
+
+        <h1>
+            🤖 Orion AI
+        </h1>
+
+        <p>
+            Recupere o acesso à sua conta
+        </p>
+
+    </div>
+
+
+    <div class="campo">
+
+        <label for="email">
+            E-mail
+        </label>
+
+        <div class="input-box">
+
+            <input
+                type="email"
+                id="email"
+                placeholder="Digite o e-mail da sua conta"
+                autocomplete="email"
+                maxlength="200"
+            >
+
+        </div>
+
+    </div>
+
+
+    <button
+        type="button"
+        class="btn"
+        id="btnRecuperar"
+        onclick="recuperarConta()"
+    >
+        Enviar recuperação
+    </button>
+
+
+    <div
+        id="msg"
+        class="msg"
+    ></div>
+
+
+    <div class="info">
+
+        🔒 Vamos usar o e-mail cadastrado
+        na sua conta para iniciar a recuperação
+        da senha.
+
+    </div>
+
+
+    <div class="footer">
+
+        Lembrou da senha?
+
+        <a href="/login">
+            Voltar para o login
+        </a>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const emailInput =
+    document.getElementById("email");
+
+const btn =
+    document.getElementById("btnRecuperar");
+
+const msg =
+    document.getElementById("msg");
+
+
+function mostrarMensagem(
+    texto,
+    tipo = "erro"
+) {
+
+    msg.textContent =
+        texto;
+
+    msg.className =
+        "msg " + tipo;
+}
+
+
+async function recuperarConta() {
+
+    const email =
+        emailInput.value.trim();
+
+
+    if (!email) {
+
+        mostrarMensagem(
+            "Digite seu e-mail."
+        );
+
+        emailInput.focus();
+
+        return;
+    }
+
+
+    if (
+        !email.includes("@") ||
+        !email.includes(".")
+    ) {
+
+        mostrarMensagem(
+            "Digite um e-mail válido."
+        );
+
+        emailInput.focus();
+
+        return;
+    }
+
+
+    btn.disabled =
+        true;
+
+    btn.textContent =
+        "Enviando...";
+
+    mostrarMensagem("");
+
+
+    try {
+
+        const resposta =
+            await fetch(
+                "/api/forgot-password",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+
+                        "Accept":
+                            "application/json"
+                    },
+
+                    credentials:
+                        "same-origin",
+
+                    body:
+                        JSON.stringify({
+                            email: email
+                        })
+                }
+            );
+
+
+        let dados = {};
+
+        try {
+
+            dados =
+                await resposta.json();
+
+        } catch (erroJson) {
+
+            dados = {};
+
+        }
+
+
+        if (
+            !resposta.ok ||
+            dados.success === false
+        ) {
+
+            throw new Error(
+                dados.message ||
+                "Não foi possível iniciar a recuperação da conta."
+            );
+        }
+
+
+        mostrarMensagem(
+            dados.message ||
+            "Se o e-mail estiver cadastrado, você receberá as instruções de recuperação.",
+            "sucesso"
+        );
+
+
+        emailInput.value = "";
+
+
+    } catch (erro) {
+
+        console.error(
+            "ERRO RECUPERAÇÃO:",
+            erro
+        );
+
+        mostrarMensagem(
+            "❌ " +
+            erro.message
+        );
+
+    } finally {
+
+        btn.disabled =
+            false;
+
+        btn.textContent =
+            "Enviar recuperação";
+    }
+
+}
+
+
+emailInput.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (
+            event.key === "Enter"
+        ) {
+
+            event.preventDefault();
+
+            recuperarConta();
+        }
+
+    }
+);
+
+</script>
+
+</body>
+
+</html>
+
