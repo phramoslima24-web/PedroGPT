@@ -155,6 +155,8 @@ body {
     font-weight: bold;
 
     margin-bottom: 12px;
+
+    word-break: break-word;
 }
 
 .plano {
@@ -256,6 +258,8 @@ body {
 .info-valor {
 
     font-size: 14px;
+
+    word-break: break-word;
 }
 
 .acoes {
@@ -289,12 +293,21 @@ body {
     border:
         1px solid
         rgba(255,255,255,.08);
+
+    text-decoration: none;
+
+    display: block;
+
+    text-align: center;
+
+    transition: .18s ease;
 }
 
 .botao:hover {
 
     background:
         rgba(255,255,255,.11);
+
 }
 
 .botao-sair {
@@ -317,7 +330,7 @@ body {
 
 
 /* ============================================================
-   MODAL ALTERAR SENHA
+   MODAL
 ============================================================ */
 
 .modal {
@@ -355,7 +368,7 @@ body {
     max-width: 420px;
 
     background:
-        rgba(17,24,39,.96);
+        rgba(17,24,39,.97);
 
     border:
         1px solid
@@ -368,6 +381,9 @@ body {
     box-shadow:
         0 25px 80px
         rgba(0,0,0,.45);
+
+    animation:
+        aparecer .18s ease;
 }
 
 .modal-topo {
@@ -436,19 +452,11 @@ body {
     margin-bottom: 6px;
 }
 
-.senha-box {
-
-    position: relative;
-
-    width: 100%;
-}
-
-.senha-box input {
+.campo input {
 
     width: 100%;
 
-    padding:
-        12px 48px 12px 13px;
+    padding: 12px 13px;
 
     border-radius: 11px;
 
@@ -466,7 +474,7 @@ body {
     transition: .2s;
 }
 
-.senha-box input:focus {
+.campo input:focus {
 
     border-color:
         #7c3aed;
@@ -476,62 +484,16 @@ body {
         rgba(124,58,237,.10);
 }
 
-.senha-box input::placeholder {
+.campo input::placeholder {
 
     color:
         rgba(255,255,255,.3);
 }
 
-.olho-senha {
 
-    position: absolute;
-
-    right: 10px;
-
-    top: 50%;
-
-    transform:
-        translateY(-50%);
-
-    width: 32px;
-
-    height: 32px;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    border: none;
-
-    border-radius: 8px;
-
-    background:
-        transparent;
-
-    color: white;
-
-    cursor: pointer;
-
-    font-size: 17px;
-
-    opacity: .7;
-
-    transition: .15s;
-}
-
-.olho-senha:hover {
-
-    opacity: 1;
-
-    background:
-        rgba(255,255,255,.07);
-
-    transform:
-        translateY(-50%)
-        scale(1.05);
-}
+/* ============================================================
+   MENSAGEM
+============================================================ */
 
 .mensagem {
 
@@ -577,7 +539,12 @@ body {
         #6ee7b7;
 }
 
-.btn-salvar-senha {
+
+/* ============================================================
+   BOTÕES DOS MODAIS
+============================================================ */
+
+.btn-modal {
 
     width: 100%;
 
@@ -600,18 +567,19 @@ body {
 
     cursor: pointer;
 
-    transition: .18s;
+    transition: .18s ease;
 }
 
-.btn-salvar-senha:hover {
+.btn-modal:hover {
 
-    filter: brightness(1.08);
+    filter:
+        brightness(1.08);
 
     transform:
         translateY(-1px);
 }
 
-.btn-salvar-senha:disabled {
+.btn-modal:disabled {
 
     opacity: .55;
 
@@ -620,19 +588,73 @@ body {
     transform: none;
 }
 
+.aviso {
+
+    margin-top: 8px;
+
+    color:
+        rgba(255,255,255,.38);
+
+    font-size: 11px;
+
+    line-height: 1.5;
+
+    text-align: center;
+}
+
+
+/* ============================================================
+   ANIMAÇÃO
+============================================================ */
+
+@keyframes aparecer {
+
+    from {
+
+        opacity: 0;
+
+        transform:
+            translateY(8px)
+            scale(.98);
+
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform:
+            translateY(0)
+            scale(1);
+
+    }
+
+}
+
+
+/* ============================================================
+   MOBILE
+============================================================ */
+
 @media(max-width:600px) {
 
     .perfil-card {
+
         padding: 22px;
+
     }
 
     .estatisticas {
+
         grid-template-columns:
             1fr 1fr;
+
     }
 
     .modal-card {
+
         padding: 20px;
+
     }
 
 }
@@ -643,9 +665,16 @@ body {
 
 <body>
 
+
 <div class="perfil-container">
 
+
 <div class="perfil-card">
+
+
+    <!-- =====================================================
+         TOPO
+    ====================================================== -->
 
     <div class="topo">
 
@@ -663,15 +692,30 @@ body {
     </div>
 
 
+    <!-- =====================================================
+         AVATAR
+    ====================================================== -->
+
     <div class="avatar">
         👤
     </div>
 
 
-    <div class="usuario">
+    <!-- =====================================================
+         USUÁRIO
+    ====================================================== -->
+
+    <div
+        class="usuario"
+        id="nomeUsuarioTela"
+    >
         {{ username }}
     </div>
 
+
+    <!-- =====================================================
+         PLANO
+    ====================================================== -->
 
     <div class="plano">
 
@@ -688,7 +732,12 @@ body {
     </div>
 
 
+    <!-- =====================================================
+         ESTATÍSTICAS
+    ====================================================== -->
+
     <div class="estatisticas">
+
 
         <div class="stat">
 
@@ -721,8 +770,13 @@ body {
 
         </div>
 
+
     </div>
 
+
+    <!-- =====================================================
+         INFORMAÇÃO DO USUÁRIO
+    ====================================================== -->
 
     <div class="info">
 
@@ -730,14 +784,31 @@ body {
             👤 Usuário
         </div>
 
-        <div class="info-valor">
+        <div
+            class="info-valor"
+            id="usuarioInfo"
+        >
             {{ username }}
         </div>
 
     </div>
 
 
+    <!-- =====================================================
+         AÇÕES
+    ====================================================== -->
+
     <div class="acoes">
+
+
+        <button
+            type="button"
+            class="botao"
+            id="btnAlterarUsuario"
+        >
+            ✏️ Alterar nome de usuário
+        </button>
+
 
         <button
             type="button"
@@ -751,17 +822,89 @@ body {
         <a
             href="/logout"
             class="botao botao-sair"
-            style="
-                text-align:center;
-                text-decoration:none;
-            "
         >
             🚪 Sair da conta
         </a>
 
+
     </div>
 
+
 </div>
+
+</div>
+
+
+<!-- =========================================================
+     MODAL ALTERAR USUÁRIO
+========================================================= -->
+
+<div
+    id="modalUsuario"
+    class="modal"
+>
+
+    <div class="modal-card">
+
+
+        <div class="modal-topo">
+
+            <div class="modal-titulo">
+                ✏️ Alterar usuário
+            </div>
+
+            <button
+                type="button"
+                class="fechar-modal"
+                id="fecharModalUsuario"
+                aria-label="Fechar"
+            >
+                ✕
+            </button>
+
+        </div>
+
+
+        <div
+            id="mensagemUsuario"
+            class="mensagem"
+        ></div>
+
+
+        <div class="campo">
+
+            <label for="novoUsuario">
+                Novo nome de usuário
+            </label>
+
+            <input
+                type="text"
+                id="novoUsuario"
+                value="{{ username }}"
+                maxlength="30"
+                autocomplete="off"
+                placeholder="Digite o novo usuário"
+            >
+
+        </div>
+
+
+        <button
+            type="button"
+            class="btn-modal"
+            id="btnSalvarUsuario"
+        >
+            Salvar novo usuário
+        </button>
+
+
+        <div class="aviso">
+            Use apenas letras, números e _.
+            Seu histórico continuará na conta.
+        </div>
+
+
+    </div>
 
 </div>
 
@@ -776,6 +919,7 @@ body {
 >
 
     <div class="modal-card">
+
 
         <div class="modal-topo">
 
@@ -809,13 +953,15 @@ body {
                 Senha atual
             </label>
 
-            <div class="senha-box">
+            <div class="senha-box"
+                 style="position:relative;">
 
                 <input
                     type="password"
                     id="senhaAtual"
                     autocomplete="current-password"
                     placeholder="Digite sua senha atual"
+                    style="padding-right:48px;"
                 >
 
                 <button
@@ -827,6 +973,24 @@ body {
                         'olhoSenhaAtual'
                     )"
                     aria-label="Mostrar senha atual"
+                    style="
+                        position:absolute;
+                        right:10px;
+                        top:50%;
+                        transform:translateY(-50%);
+                        width:32px;
+                        height:32px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        border:none;
+                        border-radius:8px;
+                        background:transparent;
+                        color:white;
+                        cursor:pointer;
+                        font-size:17px;
+                        opacity:.7;
+                    "
                 >
                     👁️
                 </button>
@@ -844,13 +1008,15 @@ body {
                 Nova senha
             </label>
 
-            <div class="senha-box">
+            <div class="senha-box"
+                 style="position:relative;">
 
                 <input
                     type="password"
                     id="novaSenha"
                     autocomplete="new-password"
                     placeholder="Digite a nova senha"
+                    style="padding-right:48px;"
                 >
 
                 <button
@@ -862,6 +1028,24 @@ body {
                         'olhoNovaSenha'
                     )"
                     aria-label="Mostrar nova senha"
+                    style="
+                        position:absolute;
+                        right:10px;
+                        top:50%;
+                        transform:translateY(-50%);
+                        width:32px;
+                        height:32px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        border:none;
+                        border-radius:8px;
+                        background:transparent;
+                        color:white;
+                        cursor:pointer;
+                        font-size:17px;
+                        opacity:.7;
+                    "
                 >
                     👁️
                 </button>
@@ -879,13 +1063,15 @@ body {
                 Confirmar nova senha
             </label>
 
-            <div class="senha-box">
+            <div class="senha-box"
+                 style="position:relative;">
 
                 <input
                     type="password"
                     id="confirmarSenha"
                     autocomplete="new-password"
                     placeholder="Digite novamente a nova senha"
+                    style="padding-right:48px;"
                 >
 
                 <button
@@ -897,6 +1083,24 @@ body {
                         'olhoConfirmarSenha'
                     )"
                     aria-label="Mostrar confirmação"
+                    style="
+                        position:absolute;
+                        right:10px;
+                        top:50%;
+                        transform:translateY(-50%);
+                        width:32px;
+                        height:32px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        border:none;
+                        border-radius:8px;
+                        background:transparent;
+                        color:white;
+                        cursor:pointer;
+                        font-size:17px;
+                        opacity:.7;
+                    "
                 >
                     👁️
                 </button>
@@ -908,11 +1112,12 @@ body {
 
         <button
             type="button"
-            class="btn-salvar-senha"
+            class="btn-modal"
             id="btnSalvarSenha"
         >
             Alterar senha
         </button>
+
 
     </div>
 
@@ -922,7 +1127,398 @@ body {
 <script>
 
 /* ============================================================
-   ELEMENTOS
+   MODAL USUÁRIO
+============================================================ */
+
+const btnAlterarUsuario =
+    document.getElementById(
+        "btnAlterarUsuario"
+    );
+
+const modalUsuario =
+    document.getElementById(
+        "modalUsuario"
+    );
+
+const fecharModalUsuario =
+    document.getElementById(
+        "fecharModalUsuario"
+    );
+
+const btnSalvarUsuario =
+    document.getElementById(
+        "btnSalvarUsuario"
+    );
+
+const mensagemUsuario =
+    document.getElementById(
+        "mensagemUsuario"
+    );
+
+const novoUsuario =
+    document.getElementById(
+        "novoUsuario"
+    );
+
+const nomeUsuarioTela =
+    document.getElementById(
+        "nomeUsuarioTela"
+    );
+
+const usuarioInfo =
+    document.getElementById(
+        "usuarioInfo"
+    );
+
+
+/* ============================================================
+   MENSAGEM USUÁRIO
+============================================================ */
+
+function mostrarMensagemUsuario(
+    texto,
+    tipo
+) {
+
+    mensagemUsuario.textContent =
+        texto;
+
+    mensagemUsuario.className =
+        "mensagem ativa " + tipo;
+}
+
+
+function limparMensagemUsuario() {
+
+    mensagemUsuario.textContent =
+        "";
+
+    mensagemUsuario.className =
+        "mensagem";
+}
+
+
+/* ============================================================
+   ABRIR MODAL USUÁRIO
+============================================================ */
+
+function abrirModalUsuario() {
+
+    limparMensagemUsuario();
+
+    novoUsuario.value =
+        nomeUsuarioTela.textContent.trim();
+
+    modalUsuario.classList.add(
+        "ativo"
+    );
+
+    setTimeout(
+        function () {
+
+            novoUsuario.focus();
+
+            novoUsuario.select();
+
+        },
+        100
+    );
+}
+
+
+/* ============================================================
+   FECHAR MODAL USUÁRIO
+============================================================ */
+
+function fecharModalUsuarioFunc() {
+
+    modalUsuario.classList.remove(
+        "ativo"
+    );
+
+}
+
+
+btnAlterarUsuario.addEventListener(
+    "click",
+    abrirModalUsuario
+);
+
+
+fecharModalUsuario.addEventListener(
+    "click",
+    fecharModalUsuarioFunc
+);
+
+
+modalUsuario.addEventListener(
+    "click",
+    function (event) {
+
+        if (
+            event.target ===
+            modalUsuario
+        ) {
+
+            fecharModalUsuarioFunc();
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   SALVAR USUÁRIO
+============================================================ */
+
+btnSalvarUsuario.addEventListener(
+    "click",
+    async function () {
+
+        const nome =
+            novoUsuario.value.trim();
+
+        limparMensagemUsuario();
+
+
+        if (!nome) {
+
+            mostrarMensagemUsuario(
+                "Digite um novo nome de usuário.",
+                "erro"
+            );
+
+            novoUsuario.focus();
+
+            return;
+        }
+
+
+        if (nome.length < 3) {
+
+            mostrarMensagemUsuario(
+                "O usuário precisa ter pelo menos 3 caracteres.",
+                "erro"
+            );
+
+            novoUsuario.focus();
+
+            return;
+        }
+
+
+        if (nome.length > 30) {
+
+            mostrarMensagemUsuario(
+                "O usuário pode ter no máximo 30 caracteres.",
+                "erro"
+            );
+
+            novoUsuario.focus();
+
+            return;
+        }
+
+
+        if (
+            !/^[A-Za-z0-9_]+$/.test(nome)
+        ) {
+
+            mostrarMensagemUsuario(
+                "Use apenas letras, números e _.",
+                "erro"
+            );
+
+            novoUsuario.focus();
+
+            return;
+        }
+
+
+        btnSalvarUsuario.disabled =
+            true;
+
+        btnSalvarUsuario.textContent =
+            "⏳ Salvando...";
+
+
+        try {
+
+            const resposta =
+                await fetch(
+                    "/api/change-username",
+                    {
+                        method: "POST",
+
+                        credentials:
+                            "same-origin",
+
+                        headers: {
+
+                            "Accept":
+                                "application/json",
+
+                            "Content-Type":
+                                "application/json"
+
+                        },
+
+                        body:
+                            JSON.stringify({
+
+                                username:
+                                    nome
+
+                            })
+
+                    }
+                );
+
+
+            let dados = {};
+
+            try {
+
+                dados =
+                    await resposta.json();
+
+            } catch (
+                erroJson
+            ) {
+
+                dados = {};
+
+            }
+
+
+            if (
+                !resposta.ok ||
+                dados.success === false
+            ) {
+
+                throw new Error(
+
+                    dados.message ||
+                    "Não foi possível alterar o usuário."
+
+                );
+
+            }
+
+
+            const novoNome =
+                dados.username ||
+                nome;
+
+
+            nomeUsuarioTela.textContent =
+                novoNome;
+
+            usuarioInfo.textContent =
+                novoNome;
+
+            novoUsuario.value =
+                novoNome;
+
+
+            mostrarMensagemUsuario(
+                "✅ Nome de usuário alterado com sucesso!",
+                "sucesso"
+            );
+
+
+            setTimeout(
+                function () {
+
+                    fecharModalUsuarioFunc();
+
+                },
+                1200
+            );
+
+
+        } catch (erro) {
+
+            console.error(
+                "ERRO AO ALTERAR USUÁRIO:",
+                erro
+            );
+
+            mostrarMensagemUsuario(
+                "❌ " +
+                erro.message,
+                "erro"
+            );
+
+        } finally {
+
+            btnSalvarUsuario.disabled =
+                false;
+
+            btnSalvarUsuario.textContent =
+                "Salvar novo usuário";
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   ENTER NO CAMPO DE USUÁRIO
+============================================================ */
+
+novoUsuario.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (
+            event.key === "Enter"
+        ) {
+
+            event.preventDefault();
+
+            btnSalvarUsuario.click();
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   ESC MODAL USUÁRIO
+============================================================ */
+
+document.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (
+            event.key !== "Escape"
+        ) {
+
+            return;
+        }
+
+
+        if (
+            modalUsuario.classList.contains(
+                "ativo"
+            )
+        ) {
+
+            fecharModalUsuarioFunc();
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   MODAL SENHA
 ============================================================ */
 
 const btnAlterarSenha =
@@ -985,9 +1581,15 @@ function alternarSenha(
             idBotao
         );
 
-    if (!campo || !botao) {
+    if (
+        !campo ||
+        !botao
+    ) {
+
         return;
+
     }
+
 
     if (
         campo.type === "password"
@@ -1023,17 +1625,13 @@ function alternarSenha(
 
 
 /* ============================================================
-   MENSAGEM
+   MENSAGEM SENHA
 ============================================================ */
 
-function mostrarMensagem(
+function mostrarMensagemSenha(
     texto,
     tipo
 ) {
-
-    if (!mensagemSenha) {
-        return;
-    }
 
     mensagemSenha.textContent =
         texto;
@@ -1043,11 +1641,7 @@ function mostrarMensagem(
 }
 
 
-function limparMensagem() {
-
-    if (!mensagemSenha) {
-        return;
-    }
+function limparMensagemSenha() {
 
     mensagemSenha.textContent =
         "";
@@ -1058,18 +1652,16 @@ function limparMensagem() {
 
 
 /* ============================================================
-   ABRIR MODAL
+   ABRIR MODAL SENHA
 ============================================================ */
 
 function abrirModalSenha() {
 
-    limparMensagem();
+    limparMensagemSenha();
 
     senhaAtual.value = "";
     novaSenha.value = "";
     confirmarSenha.value = "";
-
-    /* Sempre começar escondido */
 
     senhaAtual.type =
         "password";
@@ -1079,6 +1671,7 @@ function abrirModalSenha() {
 
     confirmarSenha.type =
         "password";
+
 
     document.getElementById(
         "olhoSenhaAtual"
@@ -1095,9 +1688,11 @@ function abrirModalSenha() {
     ).textContent =
         "👁️";
 
+
     modalSenha.classList.add(
         "ativo"
     );
+
 
     setTimeout(
         function () {
@@ -1107,14 +1702,11 @@ function abrirModalSenha() {
         },
         100
     );
+
 }
 
 
-/* ============================================================
-   FECHAR MODAL
-============================================================ */
-
-function fecharModalSenha() {
+function fecharModalSenhaFunc() {
 
     modalSenha.classList.remove(
         "ativo"
@@ -1123,29 +1715,17 @@ function fecharModalSenha() {
 }
 
 
-/* ============================================================
-   BOTÃO ALTERAR SENHA
-============================================================ */
-
 btnAlterarSenha.addEventListener(
     "click",
     abrirModalSenha
 );
 
 
-/* ============================================================
-   BOTÃO FECHAR
-============================================================ */
-
 fecharModal.addEventListener(
     "click",
-    fecharModalSenha
+    fecharModalSenhaFunc
 );
 
-
-/* ============================================================
-   CLICAR FORA
-============================================================ */
 
 modalSenha.addEventListener(
     "click",
@@ -1156,35 +1736,7 @@ modalSenha.addEventListener(
             modalSenha
         ) {
 
-            fecharModalSenha();
-
-        }
-
-    }
-);
-
-
-/* ============================================================
-   ESC
-============================================================ */
-
-document.addEventListener(
-    "keydown",
-    function (event) {
-
-        if (
-            event.key === "Escape"
-        ) {
-
-            if (
-                modalSenha.classList.contains(
-                    "ativo"
-                )
-            ) {
-
-                fecharModalSenha();
-
-            }
+            fecharModalSenhaFunc();
 
         }
 
@@ -1210,10 +1762,8 @@ btnSalvarSenha.addEventListener(
             confirmarSenha.value;
 
 
-        limparMensagem();
+        limparMensagemSenha();
 
-
-        /* CAMPOS */
 
         if (
             !atual ||
@@ -1221,7 +1771,7 @@ btnSalvarSenha.addEventListener(
             !confirmacao
         ) {
 
-            mostrarMensagem(
+            mostrarMensagemSenha(
                 "Preencha todos os campos.",
                 "erro"
             );
@@ -1231,13 +1781,11 @@ btnSalvarSenha.addEventListener(
         }
 
 
-        /* TAMANHO */
-
         if (
             nova.length < 6
         ) {
 
-            mostrarMensagem(
+            mostrarMensagemSenha(
                 "A nova senha precisa ter pelo menos 6 caracteres.",
                 "erro"
             );
@@ -1247,13 +1795,11 @@ btnSalvarSenha.addEventListener(
         }
 
 
-        /* NÚMERO */
-
         if (
             !/\d/.test(nova)
         ) {
 
-            mostrarMensagem(
+            mostrarMensagemSenha(
                 "A nova senha precisa ter pelo menos 1 número.",
                 "erro"
             );
@@ -1263,13 +1809,11 @@ btnSalvarSenha.addEventListener(
         }
 
 
-        /* CONFIRMAÇÃO */
-
         if (
             nova !== confirmacao
         ) {
 
-            mostrarMensagem(
+            mostrarMensagemSenha(
                 "A confirmação da senha não confere.",
                 "erro"
             );
@@ -1279,13 +1823,11 @@ btnSalvarSenha.addEventListener(
         }
 
 
-        /* MESMA SENHA */
-
         if (
             atual === nova
         ) {
 
-            mostrarMensagem(
+            mostrarMensagemSenha(
                 "A nova senha precisa ser diferente da senha atual.",
                 "erro"
             );
@@ -1372,7 +1914,7 @@ btnSalvarSenha.addEventListener(
             }
 
 
-            mostrarMensagem(
+            mostrarMensagemSenha(
                 "✅ Senha alterada com sucesso!",
                 "sucesso"
             );
@@ -1384,7 +1926,7 @@ btnSalvarSenha.addEventListener(
 
 
             setTimeout(
-                fecharModalSenha,
+                fecharModalSenhaFunc,
                 1500
             );
 
@@ -1396,7 +1938,7 @@ btnSalvarSenha.addEventListener(
                 erro
             );
 
-            mostrarMensagem(
+            mostrarMensagemSenha(
                 "❌ " +
                 erro.message,
                 "erro"
@@ -1415,7 +1957,38 @@ btnSalvarSenha.addEventListener(
     }
 );
 
+
+/* ============================================================
+   ESC MODAL SENHA
+============================================================ */
+
+document.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (
+            event.key !== "Escape"
+        ) {
+
+            return;
+        }
+
+
+        if (
+            modalSenha.classList.contains(
+                "ativo"
+            )
+        ) {
+
+            fecharModalSenhaFunc();
+
+        }
+
+    }
+);
+
 </script>
+
 
 </body>
 
