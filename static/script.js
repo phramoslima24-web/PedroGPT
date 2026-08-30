@@ -3,12 +3,57 @@
 // ORION AI - SCRIPT.JS
 // ============================================================
 
+(function () {
+
+"use strict";
+
+
+// ============================================================
+// ESTADO
+// ============================================================
+
 let enviando = false;
 let arquivoSelecionado = null;
 let vozes = [];
 
 let conversaSelecionada = null;
 let modoSelecao = false;
+
+
+// ============================================================
+// ELEMENTOS
+// ============================================================
+
+function elemento(id) {
+    return document.getElementById(id);
+}
+
+const orionChat =
+    elemento("chat");
+
+const orionWelcome =
+    elemento("welcome");
+
+const orionMensagemInput =
+    elemento("mensagem");
+
+const orionBtnEnviar =
+    elemento("btnEnviar");
+
+const orionBtnArquivo =
+    elemento("btnArquivo");
+
+const orionArquivoInput =
+    elemento("arquivo");
+
+const orionArquivoBox =
+    elemento("arquivoSelecionado");
+
+const orionNomeArquivo =
+    elemento("nomeArquivo");
+
+const orionRemoverArquivo =
+    elemento("removerArquivo");
 
 
 // ============================================================
@@ -39,26 +84,26 @@ const ORION_CONFIG_PADRAO = {
 
 function orionObterConfiguracoes() {
 
-    let config = {};
-
     try {
 
-        config =
+        const config =
             JSON.parse(
                 localStorage.getItem(
                     ORION_CHAVE_CONFIG
                 )
-            ) || {};
+            );
+
+        return {
+            ...ORION_CONFIG_PADRAO,
+            ...(config || {})
+        };
 
     } catch (erro) {
 
-        config = {};
+        return {
+            ...ORION_CONFIG_PADRAO
+        };
     }
-
-    return {
-        ...ORION_CONFIG_PADRAO,
-        ...config
-    };
 }
 
 
@@ -76,7 +121,7 @@ function orionSalvarConfiguracoes(
     } catch (erro) {
 
         console.warn(
-            "Não foi possível salvar configurações:",
+            "Erro ao salvar configurações:",
             erro
         );
     }
@@ -100,44 +145,6 @@ function orionAtualizarConfiguracao(
 
     orionAplicarConfiguracoes();
 }
-
-
-// ============================================================
-// ELEMENTOS
-// ============================================================
-
-function elemento(id) {
-
-    return document.getElementById(id);
-}
-
-
-const chat =
-    elemento("chat");
-
-const welcome =
-    elemento("welcome");
-
-const mensagemInput =
-    elemento("mensagem");
-
-const btnEnviar =
-    elemento("btnEnviar");
-
-const btnArquivo =
-    elemento("btnArquivo");
-
-const arquivoInput =
-    elemento("arquivo");
-
-const arquivoBox =
-    elemento("arquivoSelecionado");
-
-const nomeArquivo =
-    elemento("nomeArquivo");
-
-const removerArquivo =
-    elemento("removerArquivo");
 
 
 // ============================================================
@@ -199,22 +206,26 @@ function escaparHTML(texto) {
 
 function atualizarWelcome() {
 
-    if (!chat || !welcome) {
+    if (
+        !orionChat ||
+        !orionWelcome
+    ) {
 
         return;
     }
 
+
     if (
-        chat.children.length === 0
+        orionChat.children.length === 0
     ) {
 
-        welcome.classList.remove(
+        orionWelcome.classList.remove(
             "hidden"
         );
 
     } else {
 
-        welcome.classList.add(
+        orionWelcome.classList.add(
             "hidden"
         );
     }
@@ -230,36 +241,23 @@ function adicionarMensagem(
     tipo = "user"
 ) {
 
-    if (!chat) {
+    if (!orionChat) {
 
         return null;
     }
+
 
     const div =
         document.createElement(
             "div"
         );
 
+
     div.className =
         tipo === "user"
             ? "msg-user"
             : "msg-bot";
 
-
-    const conteudo =
-        document.createElement(
-            "div"
-        );
-
-    conteudo.className =
-        "conteudo-mensagem";
-
-    conteudo.textContent =
-        texto;
-
-    div.appendChild(
-        conteudo
-    );
 
     if (
         orionObterConfiguracoes()
@@ -270,14 +268,37 @@ function adicionarMensagem(
             "none";
     }
 
-    chat.appendChild(
+
+    const conteudo =
+        document.createElement(
+            "div"
+        );
+
+
+    conteudo.className =
+        "conteudo-mensagem";
+
+
+    conteudo.textContent =
+        texto;
+
+
+    div.appendChild(
+        conteudo
+    );
+
+
+    orionChat.appendChild(
         div
     );
 
+
     atualizarWelcome();
 
-    chat.scrollTop =
-        chat.scrollHeight;
+
+    orionChat.scrollTop =
+        orionChat.scrollHeight;
+
 
     return div;
 }
@@ -287,7 +308,9 @@ function adicionarMensagem(
 // MARKDOWN
 // ============================================================
 
-function formatarResposta(texto) {
+function formatarResposta(
+    texto
+) {
 
     let html =
         escaparHTML(texto);
@@ -353,7 +376,7 @@ function adicionarResposta(
     falar = true
 ) {
 
-    if (!chat) {
+    if (!orionChat) {
 
         return null;
     }
@@ -363,6 +386,7 @@ function adicionarResposta(
         document.createElement(
             "div"
         );
+
 
     div.className =
         "msg-bot";
@@ -383,8 +407,10 @@ function adicionarResposta(
             "div"
         );
 
+
     conteudo.className =
         "conteudo-mensagem";
+
 
     conteudo.innerHTML =
         formatarResposta(
@@ -396,14 +422,17 @@ function adicionarResposta(
         conteudo
     );
 
-    chat.appendChild(
+
+    orionChat.appendChild(
         div
     );
 
+
     atualizarWelcome();
 
-    chat.scrollTop =
-        chat.scrollHeight;
+
+    orionChat.scrollTop =
+        orionChat.scrollHeight;
 
 
     if (falar) {
@@ -424,10 +453,11 @@ function adicionarResposta(
 
 function mostrarTyping() {
 
-    if (!chat) {
+    if (!orionChat) {
 
         return null;
     }
+
 
     removerTyping();
 
@@ -437,8 +467,10 @@ function mostrarTyping() {
             "div"
         );
 
+
     div.className =
         "msg-bot typing-message";
+
 
     div.id =
         "typingMessage";
@@ -466,14 +498,17 @@ function mostrarTyping() {
     `;
 
 
-    chat.appendChild(
+    orionChat.appendChild(
         div
     );
 
+
     atualizarWelcome();
 
-    chat.scrollTop =
-        chat.scrollHeight;
+
+    orionChat.scrollTop =
+        orionChat.scrollHeight;
+
 
     return div;
 }
@@ -485,6 +520,7 @@ function removerTyping() {
         elemento(
             "typingMessage"
         );
+
 
     if (typing) {
 
@@ -531,6 +567,7 @@ async function novaConversa() {
             botao.disabled =
                 true;
 
+
             botao.innerHTML =
                 "⏳ Criando...";
         }
@@ -568,11 +605,12 @@ async function novaConversa() {
             window.location.href =
                 resposta.url;
 
+
             return;
         }
 
 
-        const textoResposta =
+        const texto =
             await resposta.text();
 
 
@@ -583,15 +621,10 @@ async function novaConversa() {
 
             dados =
                 JSON.parse(
-                    textoResposta
+                    texto
                 );
 
         } catch (erro) {
-
-            console.error(
-                "Resposta inválida:",
-                textoResposta
-            );
 
             throw new Error(
                 "O servidor retornou uma resposta inválida."
@@ -606,7 +639,7 @@ async function novaConversa() {
 
             throw new Error(
                 dados.message ||
-                "Não foi possível criar uma nova conversa."
+                "Não foi possível criar a nova conversa."
             );
         }
 
@@ -620,9 +653,9 @@ async function novaConversa() {
         }
 
 
-        if (chat) {
+        if (orionChat) {
 
-            chat.innerHTML =
+            orionChat.innerHTML =
                 "";
         }
 
@@ -630,9 +663,11 @@ async function novaConversa() {
         removerTyping();
 
 
-        if (mensagemInput) {
+        if (
+            orionMensagemInput
+        ) {
 
-            mensagemInput.value =
+            orionMensagemInput.value =
                 "";
         }
 
@@ -660,9 +695,11 @@ async function novaConversa() {
         await carregarHistoricoConversas();
 
 
-        if (mensagemInput) {
+        if (
+            orionMensagemInput
+        ) {
 
-            mensagemInput.focus();
+            orionMensagemInput.focus();
         }
 
 
@@ -672,6 +709,7 @@ async function novaConversa() {
             "ERRO NOVA CONVERSA:",
             erro
         );
+
 
         alert(
             "❌ Não foi possível criar uma nova conversa.\n\n" +
@@ -690,9 +728,9 @@ async function novaConversa() {
             botao.disabled =
                 false;
 
+
             botao.innerHTML =
-                textoOriginal ||
-                "🆕 Nova conversa";
+                textoOriginal;
         }
     }
 }
@@ -710,14 +748,14 @@ async function enviar() {
     }
 
 
-    if (!mensagemInput) {
+    if (!orionMensagemInput) {
 
         return;
     }
 
 
     const texto =
-        mensagemInput.value.trim();
+        orionMensagemInput.value.trim();
 
 
     const temArquivo =
@@ -729,7 +767,7 @@ async function enviar() {
         !temArquivo
     ) {
 
-        mensagemInput.focus();
+        orionMensagemInput.focus();
 
         return;
     }
@@ -739,12 +777,13 @@ async function enviar() {
         true;
 
 
-    if (btnEnviar) {
+    if (orionBtnEnviar) {
 
-        btnEnviar.disabled =
+        orionBtnEnviar.disabled =
             true;
 
-        btnEnviar.textContent =
+
+        orionBtnEnviar.textContent =
             "Enviando...";
     }
 
@@ -765,7 +804,7 @@ async function enviar() {
     }
 
 
-    mensagemInput.value =
+    orionMensagemInput.value =
         "";
 
 
@@ -783,7 +822,9 @@ async function enviar() {
         };
 
 
-        if (arquivoSelecionado) {
+        if (
+            arquivoSelecionado
+        ) {
 
             const arquivo =
                 arquivoSelecionado;
@@ -862,6 +903,7 @@ async function enviar() {
             window.location.href =
                 resposta.url;
 
+
             return;
         }
 
@@ -881,11 +923,6 @@ async function enviar() {
                 );
 
         } catch (erro) {
-
-            console.error(
-                "Resposta do /chat:",
-                textoResposta
-            );
 
             throw new Error(
                 "O servidor retornou uma resposta inválida."
@@ -909,6 +946,7 @@ async function enviar() {
                 dados.message ||
                 "❌ Não foi possível obter uma resposta."
             );
+
 
             return;
         }
@@ -936,6 +974,7 @@ async function enviar() {
                     "tituloConversa"
                 );
 
+
             if (titulo) {
 
                 titulo.textContent =
@@ -947,7 +986,7 @@ async function enviar() {
         limparArquivo();
 
 
-        carregarHistoricoConversas();
+        await carregarHistoricoConversas();
 
 
     } catch (erro) {
@@ -975,20 +1014,18 @@ async function enviar() {
             false;
 
 
-        if (btnEnviar) {
+        if (orionBtnEnviar) {
 
-            btnEnviar.disabled =
+            orionBtnEnviar.disabled =
                 false;
 
-            btnEnviar.textContent =
+
+            orionBtnEnviar.textContent =
                 "Enviar";
         }
 
 
-        if (mensagemInput) {
-
-            mensagemInput.focus();
-        }
+        orionMensagemInput.focus();
     }
 }
 
@@ -1040,12 +1077,12 @@ function converterArquivoBase64(
 
 
 // ============================================================
-// ENTER
+// TECLA ENTER
 // ============================================================
 
-if (mensagemInput) {
+if (orionMensagemInput) {
 
-    mensagemInput.addEventListener(
+    orionMensagemInput.addEventListener(
         "keydown",
         function (event) {
 
@@ -1064,60 +1101,24 @@ if (mensagemInput) {
 
                     event.preventDefault();
 
-                    event.stopPropagation();
+                    event.stopImmediatePropagation();
 
                     enviar();
-
                 }
-
             }
-        }
+        },
+        true
     );
 }
-
-
-// ============================================================
-// BLOQUEAR ENTER QUANDO DESATIVADO
-// ============================================================
-
-document.addEventListener(
-    "keydown",
-    function (event) {
-
-        if (
-            event.target !==
-            mensagemInput
-        ) {
-
-            return;
-        }
-
-
-        const config =
-            orionObterConfiguracoes();
-
-
-        if (
-            event.key === "Enter" &&
-            !event.shiftKey &&
-            config.enterEnviar === false
-        ) {
-
-            event.stopImmediatePropagation();
-        }
-
-    },
-    true
-);
 
 
 // ============================================================
 // BOTÃO ENVIAR
 // ============================================================
 
-if (btnEnviar) {
+if (orionBtnEnviar) {
 
-    btnEnviar.addEventListener(
+    orionBtnEnviar.addEventListener(
         "click",
         function (event) {
 
@@ -1151,28 +1152,31 @@ document.addEventListener(
 
         event.preventDefault();
 
+
         novaConversa();
     }
 );
 
 
 // ============================================================
-// ATALHOS
+// ATALHO
 // ============================================================
 
-function atalho(texto) {
+function atalho(
+    texto
+) {
 
-    if (!mensagemInput) {
+    if (!orionMensagemInput) {
 
         return;
     }
 
 
-    mensagemInput.value =
+    orionMensagemInput.value =
         texto;
 
 
-    mensagemInput.focus();
+    orionMensagemInput.focus();
 
 
     enviar();
@@ -1184,31 +1188,31 @@ function atalho(texto) {
 // ============================================================
 
 if (
-    btnArquivo &&
-    arquivoInput
+    orionBtnArquivo &&
+    orionArquivoInput
 ) {
 
-    btnArquivo.addEventListener(
+    orionBtnArquivo.addEventListener(
         "click",
         function (event) {
 
             event.preventDefault();
 
-            arquivoInput.click();
+            orionArquivoInput.click();
         }
     );
 }
 
 
-if (arquivoInput) {
+if (orionArquivoInput) {
 
-    arquivoInput.addEventListener(
+    orionArquivoInput.addEventListener(
         "change",
         function () {
 
             const arquivo =
-                arquivoInput.files &&
-                arquivoInput.files[0];
+                orionArquivoInput.files &&
+                orionArquivoInput.files[0];
 
 
             if (!arquivo) {
@@ -1230,6 +1234,7 @@ if (arquivoInput) {
                     "❌ Selecione uma imagem JPG, PNG, WEBP ou GIF."
                 );
 
+
                 limparArquivo();
 
                 return;
@@ -1245,6 +1250,7 @@ if (arquivoInput) {
                     "❌ A imagem não pode ter mais de 20 MB."
                 );
 
+
                 limparArquivo();
 
                 return;
@@ -1255,16 +1261,20 @@ if (arquivoInput) {
                 arquivo;
 
 
-            if (nomeArquivo) {
+            if (
+                orionNomeArquivo
+            ) {
 
-                nomeArquivo.textContent =
+                orionNomeArquivo.textContent =
                     arquivo.name;
             }
 
 
-            if (arquivoBox) {
+            if (
+                orionArquivoBox
+            ) {
 
-                arquivoBox.classList.add(
+                orionArquivoBox.classList.add(
                     "ativo"
                 );
             }
@@ -1283,32 +1293,40 @@ function limparArquivo() {
         null;
 
 
-    if (arquivoInput) {
+    if (
+        orionArquivoInput
+    ) {
 
-        arquivoInput.value =
+        orionArquivoInput.value =
             "";
     }
 
 
-    if (arquivoBox) {
+    if (
+        orionArquivoBox
+    ) {
 
-        arquivoBox.classList.remove(
+        orionArquivoBox.classList.remove(
             "ativo"
         );
     }
 
 
-    if (nomeArquivo) {
+    if (
+        orionNomeArquivo
+    ) {
 
-        nomeArquivo.textContent =
+        orionNomeArquivo.textContent =
             "Nenhum arquivo selecionado";
     }
 }
 
 
-if (removerArquivo) {
+if (
+    orionRemoverArquivo
+) {
 
-    removerArquivo.addEventListener(
+    orionRemoverArquivo.addEventListener(
         "click",
         function (event) {
 
@@ -1335,15 +1353,21 @@ function carregarVozes() {
         ) {
 
             orionSeletorVoz.innerHTML =
-                `<option value="">Voz não disponível</option>`;
+                `
+                <option value="">
+                    Voz não disponível
+                </option>
+                `;
         }
+
 
         return;
     }
 
 
     vozes =
-        window.speechSynthesis.getVoices();
+        window.speechSynthesis
+            .getVoices();
 
 
     if (!orionSeletorVoz) {
@@ -1352,17 +1376,8 @@ function carregarVozes() {
     }
 
 
-    const valorAtual =
-        orionObterConfiguracoes()
-            .voz;
-
-
-    orionSeletorVoz.innerHTML =
-        `
-        <option value="default">
-            Voz padrão do navegador
-        </option>
-        `;
+    const config =
+        orionObterConfiguracoes();
 
 
     const vozesPT =
@@ -1383,6 +1398,14 @@ function carregarVozes() {
         vozesPT.length
             ? vozesPT
             : vozes;
+
+
+    orionSeletorVoz.innerHTML =
+        `
+        <option value="default">
+            Voz padrão do navegador
+        </option>
+        `;
 
 
     lista.forEach(
@@ -1417,32 +1440,14 @@ function carregarVozes() {
 
 
     if (
-        orionConfigVoz &&
-        valorAtual
+        orionConfigVoz
     ) {
 
         orionConfigVoz.value =
-            valorAtual;
+            config.voz;
     }
 }
 
-
-if (
-    "speechSynthesis" in window
-) {
-
-    carregarVozes();
-
-
-    window.speechSynthesis
-        .onvoiceschanged =
-        carregarVozes;
-}
-
-
-// ============================================================
-// APLICAR VOZ CONFIGURADA
-// ============================================================
 
 function orionAplicarVozConfigurada() {
 
@@ -1501,6 +1506,21 @@ function orionAplicarVozConfigurada() {
 }
 
 
+if (
+    "speechSynthesis" in window
+) {
+
+    carregarVozes();
+
+
+    window.speechSynthesis
+        .addEventListener(
+            "voiceschanged",
+            carregarVozes
+        );
+}
+
+
 // ============================================================
 // SELECT PRINCIPAL DE VOZ
 // ============================================================
@@ -1551,7 +1571,6 @@ if (
 
 
             orionAplicarVozConfigurada();
-
         }
     );
 }
@@ -1578,8 +1597,7 @@ function falarResposta(
 
 
     if (
-        "speechSynthesis" in window ===
-        false
+        !("speechSynthesis" in window)
     ) {
 
         return;
@@ -1639,29 +1657,6 @@ function falarResposta(
 
 
     if (
-        !vozEscolhida &&
-        orionSeletorVoz &&
-        orionSeletorVoz.value !==
-            "default"
-    ) {
-
-        const indice =
-            Number(
-                orionSeletorVoz.value
-            );
-
-
-        if (
-            vozes[indice]
-        ) {
-
-            vozEscolhida =
-                vozes[indice];
-        }
-    }
-
-
-    if (
         vozEscolhida
     ) {
 
@@ -1680,6 +1675,7 @@ function falarResposta(
 
     fala.rate =
         1;
+
 
     fala.pitch =
         1;
@@ -1709,60 +1705,16 @@ if (
         "click",
         function () {
 
-            const config =
-                orionObterConfiguracoes();
-
-
-            const somAnterior =
-                config.som;
-
-
-            config.som =
-                true;
-
-
-            orionSalvarConfiguracoes(
-                config
-            );
-
-
-            if (
-                orionVozChat
-            ) {
-
-                orionVozChat.checked =
-                    true;
-            }
-
-
             falarResposta(
                 "Olá! Eu sou o Orion AI. Esta é a minha voz."
             );
-
-
-            config.som =
-                somAnterior;
-
-
-            orionSalvarConfiguracoes(
-                config
-            );
-
-
-            if (
-                orionVozChat
-            ) {
-
-                orionVozChat.checked =
-                    somAnterior;
-            }
         }
     );
 }
 
 
 // ============================================================
-// VOZ - CHECKBOX DO CHAT
+// CHECKBOX DE SOM DO CHAT
 // ============================================================
 
 if (
@@ -1801,7 +1753,7 @@ if (
 
 
 // ============================================================
-// APLICAR TODAS AS CONFIGURAÇÕES
+// CONFIGURAÇÕES
 // ============================================================
 
 function orionAplicarConfiguracoes() {
@@ -1809,10 +1761,6 @@ function orionAplicarConfiguracoes() {
     const config =
         orionObterConfiguracoes();
 
-
-    // --------------------------------------------------------
-    // TEMA
-    // --------------------------------------------------------
 
     if (
         config.tema ===
@@ -1831,18 +1779,12 @@ function orionAplicarConfiguracoes() {
     }
 
 
-    // --------------------------------------------------------
-    // SOM
-    // --------------------------------------------------------
-
     if (
-        orionVozChat
+        orionConfigTema
     ) {
 
-        orionVozChat.checked =
-            Boolean(
-                config.som
-            );
+        orionConfigTema.value =
+            config.tema;
     }
 
 
@@ -1857,22 +1799,16 @@ function orionAplicarConfiguracoes() {
     }
 
 
-    // --------------------------------------------------------
-    // TEMA
-    // --------------------------------------------------------
-
     if (
-        orionConfigTema
+        orionVozChat
     ) {
 
-        orionConfigTema.value =
-            config.tema;
+        orionVozChat.checked =
+            Boolean(
+                config.som
+            );
     }
 
-
-    // --------------------------------------------------------
-    // ANIMAÇÕES
-    // --------------------------------------------------------
 
     if (
         orionConfigAnimacoes
@@ -1885,10 +1821,6 @@ function orionAplicarConfiguracoes() {
     }
 
 
-    // --------------------------------------------------------
-    // ENTER
-    // --------------------------------------------------------
-
     if (
         orionConfigEnter
     ) {
@@ -1900,16 +1832,8 @@ function orionAplicarConfiguracoes() {
     }
 
 
-    // --------------------------------------------------------
-    // VOZ
-    // --------------------------------------------------------
-
     orionAplicarVozConfigurada();
 
-
-    // --------------------------------------------------------
-    // DESLIGAR FALA
-    // --------------------------------------------------------
 
     if (
         config.som === false &&
@@ -1922,7 +1846,7 @@ function orionAplicarConfiguracoes() {
 
 
 // ============================================================
-// ABRIR PAINEL
+// PAINEL
 // ============================================================
 
 if (
@@ -1951,10 +1875,6 @@ if (
 }
 
 
-// ============================================================
-// FECHAR PAINEL
-// ============================================================
-
 if (
     orionBtnFecharConfiguracoes
 ) {
@@ -1976,17 +1896,12 @@ if (
 }
 
 
-// ============================================================
-// CLICAR FORA
-// ============================================================
-
 document.addEventListener(
     "click",
     function (event) {
 
         if (
-            !orionPainelConfiguracoes ||
-            !orionBtnAbrirConfiguracoes
+            !orionPainelConfiguracoes
         ) {
 
             return;
@@ -2020,7 +1935,7 @@ document.addEventListener(
 
 
 // ============================================================
-// TEMA
+// CONFIG TEMA
 // ============================================================
 
 if (
@@ -2041,7 +1956,7 @@ if (
 
 
 // ============================================================
-// SOM
+// CONFIG SOM
 // ============================================================
 
 if (
@@ -2080,7 +1995,7 @@ if (
 
 
 // ============================================================
-// VOZ NO PAINEL
+// CONFIG VOZ
 // ============================================================
 
 if (
@@ -2098,14 +2013,13 @@ if (
 
 
             orionAplicarVozConfigurada();
-
         }
     );
 }
 
 
 // ============================================================
-// ANIMAÇÕES
+// CONFIG ANIMAÇÕES
 // ============================================================
 
 if (
@@ -2126,7 +2040,7 @@ if (
 
 
 // ============================================================
-// ENTER
+// CONFIG ENTER
 // ============================================================
 
 if (
@@ -2171,7 +2085,7 @@ if (
 
 async function carregarHistorico() {
 
-    if (!chat) {
+    if (!orionChat) {
 
         return;
     }
@@ -2190,7 +2104,6 @@ async function carregarHistorico() {
                         "same-origin",
 
                     headers: {
-
                         "Accept":
                             "application/json"
                     }
@@ -2214,11 +2127,6 @@ async function carregarHistorico() {
             !resposta.ok
         ) {
 
-            console.warn(
-                "Erro ao carregar histórico:",
-                resposta.status
-            );
-
             atualizarWelcome();
 
             return;
@@ -2229,7 +2137,7 @@ async function carregarHistorico() {
             await resposta.json();
 
 
-        chat.innerHTML =
+        orionChat.innerHTML =
             "";
 
 
@@ -2267,16 +2175,17 @@ async function carregarHistorico() {
         atualizarWelcome();
 
 
-        chat.scrollTop =
-            chat.scrollHeight;
+        orionChat.scrollTop =
+            orionChat.scrollHeight;
 
 
     } catch (erro) {
 
         console.error(
-            "ERRO AO CARREGAR HISTÓRICO:",
+            "ERRO HISTORY:",
             erro
         );
+
 
         atualizarWelcome();
     }
@@ -2284,7 +2193,7 @@ async function carregarHistorico() {
 
 
 // ============================================================
-// LISTAR CONVERSAS
+// LISTA DE CONVERSAS
 // ============================================================
 
 async function carregarHistoricoConversas() {
@@ -2314,7 +2223,6 @@ async function carregarHistoricoConversas() {
                         "same-origin",
 
                     headers: {
-
                         "Accept":
                             "application/json"
                     }
@@ -2338,12 +2246,6 @@ async function carregarHistoricoConversas() {
             !resposta.ok
         ) {
 
-            console.warn(
-                "Erro ao carregar conversas:",
-                resposta.status
-            );
-
-
             container.innerHTML = `
                 <div class="historico-vazio">
                     Erro ao carregar conversas
@@ -2362,8 +2264,10 @@ async function carregarHistoricoConversas() {
         const conversas =
             Array.isArray(dados)
                 ? dados
-                : dados.conversations ||
-                  [];
+                : (
+                    dados.conversations ||
+                    []
+                );
 
 
         container.innerHTML =
@@ -2379,6 +2283,7 @@ async function carregarHistoricoConversas() {
                     Nenhuma conversa ainda
                 </div>
             `;
+
 
             return;
         }
@@ -2400,7 +2305,7 @@ async function carregarHistoricoConversas() {
     } catch (erro) {
 
         console.error(
-            "ERRO AO CARREGAR CONVERSAS:",
+            "ERRO CONVERSAS:",
             erro
         );
 
@@ -2415,7 +2320,7 @@ async function carregarHistoricoConversas() {
 
 
 // ============================================================
-// CRIAR ITEM DA CONVERSA
+// CRIAR ITEM
 // ============================================================
 
 function criarItemConversa(
@@ -2493,6 +2398,7 @@ function criarItemConversa(
                     item
                 );
 
+
                 return;
             }
 
@@ -2513,10 +2419,6 @@ function criarItemConversa(
     acoes.className =
         "conversa-acoes";
 
-
-    // --------------------------------------------------------
-    // SELECIONAR
-    // --------------------------------------------------------
 
     const btnSelecionar =
         document.createElement(
@@ -2555,10 +2457,6 @@ function criarItemConversa(
     );
 
 
-    // --------------------------------------------------------
-    // RENOMEAR
-    // --------------------------------------------------------
-
     const btnRenomear =
         document.createElement(
             "button"
@@ -2595,10 +2493,6 @@ function criarItemConversa(
         }
     );
 
-
-    // --------------------------------------------------------
-    // EXCLUIR
-    // --------------------------------------------------------
 
     const btnExcluir =
         document.createElement(
@@ -2676,14 +2570,9 @@ async function abrirConversa(
 ) {
 
     if (
-        modoSelecao
+        modoSelecao ||
+        !id
     ) {
-
-        return;
-    }
-
-
-    if (!id) {
 
         return;
     }
@@ -2702,7 +2591,6 @@ async function abrirConversa(
                         "same-origin",
 
                     headers: {
-
                         "Accept":
                             "application/json"
                     }
@@ -2735,6 +2623,7 @@ async function abrirConversa(
                 "❌ Não foi possível abrir a conversa."
             );
 
+
             return;
         }
 
@@ -2743,9 +2632,9 @@ async function abrirConversa(
             id;
 
 
-        if (chat) {
+        if (orionChat) {
 
-            chat.innerHTML =
+            orionChat.innerHTML =
                 "";
         }
 
@@ -2816,10 +2705,12 @@ async function abrirConversa(
         atualizarWelcome();
 
 
-        if (chat) {
+        if (
+            orionChat
+        ) {
 
-            chat.scrollTop =
-                chat.scrollHeight;
+            orionChat.scrollTop =
+                orionChat.scrollHeight;
         }
 
 
@@ -2839,7 +2730,7 @@ async function abrirConversa(
 
 
 // ============================================================
-// RENOMEAR CONVERSA
+// RENOMEAR
 // ============================================================
 
 async function renomearConversa(
@@ -2890,7 +2781,6 @@ async function renomearConversa(
                         "same-origin",
 
                     headers: {
-
                         "Accept":
                             "application/json",
 
@@ -2973,7 +2863,7 @@ async function renomearConversa(
     } catch (erro) {
 
         console.error(
-            "ERRO AO RENOMEAR:",
+            "ERRO RENOMEAR:",
             erro
         );
 
@@ -2987,7 +2877,7 @@ async function renomearConversa(
 
 
 // ============================================================
-// EXCLUIR CONVERSA
+// EXCLUIR
 // ============================================================
 
 async function excluirConversa(
@@ -3026,7 +2916,6 @@ async function excluirConversa(
                         "same-origin",
 
                     headers: {
-
                         "Accept":
                             "application/json",
 
@@ -3055,7 +2944,7 @@ async function excluirConversa(
 
             throw new Error(
                 dados.message ||
-                "Não foi possível excluir a conversa."
+                "Não foi possível excluir."
             );
         }
 
@@ -3071,9 +2960,11 @@ async function excluirConversa(
                 null;
 
 
-            if (chat) {
+            if (
+                orionChat
+            ) {
 
-                chat.innerHTML =
+                orionChat.innerHTML =
                     "";
             }
 
@@ -3101,7 +2992,7 @@ async function excluirConversa(
     } catch (erro) {
 
         console.error(
-            "ERRO AO EXCLUIR:",
+            "ERRO EXCLUIR:",
             erro
         );
 
@@ -3121,7 +3012,9 @@ async function excluirConversa(
 function criarBarraSelecao() {
 
     if (
-        elemento("barraSelecao")
+        elemento(
+            "barraSelecao"
+        )
     ) {
 
         return;
@@ -3334,18 +3227,12 @@ function sairModoSelecao() {
 }
 
 
-// ============================================================
-// SELECIONAR CONVERSA
-// ============================================================
-
 function alternarSelecaoConversa(
     id,
     item
 ) {
 
-    if (
-        !modoSelecao
-    ) {
+    if (!modoSelecao) {
 
         entrarModoSelecao();
     }
@@ -3359,10 +3246,6 @@ function alternarSelecaoConversa(
     atualizarSelecaoVisual();
 }
 
-
-// ============================================================
-// VISUAL DA SELEÇÃO
-// ============================================================
 
 function atualizarSelecaoVisual() {
 
@@ -3396,9 +3279,7 @@ function atualizarSelecaoVisual() {
             }
 
 
-            if (
-                modoSelecao
-            ) {
+            if (modoSelecao) {
 
                 item.style.background =
                     selecionada
@@ -3434,10 +3315,6 @@ function atualizarSelecaoVisual() {
 }
 
 
-// ============================================================
-// SELECIONAR TODAS
-// ============================================================
-
 function selecionarTodasConversas() {
 
     entrarModoSelecao();
@@ -3462,10 +3339,6 @@ function selecionarTodasConversas() {
     atualizarSelecaoVisual();
 }
 
-
-// ============================================================
-// IDS SELECIONADOS
-// ============================================================
 
 function obterIdsSelecionados() {
 
@@ -3492,13 +3365,12 @@ async function excluirSelecionadas() {
         obterIdsSelecionados();
 
 
-    if (
-        !ids.length
-    ) {
+    if (!ids.length) {
 
         alert(
             "⚠️ Selecione pelo menos uma conversa."
         );
+
 
         return;
     }
@@ -3529,6 +3401,7 @@ async function excluirSelecionadas() {
         botao.disabled =
             true;
 
+
         botao.textContent =
             "⏳ Excluindo...";
     }
@@ -3547,7 +3420,6 @@ async function excluirSelecionadas() {
                         "same-origin",
 
                     headers: {
-
                         "Accept":
                             "application/json",
 
@@ -3596,9 +3468,11 @@ async function excluirSelecionadas() {
                 null;
 
 
-            if (chat) {
+            if (
+                orionChat
+            ) {
 
-                chat.innerHTML =
+                orionChat.innerHTML =
                     "";
             }
 
@@ -3629,7 +3503,7 @@ async function excluirSelecionadas() {
     } catch (erro) {
 
         console.error(
-            "ERRO AO EXCLUIR VÁRIAS:",
+            "ERRO EXCLUIR VÁRIAS:",
             erro
         );
 
@@ -3708,9 +3582,12 @@ document.addEventListener(
 
         carregarVozes();
 
-        if (mensagemInput) {
 
-            mensagemInput.focus();
+        if (
+            orionMensagemInput
+        ) {
+
+            orionMensagemInput.focus();
         }
     }
 );
@@ -3764,4 +3641,6 @@ window.orionObterConfiguracoes =
 
 window.orionSalvarConfiguracoes =
     orionSalvarConfiguracoes;
+
+})();
 
