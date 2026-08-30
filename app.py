@@ -2,11 +2,10 @@
 import os
 import secrets
 import re
-import smtplib
 
 from datetime import datetime, timedelta
-from email.message import EmailMessage
 
+import requests
 import psycopg2
 import psycopg2.extras
 
@@ -46,9 +45,13 @@ app.secret_key = os.getenv(
     "orion_ai_secret_key"
 )
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_KEY = os.getenv(
+    "GROQ_API_KEY"
+)
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv(
+    "DATABASE_URL"
+)
 
 
 # ============================================================
@@ -82,34 +85,17 @@ GOOGLE_CLIENT_SECRET = os.getenv(
 
 
 # ============================================================
-# SMTP / RECUPERAÇÃO DE CONTA
+# RESEND / RECUPERAÇÃO DE CONTA
 # ============================================================
 
-SMTP_HOST = os.getenv(
-    "SMTP_HOST",
+RESEND_API_KEY = os.getenv(
+    "RESEND_API_KEY",
     ""
 ).strip()
 
-SMTP_PORT = int(
-    os.getenv(
-        "SMTP_PORT",
-        "587"
-    )
-)
-
-SMTP_USER = os.getenv(
-    "SMTP_USER",
-    ""
-).strip()
-
-SMTP_PASSWORD = os.getenv(
-    "SMTP_PASSWORD",
-    ""
-)
-
-SMTP_FROM = os.getenv(
-    "SMTP_FROM",
-    SMTP_USER
+RESEND_FROM = os.getenv(
+    "RESEND_FROM",
+    "onboarding@resend.dev"
 ).strip()
 
 RESET_TOKEN_EXPIRATION_MINUTES = 30
@@ -863,7 +849,7 @@ def login_com_google(
 
 
 # ============================================================
-# RECUPERAÇÃO DE CONTA
+# RECUPERAÇÃO DE CONTA - RESEND
 # ============================================================
 
 def enviar_email_recuperacao(
@@ -871,75 +857,214 @@ def enviar_email_recuperacao(
     link
 ):
 
-    if not SMTP_HOST:
+    if not RESEND_API_KEY:
 
         raise RuntimeError(
-            "SMTP_HOST não está configurado."
+            "RESEND_API_KEY não está configurada no servidor."
         )
 
-    if not SMTP_USER:
+    if not RESEND_FROM:
 
         raise RuntimeError(
-            "SMTP_USER não está configurado."
+            "RESEND_FROM não está configurado no servidor."
         )
 
-    if not SMTP_PASSWORD:
-
-        raise RuntimeError(
-            "SMTP_PASSWORD não está configurado."
-        )
-
-    if not SMTP_FROM:
-
-        raise RuntimeError(
-            "SMTP_FROM não está configurado."
-        )
-
-    mensagem = EmailMessage()
-
-    mensagem["Subject"] = (
+    assunto = (
         "Recuperação da sua conta - Orion AI"
     )
 
-    mensagem["From"] = SMTP_FROM
+    html = f"""
+<!DOCTYPE html>
 
-    mensagem["To"] = email
+<html lang="pt-BR">
 
-    mensagem.set_content(
-        f"""Olá!
+<head>
 
-Recebemos uma solicitação para redefinir a senha da sua conta no Orion AI.
+<meta charset="UTF-8">
 
-Para criar uma nova senha, acesse o link abaixo:
+<title>Recuperação de conta - Orion AI</title>
 
-{link}
+</head>
 
-Este link ficará disponível por {RESET_TOKEN_EXPIRATION_MINUTES} minutos.
+<body style="
+    margin:0;
+    padding:0;
+    background:#f3f4f6;
+    font-family:Arial,sans-serif;
+">
 
-Se você não solicitou essa alteração, ignore este e-mail.
+<div style="
+    max-width:600px;
+    margin:40px auto;
+    padding:30px;
+    background:#ffffff;
+    border-radius:16px;
+    border:1px solid #e5e7eb;
+">
 
-Atenciosamente,
-Orion AI
+    <h1 style="
+        color:#111827;
+        margin-top:0;
+    ">
+        🤖 Orion AI
+    </h1>
+
+    <p style="
+        color:#374151;
+        font-size:16px;
+    ">
+        Recebemos uma solicitação para redefinir
+        a senha da sua conta.
+    </p>
+
+    <p style="
+        color:#374151;
+        font-size:16px;
+    ">
+        Clique no botão abaixo para criar uma nova senha:
+    </p>
+
+    <div style="
+        text-align:center;
+        margin:30px 0;
+    ">
+
+        <a
+            href="{link}"
+            style="
+                display:inline-block;
+                padding:14px 22px;
+                border-radius:10px;
+                background:#7c3aed;
+                color:#ffffff;
+                text-decoration:none;
+                font-weight:bold;
+            "
+        >
+            Redefinir senha
+        </a>
+
+    </div>
+
+    <p style="
+        color:#6b7280;
+        font-size:14px;
+        line-height:1.5;
+    ">
+        Este link ficará disponível por
+        {RESET_TOKEN_EXPIRATION_MINUTES} minutos.
+    </p>
+
+    <p style="
+        color:#6b7280;
+        font-size:14px;
+        line-height:1.5;
+    ">
+        Se você não solicitou a recuperação,
+        ignore este e-mail.
+    </p>
+
+    <hr style="
+        border:none;
+        border-top:1px solid #e5e7eb;
+        margin:25px 0;
+    ">
+
+    <p style="
+        color:#9ca3af;
+        font-size:12px;
+    ">
+        Orion AI
+    </p>
+
+</div>
+
+</body>
+
+</html>
 """
+
+    payload = {
+
+        "from":
+            RESEND_FROM,
+
+        "to":
+            [email],
+
+        "subject":
+            assunto,
+
+        "html":
+            html
+
+    }
+
+    resposta = requests.post(
+
+        "https://api.resend.com/emails",
+
+        headers={
+
+            "Authorization":
+                f"Bearer {RESEND_API_KEY}",
+
+            "Content-Type":
+                "application/json"
+
+        },
+
+        json=payload,
+
+        timeout=20
+
     )
 
-    with smtplib.SMTP(
-        SMTP_HOST,
-        SMTP_PORT,
-        timeout=20
-    ) as servidor:
+    if not resposta.ok:
 
-        servidor.starttls()
+        try:
 
-        servidor.login(
-            SMTP_USER,
-            SMTP_PASSWORD
+            erro = resposta.json()
+
+        except Exception:
+
+            erro = {}
+
+        print(
+            "ERRO RESEND:",
+            resposta.status_code,
+            erro
         )
 
-        servidor.send_message(
-            mensagem
+        mensagem_erro = (
+            erro.get("message")
+            or erro.get("error")
+            or "O Resend recusou o envio do e-mail."
         )
 
+        raise RuntimeError(
+            mensagem_erro
+        )
+
+    try:
+
+        resultado = resposta.json()
+
+    except Exception:
+
+        resultado = {}
+
+    print(
+        "E-MAIL DE RECUPERAÇÃO ENVIADO PELO RESEND:",
+        resultado
+    )
+
+    return resultado
+
+
+# ============================================================
+# CRIAR TOKEN DE RECUPERAÇÃO
+# ============================================================
 
 def criar_token_recuperacao(
     user_id
@@ -993,6 +1118,10 @@ def criar_token_recuperacao(
 
     return token
 
+
+# ============================================================
+# VALIDAR TOKEN DE RECUPERAÇÃO
+# ============================================================
 
 def validar_token_recuperacao(
     token
@@ -2228,10 +2357,6 @@ def forgot_password():
         token = criar_token_recuperacao(
             usuario["id"]
         )
-
-        # ====================================================
-        # LINK CORRETO PARA reset.html
-        # ====================================================
 
         link = url_for(
             "reset_password_page",
