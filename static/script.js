@@ -15,19 +15,29 @@ let modoSelecao = false;
 // CONFIGURAÇÕES
 // ============================================================
 
-const CHAVE_CONFIG =
+const ORION_CHAVE_CONFIG =
     "orion_ai_config";
 
-const configuracaoPadrao = {
-    tema: "escuro",
-    som: true,
-    voz: "padrao",
-    animacoes: true,
-    enterEnviar: true
+const ORION_CONFIG_PADRAO = {
+
+    tema:
+        "escuro",
+
+    som:
+        true,
+
+    voz:
+        "padrao",
+
+    animacoes:
+        true,
+
+    enterEnviar:
+        true
 };
 
 
-function obterConfiguracoes() {
+function orionObterConfiguracoes() {
 
     let config = {};
 
@@ -36,29 +46,30 @@ function obterConfiguracoes() {
         config =
             JSON.parse(
                 localStorage.getItem(
-                    CHAVE_CONFIG
+                    ORION_CHAVE_CONFIG
                 )
             ) || {};
 
     } catch (erro) {
 
         config = {};
-
     }
 
     return {
-        ...configuracaoPadrao,
+        ...ORION_CONFIG_PADRAO,
         ...config
     };
 }
 
 
-function salvarConfiguracoes(config) {
+function orionSalvarConfiguracoes(
+    config
+) {
 
     try {
 
         localStorage.setItem(
-            CHAVE_CONFIG,
+            ORION_CHAVE_CONFIG,
             JSON.stringify(config)
         );
 
@@ -72,22 +83,22 @@ function salvarConfiguracoes(config) {
 }
 
 
-function atualizarConfiguracao(
+function orionAtualizarConfiguracao(
     chave,
     valor
 ) {
 
     const config =
-        obterConfiguracoes();
+        orionObterConfiguracoes();
 
     config[chave] =
         valor;
 
-    salvarConfiguracoes(
+    orionSalvarConfiguracoes(
         config
     );
 
-    aplicarConfiguracoes();
+    orionAplicarConfiguracoes();
 }
 
 
@@ -96,55 +107,74 @@ function atualizarConfiguracao(
 // ============================================================
 
 function elemento(id) {
+
     return document.getElementById(id);
 }
 
-const chat = elemento("chat");
-const welcome = elemento("welcome");
-const mensagemInput = elemento("mensagem");
-const btnEnviar = elemento("btnEnviar");
-const btnArquivo = elemento("btnArquivo");
-const arquivoInput = elemento("arquivo");
-const arquivoBox = elemento("arquivoSelecionado");
-const nomeArquivo = elemento("nomeArquivo");
-const removerArquivo = elemento("removerArquivo");
+
+const chat =
+    elemento("chat");
+
+const welcome =
+    elemento("welcome");
+
+const mensagemInput =
+    elemento("mensagem");
+
+const btnEnviar =
+    elemento("btnEnviar");
+
+const btnArquivo =
+    elemento("btnArquivo");
+
+const arquivoInput =
+    elemento("arquivo");
+
+const arquivoBox =
+    elemento("arquivoSelecionado");
+
+const nomeArquivo =
+    elemento("nomeArquivo");
+
+const removerArquivo =
+    elemento("removerArquivo");
 
 
 // ============================================================
-// CONFIGURAÇÕES - ELEMENTOS
+// ELEMENTOS DAS CONFIGURAÇÕES
 // ============================================================
 
-const configTema =
+const orionConfigTema =
     elemento("configTema");
 
-const configSom =
+const orionConfigSom =
     elemento("configSom");
 
-const configVoz =
+const orionConfigVoz =
     elemento("configVoz");
 
-const configAnimacoes =
+const orionConfigAnimacoes =
     elemento("configAnimacoes");
 
-const configEnter =
+const orionConfigEnter =
     elemento("configEnter");
 
-const vozChat =
+const orionVozChat =
     elemento("voz");
 
-const seletorVoz =
+const orionSeletorVoz =
     elemento("seletorVoz");
 
-const btnAbrirConfiguracoes =
+const orionBtnAbrirConfiguracoes =
     elemento("btnAbrirConfiguracoes");
 
-const painelConfiguracoes =
+const orionPainelConfiguracoes =
     elemento("painelConfiguracoes");
 
-const btnFecharConfiguracoes =
+const orionBtnFecharConfiguracoes =
     elemento("btnFecharConfiguracoes");
 
-const btnConfiguracoesConta =
+const orionBtnConfiguracoesConta =
     elemento("btnConfiguracoesConta");
 
 
@@ -170,10 +200,13 @@ function escaparHTML(texto) {
 function atualizarWelcome() {
 
     if (!chat || !welcome) {
+
         return;
     }
 
-    if (chat.children.length === 0) {
+    if (
+        chat.children.length === 0
+    ) {
 
         welcome.classList.remove(
             "hidden"
@@ -189,7 +222,7 @@ function atualizarWelcome() {
 
 
 // ============================================================
-// ADICIONAR MENSAGEM DO USUÁRIO
+// ADICIONAR MENSAGEM
 // ============================================================
 
 function adicionarMensagem(
@@ -198,6 +231,7 @@ function adicionarMensagem(
 ) {
 
     if (!chat) {
+
         return null;
     }
 
@@ -210,6 +244,7 @@ function adicionarMensagem(
         tipo === "user"
             ? "msg-user"
             : "msg-bot";
+
 
     const conteudo =
         document.createElement(
@@ -225,6 +260,15 @@ function adicionarMensagem(
     div.appendChild(
         conteudo
     );
+
+    if (
+        orionObterConfiguracoes()
+            .animacoes === false
+    ) {
+
+        div.style.animation =
+            "none";
+    }
 
     chat.appendChild(
         div
@@ -248,6 +292,7 @@ function formatarResposta(texto) {
     let html =
         escaparHTML(texto);
 
+
     html = html.replace(
         /```([\s\S]*?)```/g,
         function (_, codigo) {
@@ -258,42 +303,49 @@ function formatarResposta(texto) {
         }
     );
 
+
     html = html.replace(
         /^### (.*)$/gm,
         "<h4>$1</h4>"
     );
+
 
     html = html.replace(
         /^## (.*)$/gm,
         "<h3>$1</h3>"
     );
 
+
     html = html.replace(
         /^# (.*)$/gm,
         "<h2>$1</h2>"
     );
+
 
     html = html.replace(
         /\*\*(.*?)\*\*/g,
         "<strong>$1</strong>"
     );
 
+
     html = html.replace(
         /\*(.*?)\*/g,
         "<em>$1</em>"
     );
+
 
     html = html.replace(
         /\n/g,
         "<br>"
     );
 
+
     return html;
 }
 
 
 // ============================================================
-// ADICIONAR RESPOSTA DA IA
+// ADICIONAR RESPOSTA
 // ============================================================
 
 function adicionarResposta(
@@ -302,8 +354,10 @@ function adicionarResposta(
 ) {
 
     if (!chat) {
+
         return null;
     }
+
 
     const div =
         document.createElement(
@@ -313,13 +367,16 @@ function adicionarResposta(
     div.className =
         "msg-bot";
 
+
     if (
-        obterConfiguracoes().animacoes === false
+        orionObterConfiguracoes()
+            .animacoes === false
     ) {
 
         div.style.animation =
             "none";
     }
+
 
     const conteudo =
         document.createElement(
@@ -334,6 +391,7 @@ function adicionarResposta(
             texto
         );
 
+
     div.appendChild(
         conteudo
     );
@@ -347,11 +405,14 @@ function adicionarResposta(
     chat.scrollTop =
         chat.scrollHeight;
 
+
     if (falar) {
+
         falarResposta(
             texto
         );
     }
+
 
     return div;
 }
@@ -364,10 +425,12 @@ function adicionarResposta(
 function mostrarTyping() {
 
     if (!chat) {
+
         return null;
     }
 
     removerTyping();
+
 
     const div =
         document.createElement(
@@ -380,13 +443,16 @@ function mostrarTyping() {
     div.id =
         "typingMessage";
 
+
     if (
-        obterConfiguracoes().animacoes === false
+        orionObterConfiguracoes()
+            .animacoes === false
     ) {
 
         div.style.animation =
             "none";
     }
+
 
     div.innerHTML = `
         <div class="conteudo-mensagem">
@@ -398,6 +464,7 @@ function mostrarTyping() {
             </span>
         </div>
     `;
+
 
     chat.appendChild(
         div
@@ -415,9 +482,12 @@ function mostrarTyping() {
 function removerTyping() {
 
     const typing =
-        elemento("typingMessage");
+        elemento(
+            "typingMessage"
+        );
 
     if (typing) {
+
         typing.remove();
     }
 }
@@ -430,43 +500,54 @@ function removerTyping() {
 async function novaConversa() {
 
     if (enviando) {
+
         return;
     }
 
+
     sairModoSelecao();
+
 
     const botao =
         document.querySelector(
             ".nova-conversa"
         );
 
+
     const textoOriginal =
         botao
             ? botao.innerHTML
             : "🆕 Nova conversa";
 
+
     try {
 
-        enviando = true;
+        enviando =
+            true;
+
 
         if (botao) {
 
-            botao.disabled = true;
+            botao.disabled =
+                true;
 
             botao.innerHTML =
                 "⏳ Criando...";
         }
 
+
         const resposta =
             await fetch(
                 "/new_chat",
                 {
-                    method: "POST",
+                    method:
+                        "POST",
 
                     credentials:
                         "same-origin",
 
                     headers: {
+
                         "Accept":
                             "application/json",
 
@@ -479,6 +560,7 @@ async function novaConversa() {
                 }
             );
 
+
         if (
             resposta.redirected
         ) {
@@ -489,10 +571,13 @@ async function novaConversa() {
             return;
         }
 
+
         const textoResposta =
             await resposta.text();
 
+
         let dados;
+
 
         try {
 
@@ -513,6 +598,7 @@ async function novaConversa() {
             );
         }
 
+
         if (
             !resposta.ok ||
             !dados.success
@@ -524,6 +610,7 @@ async function novaConversa() {
             );
         }
 
+
         if (
             dados.conversation_id
         ) {
@@ -532,22 +619,32 @@ async function novaConversa() {
                 dados.conversation_id;
         }
 
+
         if (chat) {
-            chat.innerHTML = "";
+
+            chat.innerHTML =
+                "";
         }
+
 
         removerTyping();
 
+
         if (mensagemInput) {
-            mensagemInput.value = "";
+
+            mensagemInput.value =
+                "";
         }
 
+
         limparArquivo();
+
 
         const titulo =
             elemento(
                 "tituloConversa"
             );
+
 
         if (titulo) {
 
@@ -556,13 +653,18 @@ async function novaConversa() {
                 "Nova conversa";
         }
 
+
         atualizarWelcome();
+
 
         await carregarHistoricoConversas();
 
+
         if (mensagemInput) {
+
             mensagemInput.focus();
         }
+
 
     } catch (erro) {
 
@@ -576,13 +678,17 @@ async function novaConversa() {
             erro.message
         );
 
+
     } finally {
 
-        enviando = false;
+        enviando =
+            false;
+
 
         if (botao) {
 
-            botao.disabled = false;
+            botao.disabled =
+                false;
 
             botao.innerHTML =
                 textoOriginal ||
@@ -599,18 +705,24 @@ async function novaConversa() {
 async function enviar() {
 
     if (enviando) {
+
         return;
     }
 
+
     if (!mensagemInput) {
+
         return;
     }
+
 
     const texto =
         mensagemInput.value.trim();
 
+
     const temArquivo =
         arquivoSelecionado !== null;
+
 
     if (
         !texto &&
@@ -622,7 +734,10 @@ async function enviar() {
         return;
     }
 
-    enviando = true;
+
+    enviando =
+        true;
+
 
     if (btnEnviar) {
 
@@ -632,6 +747,7 @@ async function enviar() {
         btnEnviar.textContent =
             "Enviando...";
     }
+
 
     if (texto) {
 
@@ -648,21 +764,30 @@ async function enviar() {
         );
     }
 
-    mensagemInput.value = "";
+
+    mensagemInput.value =
+        "";
+
 
     const typing =
         mostrarTyping();
 
+
     try {
 
         const dadosEnvio = {
-            message: texto
+
+            message:
+                texto
+
         };
+
 
         if (arquivoSelecionado) {
 
             const arquivo =
                 arquivoSelecionado;
+
 
             if (
                 arquivo.type &&
@@ -676,36 +801,45 @@ async function enviar() {
                         arquivo
                     );
 
+
                 dadosEnvio.image =
                     base64.split(",")[1];
+
 
                 dadosEnvio.image_type =
                     arquivo.type;
 
+
             } else {
 
                 if (typing) {
+
                     typing.remove();
                 }
+
 
                 adicionarResposta(
                     "❌ No momento, o Orion AI aceita apenas imagens JPG, PNG, WEBP ou GIF."
                 );
 
+
                 return;
             }
         }
+
 
         const resposta =
             await fetch(
                 "/chat",
                 {
-                    method: "POST",
+                    method:
+                        "POST",
 
                     credentials:
                         "same-origin",
 
                     headers: {
+
                         "Accept":
                             "application/json",
 
@@ -720,6 +854,7 @@ async function enviar() {
                 }
             );
 
+
         if (
             resposta.redirected
         ) {
@@ -730,10 +865,13 @@ async function enviar() {
             return;
         }
 
+
         const textoResposta =
             await resposta.text();
 
+
         let dados;
+
 
         try {
 
@@ -754,9 +892,12 @@ async function enviar() {
             );
         }
 
+
         if (typing) {
+
             typing.remove();
         }
+
 
         if (
             !resposta.ok ||
@@ -772,6 +913,7 @@ async function enviar() {
             return;
         }
 
+
         if (
             dados.conversation_id
         ) {
@@ -780,10 +922,12 @@ async function enviar() {
                 dados.conversation_id;
         }
 
+
         adicionarResposta(
             dados.reply ||
             "Não recebi uma resposta da IA."
         );
+
 
         if (dados.title) {
 
@@ -799,9 +943,12 @@ async function enviar() {
             }
         }
 
+
         limparArquivo();
 
+
         carregarHistoricoConversas();
+
 
     } catch (erro) {
 
@@ -810,17 +957,23 @@ async function enviar() {
             erro
         );
 
+
         if (typing) {
+
             typing.remove();
         }
+
 
         adicionarResposta(
             "❌ Erro ao conectar com o servidor. Tente novamente."
         );
 
+
     } finally {
 
-        enviando = false;
+        enviando =
+            false;
+
 
         if (btnEnviar) {
 
@@ -831,7 +984,9 @@ async function enviar() {
                 "Enviar";
         }
 
+
         if (mensagemInput) {
+
             mensagemInput.focus();
         }
     }
@@ -855,6 +1010,7 @@ function converterArquivoBase64(
             const leitor =
                 new FileReader();
 
+
             leitor.onload =
                 function () {
 
@@ -862,6 +1018,7 @@ function converterArquivoBase64(
                         leitor.result
                     );
                 };
+
 
             leitor.onerror =
                 function () {
@@ -873,6 +1030,7 @@ function converterArquivoBase64(
                     );
                 };
 
+
             leitor.readAsDataURL(
                 arquivo
             );
@@ -882,12 +1040,8 @@ function converterArquivoBase64(
 
 
 // ============================================================
-// ENTER PARA ENVIAR
+// ENTER
 // ============================================================
-
-// Usamos CAPTURE para conseguir bloquear
-// qualquer listener anterior do index.html
-// quando Enter estiver desativado.
 
 if (mensagemInput) {
 
@@ -896,7 +1050,8 @@ if (mensagemInput) {
         function (event) {
 
             const config =
-                obterConfiguracoes();
+                orionObterConfiguracoes();
+
 
             if (
                 event.key === "Enter" &&
@@ -909,23 +1064,20 @@ if (mensagemInput) {
 
                     event.preventDefault();
 
+                    event.stopPropagation();
+
                     enviar();
 
-                } else {
-
-                    // Permite Enter normal quando
-                    // a opção estiver desativada.
-                    return;
                 }
+
             }
         }
     );
-
 }
 
 
 // ============================================================
-// BLOQUEAR ENTER DO INLINE QUANDO DESATIVADO
+// BLOQUEAR ENTER QUANDO DESATIVADO
 // ============================================================
 
 document.addEventListener(
@@ -940,8 +1092,10 @@ document.addEventListener(
             return;
         }
 
+
         const config =
-            obterConfiguracoes();
+            orionObterConfiguracoes();
+
 
         if (
             event.key === "Enter" &&
@@ -950,7 +1104,6 @@ document.addEventListener(
         ) {
 
             event.stopImmediatePropagation();
-
         }
 
     },
@@ -989,9 +1142,12 @@ document.addEventListener(
                 ".nova-conversa"
             );
 
+
         if (!botao) {
+
             return;
         }
+
 
         event.preventDefault();
 
@@ -1007,13 +1163,17 @@ document.addEventListener(
 function atalho(texto) {
 
     if (!mensagemInput) {
+
         return;
     }
+
 
     mensagemInput.value =
         texto;
 
+
     mensagemInput.focus();
+
 
     enviar();
 }
@@ -1050,12 +1210,14 @@ if (arquivoInput) {
                 arquivoInput.files &&
                 arquivoInput.files[0];
 
+
             if (!arquivo) {
 
                 limparArquivo();
 
                 return;
             }
+
 
             if (
                 arquivo.type &&
@@ -1073,6 +1235,7 @@ if (arquivoInput) {
                 return;
             }
 
+
             if (
                 arquivo.size >
                 20 * 1024 * 1024
@@ -1087,14 +1250,17 @@ if (arquivoInput) {
                 return;
             }
 
+
             arquivoSelecionado =
                 arquivo;
+
 
             if (nomeArquivo) {
 
                 nomeArquivo.textContent =
                     arquivo.name;
             }
+
 
             if (arquivoBox) {
 
@@ -1116,9 +1282,13 @@ function limparArquivo() {
     arquivoSelecionado =
         null;
 
+
     if (arquivoInput) {
-        arquivoInput.value = "";
+
+        arquivoInput.value =
+            "";
     }
+
 
     if (arquivoBox) {
 
@@ -1126,6 +1296,7 @@ function limparArquivo() {
             "ativo"
         );
     }
+
 
     if (nomeArquivo) {
 
@@ -1155,71 +1326,64 @@ if (removerArquivo) {
 
 function carregarVozes() {
 
-    const seletor =
-        elemento("seletorVoz");
-
     if (
         !("speechSynthesis" in window)
     ) {
 
-        if (seletor) {
+        if (
+            orionSeletorVoz
+        ) {
 
-            seletor.innerHTML =
+            orionSeletorVoz.innerHTML =
                 `<option value="">Voz não disponível</option>`;
         }
 
         return;
     }
 
-    vozes =
-        window.speechSynthesis
-            .getVoices();
 
-    if (!seletor) {
+    vozes =
+        window.speechSynthesis.getVoices();
+
+
+    if (!orionSeletorVoz) {
+
         return;
     }
 
-    seletor.innerHTML = "";
+
+    const valorAtual =
+        orionObterConfiguracoes()
+            .voz;
+
+
+    orionSeletorVoz.innerHTML =
+        `
+        <option value="default">
+            Voz padrão do navegador
+        </option>
+        `;
+
 
     const vozesPT =
         vozes.filter(
-            voz =>
-                voz.lang &&
-                voz.lang
-                    .toLowerCase()
-                    .startsWith("pt")
+            function (voz) {
+
+                return (
+                    voz.lang &&
+                    voz.lang
+                        .toLowerCase()
+                        .startsWith("pt")
+                );
+            }
         );
+
 
     const lista =
         vozesPT.length
             ? vozesPT
             : vozes;
 
-    if (!lista.length) {
-
-        seletor.innerHTML =
-            `<option value="default">Voz padrão do navegador</option>`;
-
-        return;
-    }
-
-    const config =
-        obterConfiguracoes();
-
-    const opcaoPadrao =
-        document.createElement(
-            "option"
-        );
-
-    opcaoPadrao.value =
-        "default";
-
-    opcaoPadrao.textContent =
-        "Voz padrão do navegador";
-
-    seletor.appendChild(
-        opcaoPadrao
-    );
 
     lista.forEach(
         function (voz) {
@@ -1229,6 +1393,7 @@ function carregarVozes() {
                     "option"
                 );
 
+
             option.value =
                 String(
                     vozes.indexOf(
@@ -1236,50 +1401,29 @@ function carregarVozes() {
                     )
                 );
 
+
             option.textContent =
                 `${voz.name} (${voz.lang})`;
 
-            seletor.appendChild(
+
+            orionSeletorVoz.appendChild(
                 option
             );
-
         }
     );
 
+
+    orionAplicarVozConfigurada();
+
+
     if (
-        config.voz &&
-        config.voz !== "padrao"
+        orionConfigVoz &&
+        valorAtual
     ) {
 
-        const indice =
-            vozes.findIndex(
-                function (voz) {
-
-                    return (
-                        voz.name +
-                        "|" +
-                        voz.lang
-                    ) === config.voz;
-
-                }
-            );
-
-        if (
-            indice >= 0
-        ) {
-
-            seletor.value =
-                String(indice);
-
-        }
-
-    } else {
-
-        seletor.value =
-            "default";
+        orionConfigVoz.value =
+            valorAtual;
     }
-
-    sincronizarVozConfiguracao();
 }
 
 
@@ -1289,6 +1433,7 @@ if (
 
     carregarVozes();
 
+
     window.speechSynthesis
         .onvoiceschanged =
         carregarVozes;
@@ -1296,68 +1441,116 @@ if (
 
 
 // ============================================================
-// SINCRONIZAR VOZ NO PAINEL
+// APLICAR VOZ CONFIGURADA
 // ============================================================
 
-function sincronizarVozConfiguracao() {
-
-    if (
-        !configVoz ||
-        !seletorVoz
-    ) {
-        return;
-    }
+function orionAplicarVozConfigurada() {
 
     const config =
-        obterConfiguracoes();
+        orionObterConfiguracoes();
 
-    configVoz.value =
-        config.voz;
 
+    if (
+        orionSeletorVoz
+    ) {
+
+        if (
+            config.voz ===
+            "padrao"
+        ) {
+
+            orionSeletorVoz.value =
+                "default";
+
+        } else {
+
+            const indice =
+                vozes.findIndex(
+                    function (voz) {
+
+                        return (
+                            voz.name +
+                            "|" +
+                            voz.lang
+                        ) === config.voz;
+                    }
+                );
+
+
+            if (indice >= 0) {
+
+                orionSeletorVoz.value =
+                    String(indice);
+
+            } else {
+
+                orionSeletorVoz.value =
+                    "default";
+            }
+        }
+    }
+
+
+    if (
+        orionConfigVoz
+    ) {
+
+        orionConfigVoz.value =
+            config.voz;
+    }
 }
 
 
 // ============================================================
-// ALTERAR VOZ PELO SELECT PRINCIPAL
+// SELECT PRINCIPAL DE VOZ
 // ============================================================
 
-if (seletorVoz) {
+if (
+    orionSeletorVoz
+) {
 
-    seletorVoz.addEventListener(
+    orionSeletorVoz.addEventListener(
         "change",
         function () {
 
-            const indice =
-                Number(
-                    seletorVoz.value
-                );
-
             const config =
-                obterConfiguracoes();
+                orionObterConfiguracoes();
+
 
             if (
-                seletorVoz.value ===
+                orionSeletorVoz.value ===
                 "default"
             ) {
 
                 config.voz =
                     "padrao";
 
-            } else if (
-                vozes[indice]
-            ) {
+            } else {
 
-                config.voz =
-                    vozes[indice].name +
-                    "|" +
-                    vozes[indice].lang;
+                const indice =
+                    Number(
+                        orionSeletorVoz.value
+                    );
+
+
+                if (
+                    vozes[indice]
+                ) {
+
+                    config.voz =
+                        vozes[indice].name +
+                        "|" +
+                        vozes[indice].lang;
+                }
             }
 
-            salvarConfiguracoes(
+
+            orionSalvarConfiguracoes(
                 config
             );
 
-            sincronizarVozConfiguracao();
+
+            orionAplicarVozConfigurada();
 
         }
     );
@@ -1373,27 +1566,25 @@ function falarResposta(
 ) {
 
     const config =
-        obterConfiguracoes();
+        orionObterConfiguracoes();
 
-    const checkbox =
-        elemento("voz");
-
-    const somAtivo =
-        config.som &&
-        (
-            !checkbox ||
-            checkbox.checked
-        );
-
-    if (!somAtivo) {
-        return;
-    }
 
     if (
-        !("speechSynthesis" in window)
+        config.som !== true
     ) {
+
         return;
     }
+
+
+    if (
+        "speechSynthesis" in window ===
+        false
+    ) {
+
+        return;
+    }
+
 
     const textoLimpo =
         String(texto)
@@ -1406,19 +1597,27 @@ function falarResposta(
                 ""
             );
 
-    if (!textoLimpo.trim()) {
+
+    if (
+        !textoLimpo.trim()
+    ) {
+
         return;
     }
 
+
     window.speechSynthesis.cancel();
+
 
     const fala =
         new SpeechSynthesisUtterance(
             textoLimpo
         );
 
+
     let vozEscolhida =
         null;
+
 
     if (
         config.voz &&
@@ -1434,26 +1633,27 @@ function falarResposta(
                         "|" +
                         voz.lang
                     ) === config.voz;
-
                 }
             );
-
     }
 
 
     if (
         !vozEscolhida &&
-        seletorVoz &&
-        seletorVoz.value !== "default" &&
-        seletorVoz.value !== ""
+        orionSeletorVoz &&
+        orionSeletorVoz.value !==
+            "default"
     ) {
 
         const indice =
             Number(
-                seletorVoz.value
+                orionSeletorVoz.value
             );
 
-        if (vozes[indice]) {
+
+        if (
+            vozes[indice]
+        ) {
 
             vozEscolhida =
                 vozes[indice];
@@ -1461,7 +1661,9 @@ function falarResposta(
     }
 
 
-    if (vozEscolhida) {
+    if (
+        vozEscolhida
+    ) {
 
         fala.voice =
             vozEscolhida;
@@ -1475,11 +1677,13 @@ function falarResposta(
             "pt-BR";
     }
 
+
     fala.rate =
         1;
 
     fala.pitch =
         1;
+
 
     window.speechSynthesis.speak(
         fala
@@ -1491,57 +1695,66 @@ function falarResposta(
 // TESTAR VOZ
 // ============================================================
 
-const btnTestarVoz =
+const orionBtnTestarVoz =
     elemento(
         "btnTestarVoz"
     );
 
-if (btnTestarVoz) {
 
-    btnTestarVoz.addEventListener(
+if (
+    orionBtnTestarVoz
+) {
+
+    orionBtnTestarVoz.addEventListener(
         "click",
         function () {
 
             const config =
-                obterConfiguracoes();
+                orionObterConfiguracoes();
 
-            const configAntiga =
+
+            const somAnterior =
                 config.som;
+
 
             config.som =
                 true;
 
-            salvarConfiguracoes(
+
+            orionSalvarConfiguracoes(
                 config
             );
 
-            const checkbox =
-                elemento("voz");
 
-            const checkboxAntigo =
-                checkbox
-                    ? checkbox.checked
-                    : true;
+            if (
+                orionVozChat
+            ) {
 
-            if (checkbox) {
-                checkbox.checked = true;
+                orionVozChat.checked =
+                    true;
             }
+
 
             falarResposta(
                 "Olá! Eu sou o Orion AI. Esta é a minha voz."
             );
 
-            config.som =
-                configAntiga;
 
-            salvarConfiguracoes(
+            config.som =
+                somAnterior;
+
+
+            orionSalvarConfiguracoes(
                 config
             );
 
-            if (checkbox) {
 
-                checkbox.checked =
-                    checkboxAntigo;
+            if (
+                orionVozChat
+            ) {
+
+                orionVozChat.checked =
+                    somAnterior;
             }
         }
     );
@@ -1549,33 +1762,342 @@ if (btnTestarVoz) {
 
 
 // ============================================================
-// VOZ CHAT - CHECKBOX
+// VOZ - CHECKBOX DO CHAT
 // ============================================================
 
-if (vozChat) {
+if (
+    orionVozChat
+) {
 
-    vozChat.addEventListener(
+    orionVozChat.addEventListener(
         "change",
         function () {
 
-            atualizarConfiguracao(
+            orionAtualizarConfiguracao(
                 "som",
-                vozChat.checked
+                orionVozChat.checked
             );
 
-            if (configSom) {
-
-                configSom.checked =
-                    vozChat.checked;
-            }
 
             if (
-                !vozChat.checked &&
+                orionConfigSom
+            ) {
+
+                orionConfigSom.checked =
+                    orionVozChat.checked;
+            }
+
+
+            if (
+                !orionVozChat.checked &&
                 "speechSynthesis" in window
             ) {
 
                 window.speechSynthesis.cancel();
             }
+        }
+    );
+}
+
+
+// ============================================================
+// APLICAR TODAS AS CONFIGURAÇÕES
+// ============================================================
+
+function orionAplicarConfiguracoes() {
+
+    const config =
+        orionObterConfiguracoes();
+
+
+    // --------------------------------------------------------
+    // TEMA
+    // --------------------------------------------------------
+
+    if (
+        config.tema ===
+        "claro"
+    ) {
+
+        document.body.classList.add(
+            "tema-claro"
+        );
+
+    } else {
+
+        document.body.classList.remove(
+            "tema-claro"
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // SOM
+    // --------------------------------------------------------
+
+    if (
+        orionVozChat
+    ) {
+
+        orionVozChat.checked =
+            Boolean(
+                config.som
+            );
+    }
+
+
+    if (
+        orionConfigSom
+    ) {
+
+        orionConfigSom.checked =
+            Boolean(
+                config.som
+            );
+    }
+
+
+    // --------------------------------------------------------
+    // TEMA
+    // --------------------------------------------------------
+
+    if (
+        orionConfigTema
+    ) {
+
+        orionConfigTema.value =
+            config.tema;
+    }
+
+
+    // --------------------------------------------------------
+    // ANIMAÇÕES
+    // --------------------------------------------------------
+
+    if (
+        orionConfigAnimacoes
+    ) {
+
+        orionConfigAnimacoes.checked =
+            Boolean(
+                config.animacoes
+            );
+    }
+
+
+    // --------------------------------------------------------
+    // ENTER
+    // --------------------------------------------------------
+
+    if (
+        orionConfigEnter
+    ) {
+
+        orionConfigEnter.checked =
+            Boolean(
+                config.enterEnviar
+            );
+    }
+
+
+    // --------------------------------------------------------
+    // VOZ
+    // --------------------------------------------------------
+
+    orionAplicarVozConfigurada();
+
+
+    // --------------------------------------------------------
+    // DESLIGAR FALA
+    // --------------------------------------------------------
+
+    if (
+        config.som === false &&
+        "speechSynthesis" in window
+    ) {
+
+        window.speechSynthesis.cancel();
+    }
+}
+
+
+// ============================================================
+// ABRIR PAINEL
+// ============================================================
+
+if (
+    orionBtnAbrirConfiguracoes
+) {
+
+    orionBtnAbrirConfiguracoes.addEventListener(
+        "click",
+        function (event) {
+
+            event.preventDefault();
+
+            event.stopPropagation();
+
+
+            if (
+                orionPainelConfiguracoes
+            ) {
+
+                orionPainelConfiguracoes.classList.toggle(
+                    "aberto"
+                );
+            }
+        }
+    );
+}
+
+
+// ============================================================
+// FECHAR PAINEL
+// ============================================================
+
+if (
+    orionBtnFecharConfiguracoes
+) {
+
+    orionBtnFecharConfiguracoes.addEventListener(
+        "click",
+        function () {
+
+            if (
+                orionPainelConfiguracoes
+            ) {
+
+                orionPainelConfiguracoes.classList.remove(
+                    "aberto"
+                );
+            }
+        }
+    );
+}
+
+
+// ============================================================
+// CLICAR FORA
+// ============================================================
+
+document.addEventListener(
+    "click",
+    function (event) {
+
+        if (
+            !orionPainelConfiguracoes ||
+            !orionBtnAbrirConfiguracoes
+        ) {
+
+            return;
+        }
+
+
+        if (
+            orionPainelConfiguracoes.contains(
+                event.target
+            )
+        ) {
+
+            return;
+        }
+
+
+        if (
+            event.target ===
+            orionBtnAbrirConfiguracoes
+        ) {
+
+            return;
+        }
+
+
+        orionPainelConfiguracoes.classList.remove(
+            "aberto"
+        );
+    }
+);
+
+
+// ============================================================
+// TEMA
+// ============================================================
+
+if (
+    orionConfigTema
+) {
+
+    orionConfigTema.addEventListener(
+        "change",
+        function () {
+
+            orionAtualizarConfiguracao(
+                "tema",
+                orionConfigTema.value
+            );
+        }
+    );
+}
+
+
+// ============================================================
+// SOM
+// ============================================================
+
+if (
+    orionConfigSom
+) {
+
+    orionConfigSom.addEventListener(
+        "change",
+        function () {
+
+            orionAtualizarConfiguracao(
+                "som",
+                orionConfigSom.checked
+            );
+
+
+            if (
+                orionVozChat
+            ) {
+
+                orionVozChat.checked =
+                    orionConfigSom.checked;
+            }
+
+
+            if (
+                !orionConfigSom.checked &&
+                "speechSynthesis" in window
+            ) {
+
+                window.speechSynthesis.cancel();
+            }
+        }
+    );
+}
+
+
+// ============================================================
+// VOZ NO PAINEL
+// ============================================================
+
+if (
+    orionConfigVoz
+) {
+
+    orionConfigVoz.addEventListener(
+        "change",
+        function () {
+
+            orionAtualizarConfiguracao(
+                "voz",
+                orionConfigVoz.value
+            );
+
+
+            orionAplicarVozConfigurada();
 
         }
     );
@@ -1583,14 +2105,77 @@ if (vozChat) {
 
 
 // ============================================================
-// HISTÓRICO - CARREGAR CONVERSA ATUAL
+// ANIMAÇÕES
+// ============================================================
+
+if (
+    orionConfigAnimacoes
+) {
+
+    orionConfigAnimacoes.addEventListener(
+        "change",
+        function () {
+
+            orionAtualizarConfiguracao(
+                "animacoes",
+                orionConfigAnimacoes.checked
+            );
+        }
+    );
+}
+
+
+// ============================================================
+// ENTER
+// ============================================================
+
+if (
+    orionConfigEnter
+) {
+
+    orionConfigEnter.addEventListener(
+        "change",
+        function () {
+
+            orionAtualizarConfiguracao(
+                "enterEnviar",
+                orionConfigEnter.checked
+            );
+        }
+    );
+}
+
+
+// ============================================================
+// CONFIGURAÇÕES DE CONTA
+// ============================================================
+
+if (
+    orionBtnConfiguracoesConta
+) {
+
+    orionBtnConfiguracoesConta.addEventListener(
+        "click",
+        function () {
+
+            window.location.href =
+                "/perfil";
+        }
+    );
+}
+
+
+// ============================================================
+// HISTÓRICO ATUAL
 // ============================================================
 
 async function carregarHistorico() {
 
     if (!chat) {
+
         return;
     }
+
 
     try {
 
@@ -1598,17 +2183,20 @@ async function carregarHistorico() {
             await fetch(
                 "/history",
                 {
-                    method: "GET",
+                    method:
+                        "GET",
 
                     credentials:
                         "same-origin",
 
                     headers: {
+
                         "Accept":
                             "application/json"
                     }
                 }
             );
+
 
         if (
             resposta.status ===
@@ -1621,7 +2209,10 @@ async function carregarHistorico() {
             return;
         }
 
-        if (!resposta.ok) {
+
+        if (
+            !resposta.ok
+        ) {
 
             console.warn(
                 "Erro ao carregar histórico:",
@@ -1633,10 +2224,14 @@ async function carregarHistorico() {
             return;
         }
 
+
         const historico =
             await resposta.json();
 
-        chat.innerHTML = "";
+
+        chat.innerHTML =
+            "";
+
 
         if (
             Array.isArray(
@@ -1664,15 +2259,17 @@ async function carregarHistorico() {
                             false
                         );
                     }
-
                 }
             );
         }
 
+
         atualizarWelcome();
+
 
         chat.scrollTop =
             chat.scrollHeight;
+
 
     } catch (erro) {
 
@@ -1687,7 +2284,7 @@ async function carregarHistorico() {
 
 
 // ============================================================
-// HISTÓRICO - LISTA DE CONVERSAS
+// LISTAR CONVERSAS
 // ============================================================
 
 async function carregarHistoricoConversas() {
@@ -1697,9 +2294,12 @@ async function carregarHistoricoConversas() {
             "historicoConversas"
         );
 
+
     if (!container) {
+
         return;
     }
+
 
     try {
 
@@ -1707,17 +2307,20 @@ async function carregarHistoricoConversas() {
             await fetch(
                 "/conversations",
                 {
-                    method: "GET",
+                    method:
+                        "GET",
 
                     credentials:
                         "same-origin",
 
                     headers: {
+
                         "Accept":
                             "application/json"
                     }
                 }
             );
+
 
         if (
             resposta.status ===
@@ -1730,12 +2333,16 @@ async function carregarHistoricoConversas() {
             return;
         }
 
-        if (!resposta.ok) {
+
+        if (
+            !resposta.ok
+        ) {
 
             console.warn(
                 "Erro ao carregar conversas:",
                 resposta.status
             );
+
 
             container.innerHTML = `
                 <div class="historico-vazio">
@@ -1743,11 +2350,14 @@ async function carregarHistoricoConversas() {
                 </div>
             `;
 
+
             return;
         }
 
+
         const dados =
             await resposta.json();
+
 
         const conversas =
             Array.isArray(dados)
@@ -1755,7 +2365,10 @@ async function carregarHistoricoConversas() {
                 : dados.conversations ||
                   [];
 
-        container.innerHTML = "";
+
+        container.innerHTML =
+            "";
+
 
         if (
             !conversas.length
@@ -1770,17 +2383,19 @@ async function carregarHistoricoConversas() {
             return;
         }
 
+
         conversas.forEach(
             function (conversa) {
 
                 criarItemConversa(
                     conversa
                 );
-
             }
         );
 
+
         atualizarSelecaoVisual();
+
 
     } catch (erro) {
 
@@ -1788,6 +2403,7 @@ async function carregarHistoricoConversas() {
             "ERRO AO CARREGAR CONVERSAS:",
             erro
         );
+
 
         container.innerHTML = `
             <div class="historico-vazio">
@@ -1811,40 +2427,51 @@ function criarItemConversa(
             "historicoConversas"
         );
 
+
     if (!container) {
+
         return;
     }
+
 
     const id =
         conversa.id ||
         conversa.conversation_id;
+
 
     const titulo =
         conversa.title ||
         conversa.titulo ||
         "Nova conversa";
 
+
     const item =
         document.createElement(
             "div"
         );
 
+
     item.className =
         "conversa-item";
 
+
     item.dataset.id =
         id;
+
 
     const abrir =
         document.createElement(
             "button"
         );
 
+
     abrir.type =
         "button";
 
+
     abrir.className =
         "conversa-abrir";
+
 
     abrir.innerHTML = `
         <span class="conversa-titulo">
@@ -1852,11 +2479,14 @@ function criarItemConversa(
         </span>
     `;
 
+
     abrir.addEventListener(
         "click",
         function () {
 
-            if (modoSelecao) {
+            if (
+                modoSelecao
+            ) {
 
                 alternarSelecaoConversa(
                     id,
@@ -1866,17 +2496,19 @@ function criarItemConversa(
                 return;
             }
 
+
             abrirConversa(
                 id
             );
-
         }
     );
+
 
     const acoes =
         document.createElement(
             "div"
         );
+
 
     acoes.className =
         "conversa-acoes";
@@ -1891,17 +2523,22 @@ function criarItemConversa(
             "button"
         );
 
+
     btnSelecionar.type =
         "button";
+
 
     btnSelecionar.className =
         "btn-conversa btn-selecionar";
 
+
     btnSelecionar.title =
         "Selecionar";
 
+
     btnSelecionar.textContent =
         "☐";
+
 
     btnSelecionar.addEventListener(
         "click",
@@ -1909,11 +2546,11 @@ function criarItemConversa(
 
             event.stopPropagation();
 
+
             alternarSelecaoConversa(
                 id,
                 item
             );
-
         }
     );
 
@@ -1927,17 +2564,22 @@ function criarItemConversa(
             "button"
         );
 
+
     btnRenomear.type =
         "button";
+
 
     btnRenomear.className =
         "btn-conversa btn-renomear";
 
+
     btnRenomear.title =
         "Renomear";
 
+
     btnRenomear.textContent =
         "✏️";
+
 
     btnRenomear.addEventListener(
         "click",
@@ -1945,11 +2587,11 @@ function criarItemConversa(
 
             event.stopPropagation();
 
+
             renomearConversa(
                 id,
                 titulo
             );
-
         }
     );
 
@@ -1963,17 +2605,22 @@ function criarItemConversa(
             "button"
         );
 
+
     btnExcluir.type =
         "button";
+
 
     btnExcluir.className =
         "btn-conversa btn-excluir";
 
+
     btnExcluir.title =
         "Excluir";
 
+
     btnExcluir.textContent =
         "🗑️";
+
 
     btnExcluir.addEventListener(
         "click",
@@ -1981,10 +2628,10 @@ function criarItemConversa(
 
             event.stopPropagation();
 
+
             excluirConversa(
                 id
             );
-
         }
     );
 
@@ -1993,21 +2640,26 @@ function criarItemConversa(
         btnSelecionar
     );
 
+
     acoes.appendChild(
         btnRenomear
     );
+
 
     acoes.appendChild(
         btnExcluir
     );
 
+
     item.appendChild(
         abrir
     );
 
+
     item.appendChild(
         acoes
     );
+
 
     container.appendChild(
         item
@@ -2019,15 +2671,23 @@ function criarItemConversa(
 // ABRIR CONVERSA
 // ============================================================
 
-async function abrirConversa(id) {
+async function abrirConversa(
+    id
+) {
 
-    if (modoSelecao) {
+    if (
+        modoSelecao
+    ) {
+
         return;
     }
+
 
     if (!id) {
+
         return;
     }
+
 
     try {
 
@@ -2035,17 +2695,20 @@ async function abrirConversa(id) {
             await fetch(
                 `/conversation/${encodeURIComponent(id)}`,
                 {
-                    method: "GET",
+                    method:
+                        "GET",
 
                     credentials:
                         "same-origin",
 
                     headers: {
+
                         "Accept":
                             "application/json"
                     }
                 }
             );
+
 
         if (
             resposta.status ===
@@ -2058,10 +2721,14 @@ async function abrirConversa(id) {
             return;
         }
 
+
         const dados =
             await resposta.json();
 
-        if (!resposta.ok) {
+
+        if (
+            !resposta.ok
+        ) {
 
             alert(
                 dados.message ||
@@ -2071,17 +2738,23 @@ async function abrirConversa(id) {
             return;
         }
 
+
         window.conversationId =
             id;
 
+
         if (chat) {
-            chat.innerHTML = "";
+
+            chat.innerHTML =
+                "";
         }
+
 
         const mensagens =
             dados.messages ||
             dados.history ||
             [];
+
 
         mensagens.forEach(
             function (item) {
@@ -2103,14 +2776,15 @@ async function abrirConversa(id) {
                         false
                     );
                 }
-
             }
         );
+
 
         const titulo =
             elemento(
                 "tituloConversa"
             );
+
 
         if (titulo) {
 
@@ -2119,6 +2793,7 @@ async function abrirConversa(id) {
                 dados.titulo ||
                 "Orion AI";
         }
+
 
         document
             .querySelectorAll(
@@ -2131,13 +2806,15 @@ async function abrirConversa(id) {
                         "ativa",
                         String(
                             item.dataset.id
-                        ) === String(id)
+                        ) ===
+                        String(id)
                     );
-
                 }
             );
 
+
         atualizarWelcome();
+
 
         if (chat) {
 
@@ -2145,12 +2822,14 @@ async function abrirConversa(id) {
                 chat.scrollHeight;
         }
 
+
     } catch (erro) {
 
         console.error(
             "ERRO AO ABRIR CONVERSA:",
             erro
         );
+
 
         alert(
             "❌ Erro ao abrir a conversa."
@@ -2174,15 +2853,19 @@ async function renomearConversa(
             tituloAtual
         );
 
+
     if (
         novoTitulo ===
         null
     ) {
+
         return;
     }
 
+
     const titulo =
         novoTitulo.trim();
+
 
     if (!titulo) {
 
@@ -2193,18 +2876,21 @@ async function renomearConversa(
         return;
     }
 
+
     try {
 
         const resposta =
             await fetch(
                 "/rename_conversation",
                 {
-                    method: "POST",
+                    method:
+                        "POST",
 
                     credentials:
                         "same-origin",
 
                     headers: {
+
                         "Accept":
                             "application/json",
 
@@ -2214,6 +2900,7 @@ async function renomearConversa(
 
                     body:
                         JSON.stringify({
+
                             conversation_id:
                                 id,
 
@@ -2223,8 +2910,10 @@ async function renomearConversa(
                 }
             );
 
+
         const dados =
             await resposta.json();
+
 
         if (
             !resposta.ok ||
@@ -2237,10 +2926,12 @@ async function renomearConversa(
             );
         }
 
+
         const item =
             document.querySelector(
                 `.conversa-item[data-id="${CSS.escape(String(id))}"]`
             );
+
 
         if (item) {
 
@@ -2249,12 +2940,14 @@ async function renomearConversa(
                     ".conversa-titulo"
                 );
 
+
             if (tituloElemento) {
 
                 tituloElemento.textContent =
                     titulo;
             }
         }
+
 
         if (
             String(
@@ -2268,6 +2961,7 @@ async function renomearConversa(
                     "tituloConversa"
                 );
 
+
             if (tituloHeader) {
 
                 tituloHeader.textContent =
@@ -2275,12 +2969,14 @@ async function renomearConversa(
             }
         }
 
+
     } catch (erro) {
 
         console.error(
             "ERRO AO RENOMEAR:",
             erro
         );
+
 
         alert(
             "❌ " +
@@ -2299,8 +2995,10 @@ async function excluirConversa(
 ) {
 
     if (!id) {
+
         return;
     }
+
 
     const confirmar =
         confirm(
@@ -2308,9 +3006,12 @@ async function excluirConversa(
             "As mensagens serão apagadas permanentemente."
         );
 
+
     if (!confirmar) {
+
         return;
     }
+
 
     try {
 
@@ -2318,12 +3019,14 @@ async function excluirConversa(
             await fetch(
                 "/delete_conversation",
                 {
-                    method: "POST",
+                    method:
+                        "POST",
 
                     credentials:
                         "same-origin",
 
                     headers: {
+
                         "Accept":
                             "application/json",
 
@@ -2333,14 +3036,17 @@ async function excluirConversa(
 
                     body:
                         JSON.stringify({
+
                             conversation_id:
                                 id
                         })
                 }
             );
 
+
         const dados =
             await resposta.json();
+
 
         if (
             !resposta.ok ||
@@ -2353,6 +3059,7 @@ async function excluirConversa(
             );
         }
 
+
         if (
             String(
                 window.conversationId
@@ -2363,14 +3070,19 @@ async function excluirConversa(
             window.conversationId =
                 null;
 
+
             if (chat) {
-                chat.innerHTML = "";
+
+                chat.innerHTML =
+                    "";
             }
+
 
             const titulo =
                 elemento(
                     "tituloConversa"
                 );
+
 
             if (titulo) {
 
@@ -2378,10 +3090,13 @@ async function excluirConversa(
                     "Orion AI";
             }
 
+
             atualizarWelcome();
         }
 
+
         await carregarHistoricoConversas();
+
 
     } catch (erro) {
 
@@ -2389,6 +3104,7 @@ async function excluirConversa(
             "ERRO AO EXCLUIR:",
             erro
         );
+
 
         alert(
             "❌ " +
@@ -2407,42 +3123,53 @@ function criarBarraSelecao() {
     if (
         elemento("barraSelecao")
     ) {
+
         return;
     }
+
 
     const sidebar =
         document.querySelector(
             ".sidebar"
         );
 
+
     const historicoTitulo =
         document.querySelector(
             ".historico-titulo"
         );
 
+
     if (
         !sidebar ||
         !historicoTitulo
     ) {
+
         return;
     }
+
 
     const barra =
         document.createElement(
             "div"
         );
 
+
     barra.id =
         "barraSelecao";
+
 
     barra.style.display =
         "none";
 
+
     barra.style.flexDirection =
         "column";
 
+
     barra.style.gap =
         "7px";
+
 
     barra.innerHTML = `
 
@@ -2468,6 +3195,7 @@ function criarBarraSelecao() {
                 ☑️ Selecionar tudo
             </button>
 
+
             <button
                 type="button"
                 id="btnCancelarSelecao"
@@ -2486,6 +3214,7 @@ function criarBarraSelecao() {
             </button>
 
         </div>
+
 
         <button
             type="button"
@@ -2506,10 +3235,12 @@ function criarBarraSelecao() {
         </button>
     `;
 
+
     sidebar.insertBefore(
         barra,
         historicoTitulo
     );
+
 
     elemento(
         "btnSelecionarTudo"
@@ -2518,12 +3249,14 @@ function criarBarraSelecao() {
         selecionarTodasConversas
     );
 
+
     elemento(
         "btnCancelarSelecao"
     ).addEventListener(
         "click",
         sairModoSelecao
     );
+
 
     elemento(
         "btnExcluirSelecionadas"
@@ -2543,18 +3276,22 @@ function entrarModoSelecao() {
     modoSelecao =
         true;
 
+
     criarBarraSelecao();
+
 
     const barra =
         elemento(
             "barraSelecao"
         );
 
+
     if (barra) {
 
         barra.style.display =
             "flex";
     }
+
 
     atualizarSelecaoVisual();
 }
@@ -2564,6 +3301,7 @@ function sairModoSelecao() {
 
     modoSelecao =
         false;
+
 
     document
         .querySelectorAll(
@@ -2578,10 +3316,12 @@ function sairModoSelecao() {
             }
         );
 
+
     const barra =
         elemento(
             "barraSelecao"
         );
+
 
     if (barra) {
 
@@ -2589,12 +3329,13 @@ function sairModoSelecao() {
             "none";
     }
 
+
     atualizarSelecaoVisual();
 }
 
 
 // ============================================================
-// SELECIONAR / DESSELECIONAR
+// SELECIONAR CONVERSA
 // ============================================================
 
 function alternarSelecaoConversa(
@@ -2602,20 +3343,25 @@ function alternarSelecaoConversa(
     item
 ) {
 
-    if (!modoSelecao) {
+    if (
+        !modoSelecao
+    ) {
+
         entrarModoSelecao();
     }
+
 
     item.classList.toggle(
         "selecionada"
     );
+
 
     atualizarSelecaoVisual();
 }
 
 
 // ============================================================
-// VISUAL SELEÇÃO
+// VISUAL DA SELEÇÃO
 // ============================================================
 
 function atualizarSelecaoVisual() {
@@ -2625,6 +3371,7 @@ function atualizarSelecaoVisual() {
             ".conversa-item"
         );
 
+
     itens.forEach(
         function (item) {
 
@@ -2633,10 +3380,12 @@ function atualizarSelecaoVisual() {
                     "selecionada"
                 );
 
+
             const botao =
                 item.querySelector(
                     ".btn-selecionar"
                 );
+
 
             if (botao) {
 
@@ -2646,7 +3395,10 @@ function atualizarSelecaoVisual() {
                         : "☐";
             }
 
-            if (modoSelecao) {
+
+            if (
+                modoSelecao
+            ) {
 
                 item.style.background =
                     selecionada
@@ -2658,19 +3410,21 @@ function atualizarSelecaoVisual() {
                 item.style.background =
                     "";
             }
-
         }
     );
+
 
     const selecionadas =
         document.querySelectorAll(
             ".conversa-item.selecionada"
         );
 
+
     const contador =
         elemento(
             "contadorSelecionadas"
         );
+
 
     if (contador) {
 
@@ -2688,10 +3442,12 @@ function selecionarTodasConversas() {
 
     entrarModoSelecao();
 
+
     const itens =
         document.querySelectorAll(
             ".conversa-item"
         );
+
 
     itens.forEach(
         function (item) {
@@ -2701,6 +3457,7 @@ function selecionarTodasConversas() {
             );
         }
     );
+
 
     atualizarSelecaoVisual();
 }
@@ -2734,7 +3491,10 @@ async function excluirSelecionadas() {
     const ids =
         obterIdsSelecionados();
 
-    if (!ids.length) {
+
+    if (
+        !ids.length
+    ) {
 
         alert(
             "⚠️ Selecione pelo menos uma conversa."
@@ -2743,6 +3503,7 @@ async function excluirSelecionadas() {
         return;
     }
 
+
     const confirmar =
         confirm(
             `⚠️ Você selecionou ${ids.length} conversa(s).\n\n` +
@@ -2750,14 +3511,18 @@ async function excluirSelecionadas() {
             "Deseja continuar?"
         );
 
+
     if (!confirmar) {
+
         return;
     }
+
 
     const botao =
         elemento(
             "btnExcluirSelecionadas"
         );
+
 
     if (botao) {
 
@@ -2768,18 +3533,21 @@ async function excluirSelecionadas() {
             "⏳ Excluindo...";
     }
 
+
     try {
 
         const resposta =
             await fetch(
                 "/delete_conversations",
                 {
-                    method: "POST",
+                    method:
+                        "POST",
 
                     credentials:
                         "same-origin",
 
                     headers: {
+
                         "Accept":
                             "application/json",
 
@@ -2789,14 +3557,17 @@ async function excluirSelecionadas() {
 
                     body:
                         JSON.stringify({
+
                             conversation_ids:
                                 ids
                         })
                 }
             );
 
+
         const dados =
             await resposta.json();
+
 
         if (
             !resposta.ok ||
@@ -2808,6 +3579,7 @@ async function excluirSelecionadas() {
                 "Não foi possível excluir as conversas."
             );
         }
+
 
         if (
             window.conversationId &&
@@ -2823,14 +3595,19 @@ async function excluirSelecionadas() {
             window.conversationId =
                 null;
 
+
             if (chat) {
-                chat.innerHTML = "";
+
+                chat.innerHTML =
+                    "";
             }
+
 
             const titulo =
                 elemento(
                     "tituloConversa"
                 );
+
 
             if (titulo) {
 
@@ -2838,12 +3615,16 @@ async function excluirSelecionadas() {
                     "Orion AI";
             }
 
+
             atualizarWelcome();
         }
 
+
         sairModoSelecao();
 
+
         await carregarHistoricoConversas();
+
 
     } catch (erro) {
 
@@ -2852,10 +3633,12 @@ async function excluirSelecionadas() {
             erro
         );
 
+
         alert(
             "❌ " +
             erro.message
         );
+
 
     } finally {
 
@@ -2863,6 +3646,7 @@ async function excluirSelecionadas() {
 
             botao.disabled =
                 false;
+
 
             botao.innerHTML =
                 `🗑️ Excluir selecionadas (<span id="contadorSelecionadas">0</span>)`;
@@ -2872,7 +3656,7 @@ async function excluirSelecionadas() {
 
 
 // ============================================================
-// DUPLO CLIQUE PARA SELEÇÃO
+// DUPLO CLIQUE
 // ============================================================
 
 document.addEventListener(
@@ -2884,400 +3668,24 @@ document.addEventListener(
                 ".conversa-item"
             );
 
+
         if (!item) {
+
             return;
         }
 
+
         entrarModoSelecao();
+
 
         item.classList.add(
             "selecionada"
         );
 
+
         atualizarSelecaoVisual();
     }
 );
-
-
-// ============================================================
-// CONFIGURAÇÕES - PAINEL
-// ============================================================
-
-function aplicarConfiguracoes() {
-
-    const config =
-        obterConfiguracoes();
-
-
-    // --------------------------------------------------------
-    // TEMA
-    // --------------------------------------------------------
-
-    if (
-        config.tema ===
-        "claro"
-    ) {
-
-        document.body.classList.add(
-            "tema-claro"
-        );
-
-    } else {
-
-        document.body.classList.remove(
-            "tema-claro"
-        );
-    }
-
-
-    // --------------------------------------------------------
-    // SOM
-    // --------------------------------------------------------
-
-    if (vozChat) {
-
-        vozChat.checked =
-            Boolean(
-                config.som
-            );
-    }
-
-    if (configSom) {
-
-        configSom.checked =
-            Boolean(
-                config.som
-            );
-    }
-
-
-    // --------------------------------------------------------
-    // TEMA SELECT
-    // --------------------------------------------------------
-
-    if (configTema) {
-
-        configTema.value =
-            config.tema;
-    }
-
-
-    // --------------------------------------------------------
-    // ANIMAÇÕES
-    // --------------------------------------------------------
-
-    if (configAnimacoes) {
-
-        configAnimacoes.checked =
-            Boolean(
-                config.animacoes
-            );
-    }
-
-
-    // --------------------------------------------------------
-    // ENTER
-    // --------------------------------------------------------
-
-    if (configEnter) {
-
-        configEnter.checked =
-            Boolean(
-                config.enterEnviar
-            );
-    }
-
-
-    // --------------------------------------------------------
-    // VOZ
-    // --------------------------------------------------------
-
-    sincronizarVozConfiguracao();
-
-
-    // --------------------------------------------------------
-    // CANCELAR FALA SE SOM DESLIGADO
-    // --------------------------------------------------------
-
-    if (
-        config.som === false &&
-        "speechSynthesis" in window
-    ) {
-
-        window.speechSynthesis.cancel();
-    }
-
-}
-
-
-// ============================================================
-// PAINEL ABRIR
-// ============================================================
-
-if (
-    btnAbrirConfiguracoes
-) {
-
-    btnAbrirConfiguracoes.addEventListener(
-        "click",
-        function (event) {
-
-            event.preventDefault();
-
-            event.stopPropagation();
-
-            if (painelConfiguracoes) {
-
-                painelConfiguracoes.classList.toggle(
-                    "aberto"
-                );
-            }
-
-        }
-    );
-}
-
-
-// ============================================================
-// FECHAR CONFIGURAÇÕES
-// ============================================================
-
-if (
-    btnFecharConfiguracoes
-) {
-
-    btnFecharConfiguracoes.addEventListener(
-        "click",
-        function () {
-
-            if (painelConfiguracoes) {
-
-                painelConfiguracoes.classList.remove(
-                    "aberto"
-                );
-            }
-
-        }
-    );
-}
-
-
-// ============================================================
-// CLICAR FORA
-// ============================================================
-
-document.addEventListener(
-    "click",
-    function (event) {
-
-        if (
-            !painelConfiguracoes ||
-            !btnAbrirConfiguracoes
-        ) {
-            return;
-        }
-
-        if (
-            painelConfiguracoes.contains(
-                event.target
-            )
-        ) {
-            return;
-        }
-
-        if (
-            event.target ===
-            btnAbrirConfiguracoes
-        ) {
-            return;
-        }
-
-        painelConfiguracoes.classList.remove(
-            "aberto"
-        );
-    }
-);
-
-
-// ============================================================
-// CONFIG TEMA
-// ============================================================
-
-if (configTema) {
-
-    configTema.addEventListener(
-        "change",
-        function () {
-
-            atualizarConfiguracao(
-                "tema",
-                configTema.value
-            );
-        }
-    );
-}
-
-
-// ============================================================
-// CONFIG SOM
-// ============================================================
-
-if (configSom) {
-
-    configSom.addEventListener(
-        "change",
-        function () {
-
-            atualizarConfiguracao(
-                "som",
-                configSom.checked
-            );
-
-            if (vozChat) {
-
-                vozChat.checked =
-                    configSom.checked;
-            }
-
-            if (
-                !configSom.checked &&
-                "speechSynthesis" in window
-            ) {
-
-                window.speechSynthesis.cancel();
-            }
-
-        }
-    );
-}
-
-
-// ============================================================
-// CONFIG VOZ
-// ============================================================
-
-if (configVoz) {
-
-    configVoz.addEventListener(
-        "change",
-        function () {
-
-            const valor =
-                configVoz.value;
-
-            atualizarConfiguracao(
-                "voz",
-                valor
-            );
-
-            aplicarVozConfigurada();
-
-        }
-    );
-}
-
-
-// ============================================================
-// APLICAR VOZ CONFIGURADA
-// ============================================================
-
-function aplicarVozConfigurada() {
-
-    const config =
-        obterConfiguracoes();
-
-    if (!seletorVoz) {
-        return;
-    }
-
-    if (
-        config.voz ===
-        "padrao"
-    ) {
-
-        seletorVoz.value =
-            "default";
-
-        return;
-    }
-
-    const indice =
-        vozes.findIndex(
-            function (voz) {
-
-                return (
-                    voz.name +
-                    "|" +
-                    voz.lang
-                ) === config.voz;
-
-            }
-        );
-
-    if (indice >= 0) {
-
-        seletorVoz.value =
-            String(indice);
-    }
-}
-
-
-// ============================================================
-// CONFIG ANIMAÇÕES
-// ============================================================
-
-if (configAnimacoes) {
-
-    configAnimacoes.addEventListener(
-        "change",
-        function () {
-
-            atualizarConfiguracao(
-                "animacoes",
-                configAnimacoes.checked
-            );
-
-        }
-    );
-}
-
-
-// ============================================================
-// CONFIG ENTER
-// ============================================================
-
-if (configEnter) {
-
-    configEnter.addEventListener(
-        "change",
-        function () {
-
-            atualizarConfiguracao(
-                "enterEnviar",
-                configEnter.checked
-            );
-
-        }
-    );
-}
-
-
-// ============================================================
-// CONFIGURAÇÕES DA CONTA
-// ============================================================
-
-if (btnConfiguracoesConta) {
-
-    btnConfiguracoesConta.addEventListener(
-        "click",
-        function () {
-
-            window.location.href =
-                "/perfil";
-
-        }
-    );
-}
 
 
 // ============================================================
@@ -3288,7 +3696,7 @@ document.addEventListener(
     "DOMContentLoaded",
     function () {
 
-        aplicarConfiguracoes();
+        orionAplicarConfiguracoes();
 
         criarBarraSelecao();
 
@@ -3304,7 +3712,6 @@ document.addEventListener(
 
             mensagemInput.focus();
         }
-
     }
 );
 
@@ -3352,9 +3759,9 @@ window.excluirSelecionadas =
 window.falarResposta =
     falarResposta;
 
-window.obterConfiguracoes =
-    obterConfiguracoes;
+window.orionObterConfiguracoes =
+    orionObterConfiguracoes;
 
-window.salvarConfiguracoes =
-    salvarConfiguracoes;
+window.orionSalvarConfiguracoes =
+    orionSalvarConfiguracoes;
 
