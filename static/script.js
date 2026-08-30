@@ -1,3 +1,4 @@
+````javascript
 // ============================================================
 // ORION AI - SCRIPT.JS
 // ============================================================
@@ -597,7 +598,6 @@ async function enviar() {
 
         limparArquivo();
 
-        // Atualiza lista lateral
         carregarHistoricoConversas();
 
     } catch (erro) {
@@ -1337,7 +1337,6 @@ function criarItemConversa(conversa) {
     acoes.className =
         "conversa-acoes";
 
-    // Botão selecionar
     const btnSelecionar =
         document.createElement("button");
 
@@ -1366,7 +1365,6 @@ function criarItemConversa(conversa) {
         }
     );
 
-    // Botão renomear
     const btnRenomear =
         document.createElement("button");
 
@@ -1395,7 +1393,6 @@ function criarItemConversa(conversa) {
         }
     );
 
-    // Botão excluir individual
     const btnExcluir =
         document.createElement("button");
 
@@ -2168,40 +2165,71 @@ async function excluirSelecionadas() {
 
     try {
 
-        const resposta =
-            await fetch(
-                "/delete_conversations",
-                {
-                    method: "POST",
-                    credentials: "same-origin",
-                    headers: {
-                        "Accept":
-                            "application/json",
-                        "Content-Type":
-                            "application/json"
-                    },
-                    body:
-                        JSON.stringify({
-                            conversation_ids:
-                                ids
-                        })
-                }
-            );
+        // ====================================================
+        // CORREÇÃO:
+        // Usa a rota individual /delete_conversation
+        // para apagar cada conversa selecionada.
+        // ====================================================
 
-        const dados =
-            await resposta.json();
+        for (const id of ids) {
 
-        if (
-            !resposta.ok ||
-            dados.success === false
-        ) {
+            const resposta =
+                await fetch(
+                    "/delete_conversation",
+                    {
+                        method: "POST",
+                        credentials: "same-origin",
+                        headers: {
+                            "Accept":
+                                "application/json",
+                            "Content-Type":
+                                "application/json"
+                        },
+                        body:
+                            JSON.stringify({
+                                conversation_id:
+                                    id
+                            })
+                    }
+                );
 
-            throw new Error(
-                dados.message ||
-                "Não foi possível excluir as conversas."
-            );
+            const texto =
+                await resposta.text();
+
+            let dados = {};
+
+            try {
+
+                dados =
+                    JSON.parse(
+                        texto
+                    );
+
+            } catch (erro) {
+
+                console.error(
+                    "Resposta inválida ao excluir:",
+                    texto
+                );
+
+                throw new Error(
+                    "O servidor retornou uma resposta inválida."
+                );
+            }
+
+            if (
+                !resposta.ok ||
+                dados.success === false
+            ) {
+
+                throw new Error(
+                    dados.message ||
+                    `Não foi possível excluir a conversa ${id}.`
+                );
+            }
         }
 
+        // Se a conversa atual estava entre as excluídas
         if (
             window.conversationId &&
             ids.some(
@@ -2350,3 +2378,4 @@ window.sairModoSelecao =
 
 window.excluirSelecionadas =
     excluirSelecionadas;
+````
