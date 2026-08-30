@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 
 <html lang="pt-BR">
@@ -23,12 +24,23 @@ body {
     display: flex;
     height: 100vh;
     overflow: hidden;
-    background: radial-gradient(
-        circle at top,
-        #111827,
-        #0b0f19 60%,
-        #05070d
-    );
+    background:
+        radial-gradient(
+            circle at 15% 10%,
+            rgba(124,58,237,.18),
+            transparent 28%
+        ),
+        radial-gradient(
+            circle at 85% 20%,
+            rgba(79,70,229,.12),
+            transparent 25%
+        ),
+        linear-gradient(
+            135deg,
+            #090d17,
+            #0b1020 55%,
+            #05070d
+        );
     color: white;
 }
 
@@ -37,34 +49,41 @@ body {
 ========================= */
 
 .sidebar {
-    width: 280px;
+    width: 290px;
     flex-shrink: 0;
-    background: rgba(255,255,255,0.035);
-    backdrop-filter: blur(18px);
-    border-right: 1px solid rgba(255,255,255,0.08);
-    padding: 18px;
+    background: rgba(9, 13, 24, .76);
+    backdrop-filter: blur(24px);
+    border-right: 1px solid rgba(255,255,255,.08);
+    padding: 18px 14px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
     overflow: hidden;
 }
 
 .logo {
     text-align: center;
-    padding: 8px 0 12px;
+    padding: 8px 0 10px;
 }
 
 .logo h2 {
-    font-size: 22px;
+    font-size: 23px;
+    letter-spacing: .2px;
+    text-shadow: 0 0 22px rgba(124,58,237,.35);
 }
 
 .usuario {
-    padding: 12px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.07);
+    padding: 11px 13px;
+    border-radius: 13px;
+    background: linear-gradient(
+        135deg,
+        rgba(255,255,255,.065),
+        rgba(255,255,255,.025)
+    );
+    border: 1px solid rgba(255,255,255,.07);
     text-align: center;
     font-size: 14px;
+    color: rgba(255,255,255,.88);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -72,18 +91,23 @@ body {
 
 .plano {
     text-align: center;
-    padding: 7px;
-    border-radius: 9px;
+    padding: 8px;
+    border-radius: 10px;
     font-size: 12px;
     font-weight: bold;
-    background: rgba(124,58,237,0.15);
-    border: 1px solid rgba(124,58,237,0.25);
+    background: linear-gradient(
+        135deg,
+        rgba(124,58,237,.16),
+        rgba(79,70,229,.10)
+    );
+    border: 1px solid rgba(124,58,237,.25);
     color: #c4b5fd;
+    box-shadow: inset 0 0 18px rgba(124,58,237,.04);
 }
 
 .nova-conversa {
     width: 100%;
-    border: none;
+    border: 1px solid rgba(255,255,255,.06);
     background: linear-gradient(
         135deg,
         #10b981,
@@ -91,18 +115,23 @@ body {
     );
     color: white;
     padding: 12px;
-    border-radius: 11px;
+    border-radius: 12px;
     cursor: pointer;
     font-weight: bold;
+    box-shadow: 0 8px 24px rgba(5,150,105,.16);
+    transition: .2s ease;
 }
 
 .nova-conversa:hover {
+    transform: translateY(-1px);
     filter: brightness(1.08);
+    box-shadow: 0 10px 28px rgba(5,150,105,.22);
 }
 
 .nova-conversa:disabled {
     opacity: .6;
     cursor: not-allowed;
+    transform: none;
 }
 
 /* =========================
@@ -110,12 +139,15 @@ body {
 ========================= */
 
 .historico-titulo {
-    font-size: 12px;
-    color: rgba(255,255,255,.5);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    color: rgba(255,255,255,.43);
     font-weight: bold;
     text-transform: uppercase;
-    letter-spacing: .5px;
-    padding: 2px 4px;
+    letter-spacing: .8px;
+    padding: 7px 7px 4px;
 }
 
 .historico {
@@ -124,49 +156,91 @@ body {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding-right: 3px;
+    gap: 7px;
+    padding: 2px 3px 4px 2px;
 }
 
 .historico::-webkit-scrollbar {
     width: 5px;
 }
 
+.historico::-webkit-scrollbar-track {
+    background: transparent;
+}
+
 .historico::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,.12);
+    background: rgba(255,255,255,.11);
     border-radius: 10px;
+}
+
+.historico::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,.18);
 }
 
 .conversa-item {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 5px;
-    padding: 8px;
-    border-radius: 10px;
-    background: rgba(255,255,255,.035);
-    border: 1px solid transparent;
-    transition: .15s;
+    padding: 6px;
+    min-height: 46px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.025);
+    border: 1px solid rgba(255,255,255,.045);
+    transition:
+        background .18s ease,
+        border-color .18s ease,
+        transform .18s ease,
+        box-shadow .18s ease;
 }
 
 .conversa-item:hover {
-    background: rgba(255,255,255,.07);
-    border-color: rgba(255,255,255,.07);
+    background: rgba(255,255,255,.055);
+    border-color: rgba(255,255,255,.085);
+    transform: translateX(1px);
 }
 
 .conversa-item.ativa {
-    background: rgba(124,58,237,.16);
-    border-color: rgba(124,58,237,.28);
+    background:
+        linear-gradient(
+            135deg,
+            rgba(124,58,237,.18),
+            rgba(79,70,229,.10)
+        );
+    border-color: rgba(124,58,237,.30);
+    box-shadow:
+        inset 3px 0 0 #7c3aed,
+        0 5px 18px rgba(0,0,0,.12);
+}
+
+.conversa-item.selecionada {
+    background:
+        linear-gradient(
+            135deg,
+            rgba(124,58,237,.28),
+            rgba(79,70,229,.18)
+        ) !important;
+    border-color: rgba(167,139,250,.42);
+    box-shadow:
+        inset 3px 0 0 #a78bfa,
+        0 6px 20px rgba(76,29,149,.18);
 }
 
 .conversa-abrir {
     flex: 1;
     min-width: 0;
+    min-height: 34px;
     border: none;
     background: transparent;
     color: white;
     text-align: left;
     cursor: pointer;
     overflow: hidden;
+    padding: 0 6px;
+}
+
+.conversa-abrir:focus {
+    outline: none;
 }
 
 .conversa-titulo {
@@ -175,37 +249,62 @@ body {
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 13px;
+    color: rgba(255,255,255,.89);
+}
+
+.conversa-item.ativa .conversa-titulo {
+    color: white;
+    font-weight: 600;
 }
 
 .conversa-acoes {
     display: flex;
+    align-items: center;
     gap: 2px;
     flex-shrink: 0;
 }
 
 .btn-conversa {
-    width: 28px;
-    height: 28px;
-    border: none;
-    border-radius: 7px;
+    width: 29px;
+    height: 29px;
+    border: 1px solid transparent;
+    border-radius: 8px;
     background: transparent;
-    color: rgba(255,255,255,.65);
+    color: rgba(255,255,255,.48);
     cursor: pointer;
+    transition:
+        .15s ease,
+        transform .15s ease;
 }
 
 .btn-conversa:hover {
-    background: rgba(255,255,255,.09);
+    background: rgba(255,255,255,.085);
+    border-color: rgba(255,255,255,.05);
     color: white;
+    transform: scale(1.04);
+}
+
+.btn-selecionar:hover {
+    color: #c4b5fd;
+}
+
+.btn-renomear:hover {
+    color: #facc15;
 }
 
 .btn-excluir:hover {
     color: #f87171;
+    background: rgba(239,68,68,.10);
 }
 
 .historico-vazio {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 90px;
     text-align: center;
-    padding: 14px 5px;
-    color: rgba(255,255,255,.35);
+    padding: 14px 8px;
+    color: rgba(255,255,255,.28);
     font-size: 12px;
 }
 
@@ -216,12 +315,19 @@ body {
 .logout {
     display: block;
     text-decoration: none;
-    color: white;
-    background: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,.84);
+    background: rgba(255,255,255,.045);
+    border: 1px solid rgba(255,255,255,.06);
     padding: 11px;
-    border-radius: 10px;
+    border-radius: 11px;
     text-align: center;
     margin-top: auto;
+    transition: .2s ease;
+}
+
+.logout:hover {
+    background: rgba(255,255,255,.075);
+    color: white;
 }
 
 /* =========================
@@ -248,12 +354,19 @@ body {
     align-items: center;
     justify-content: center;
     padding: 0 18px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    background: rgba(255,255,255,0.025);
-    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,.055);
+    background: rgba(255,255,255,.018);
+    backdrop-filter: blur(16px);
     font-weight: bold;
     position: relative;
     z-index: 20;
+}
+
+#tituloConversa {
+    max-width: 70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* =========================
@@ -262,9 +375,9 @@ body {
 
 .opcoes {
     padding: 10px 18px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255,255,255,.045);
     font-size: 13px;
-    color: rgba(255,255,255,0.75);
+    color: rgba(255,255,255,.75);
     flex-shrink: 0;
     position: relative;
     z-index: 20;
@@ -272,6 +385,7 @@ body {
     align-items: center;
     gap: 18px;
     flex-wrap: wrap;
+    background: rgba(255,255,255,.012);
 }
 
 .opcoes label {
@@ -294,8 +408,8 @@ body {
     max-width: 240px;
     padding: 7px 10px;
     border-radius: 9px;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.07);
     color: white;
     outline: none;
     cursor: pointer;
@@ -309,10 +423,15 @@ body {
 .btn-testar-voz {
     padding: 7px 11px;
     border-radius: 9px;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.07);
     color: white;
     cursor: pointer;
+    transition: .18s ease;
+}
+
+.btn-testar-voz:hover {
+    background: rgba(255,255,255,.11);
 }
 
 /* =========================
@@ -332,13 +451,22 @@ body {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 24px;
+    padding: 26px;
     display: flex;
     flex-direction: column;
     gap: 13px;
     scroll-behavior: smooth;
     position: relative;
     z-index: 1;
+}
+
+.chat::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,.09);
+    border-radius: 10px;
 }
 
 .msg-user,
@@ -454,11 +582,17 @@ body {
     align-items: center;
     gap: 14px;
     padding: 20px;
-    background: radial-gradient(
-        circle at top,
-        #111827,
-        #0b0f19
-    );
+    background:
+        radial-gradient(
+            circle at 50% 35%,
+            rgba(124,58,237,.10),
+            transparent 25%
+        ),
+        radial-gradient(
+            circle at top,
+            #111827,
+            #0b0f19
+        );
     text-align: center;
     z-index: 5;
     pointer-events: none;
@@ -469,11 +603,12 @@ body {
 }
 
 .welcome h2 {
-    font-size: 28px;
+    font-size: 30px;
+    text-shadow: 0 0 25px rgba(124,58,237,.28);
 }
 
 .welcome p {
-    color: rgba(255,255,255,.6);
+    color: rgba(255,255,255,.58);
 }
 
 .quick-actions {
@@ -487,11 +622,17 @@ body {
 .quick {
     padding: 11px 15px;
     border-radius: 11px;
-    background: rgba(255,255,255,.07);
+    background: rgba(255,255,255,.065);
     border: 1px solid rgba(255,255,255,.08);
     cursor: pointer;
     pointer-events: auto;
     color: white;
+    transition: .18s ease;
+}
+
+.quick:hover {
+    background: rgba(255,255,255,.10);
+    transform: translateY(-1px);
 }
 
 /* =========================
@@ -538,9 +679,9 @@ body {
     display: flex;
     gap: 10px;
     padding: 14px;
-    border-top: 1px solid rgba(255,255,255,.06);
-    background: rgba(0,0,0,.25);
-    backdrop-filter: blur(14px);
+    border-top: 1px solid rgba(255,255,255,.055);
+    background: rgba(0,0,0,.24);
+    backdrop-filter: blur(18px);
     position: relative;
     z-index: 100;
 }
@@ -555,6 +696,11 @@ body {
     color: white;
     cursor: pointer;
     font-size: 18px;
+    transition: .18s ease;
+}
+
+.btn-arquivo:hover {
+    background: rgba(255,255,255,.11);
 }
 
 .entrada input[type="text"] {
@@ -568,10 +714,12 @@ body {
     outline: none;
     position: relative;
     z-index: 101;
+    transition: .18s ease;
 }
 
 .entrada input[type="text"]:focus {
-    border-color: #7c3aed;
+    border-color: rgba(124,58,237,.8);
+    box-shadow: 0 0 0 3px rgba(124,58,237,.08);
 }
 
 .entrada button#btnEnviar {
@@ -588,11 +736,18 @@ body {
     font-weight: bold;
     position: relative;
     z-index: 101;
+    transition: .18s ease;
+}
+
+.entrada button#btnEnviar:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
 }
 
 .entrada button:disabled {
     opacity: .55;
     cursor: not-allowed;
+    transform: none;
 }
 
 .hidden {
@@ -604,6 +759,7 @@ body {
 ========================= */
 
 @keyframes pop {
+
     from {
         opacity: 0;
         transform: translateY(5px) scale(.98);
@@ -613,9 +769,11 @@ body {
         opacity: 1;
         transform: translateY(0) scale(1);
     }
+
 }
 
 @keyframes typing {
+
     0%,60%,100% {
         opacity: .3;
         transform: translateY(0);
@@ -625,6 +783,7 @@ body {
         opacity: 1;
         transform: translateY(-3px);
     }
+
 }
 
 /* =========================
@@ -695,6 +854,7 @@ body {
         width: 43px;
         padding: 12px 0;
     }
+
 }
 
 </style>
@@ -704,7 +864,6 @@ body {
 <body>
 
 <aside class="sidebar">
-
 
 <div class="logo">
     <h2>🤖 Orion AI</h2>
@@ -732,10 +891,6 @@ body {
     🆕 Nova conversa
 </button>
 
-<!-- =========================
-     HISTÓRICO
-========================== -->
-
 <div class="historico-titulo">
     🗂️ Suas conversas
 </div>
@@ -758,7 +913,6 @@ body {
     🚪 Sair
 </a>
 
-
 </aside>
 
 <main class="main">
@@ -768,12 +922,10 @@ body {
 <span id="tituloConversa">
     Orion AI
 </span>
-    
 
 </header>
 
 <div class="opcoes">
-
 
 <label>
 
@@ -809,11 +961,9 @@ body {
 
 </div>
 
-
 </div>
 
 <div class="chat-area">
-
 
 <div
     id="chat"
@@ -867,14 +1017,12 @@ body {
 
 </div>
 
-
 </div>
 
 <div
     id="arquivoSelecionado"
     class="arquivo-selecionado"
 >
-    
 
 <span>📎</span>
 
@@ -893,11 +1041,9 @@ body {
     ✕
 </button>
 
-
 </div>
 
 <div class="entrada">
-
 
 <input
     type="file"
@@ -929,7 +1075,6 @@ body {
     Enviar
 </button>
 
-
 </div>
 
 </main>
@@ -939,3 +1084,4 @@ body {
 </body>
 
 </html>
+
