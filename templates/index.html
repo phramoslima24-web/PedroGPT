@@ -7,7 +7,10 @@
 
 <meta charset="UTF-8">
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
 
 <title>Orion AI</title>
 
@@ -24,6 +27,7 @@ body {
     display: flex;
     height: 100vh;
     overflow: hidden;
+
     background:
         radial-gradient(
             circle at 15% 10%,
@@ -41,23 +45,41 @@ body {
             #0b1020 55%,
             #05070d
         );
+
     color: white;
+
+    transition:
+        background .25s ease,
+        color .25s ease;
 }
 
-/* =========================
+
+/* ============================================================
    SIDEBAR
-========================= */
+============================================================ */
 
 .sidebar {
     width: 290px;
     flex-shrink: 0;
-    background: rgba(9, 13, 24, .76);
-    backdrop-filter: blur(24px);
-    border-right: 1px solid rgba(255,255,255,.08);
-    padding: 18px 14px;
+
+    background:
+        rgba(9, 13, 24, .76);
+
+    backdrop-filter:
+        blur(24px);
+
+    border-right:
+        1px solid
+        rgba(255,255,255,.08);
+
+    padding:
+        18px 14px;
+
     display: flex;
     flex-direction: column;
+
     gap: 12px;
+
     overflow: hidden;
 }
 
@@ -68,125 +90,228 @@ body {
 
 .logo h2 {
     font-size: 23px;
+
     letter-spacing: .2px;
-    text-shadow: 0 0 22px rgba(124,58,237,.35);
+
+    text-shadow:
+        0 0 22px
+        rgba(124,58,237,.35);
 }
 
 .usuario {
-    padding: 11px 13px;
-    border-radius: 13px;
-    background: linear-gradient(
-        135deg,
-        rgba(255,255,255,.065),
-        rgba(255,255,255,.025)
-    );
-    border: 1px solid rgba(255,255,255,.07);
+
+    padding:
+        11px 13px;
+
+    border-radius:
+        13px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(255,255,255,.065),
+            rgba(255,255,255,.025)
+        );
+
+    border:
+        1px solid
+        rgba(255,255,255,.07);
+
     text-align: center;
+
     font-size: 14px;
-    color: rgba(255,255,255,.88);
+
+    color:
+        rgba(255,255,255,.88);
+
     overflow: hidden;
+
     text-overflow: ellipsis;
+
     white-space: nowrap;
 }
 
 .plano {
+
     text-align: center;
-    padding: 8px;
-    border-radius: 10px;
+
+    padding:
+        8px;
+
+    border-radius:
+        10px;
+
     font-size: 12px;
+
     font-weight: bold;
-    background: linear-gradient(
-        135deg,
-        rgba(124,58,237,.16),
-        rgba(79,70,229,.10)
-    );
-    border: 1px solid rgba(124,58,237,.25);
-    color: #c4b5fd;
-    box-shadow: inset 0 0 18px rgba(124,58,237,.04);
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(124,58,237,.16),
+            rgba(79,70,229,.10)
+        );
+
+    border:
+        1px solid
+        rgba(124,58,237,.25);
+
+    color:
+        #c4b5fd;
+
+    box-shadow:
+        inset 0 0 18px
+        rgba(124,58,237,.04);
 }
 
 .nova-conversa {
+
     width: 100%;
-    border: 1px solid rgba(255,255,255,.06);
-    background: linear-gradient(
-        135deg,
-        #10b981,
-        #059669
-    );
+
+    border:
+        1px solid
+        rgba(255,255,255,.06);
+
+    background:
+        linear-gradient(
+            135deg,
+            #10b981,
+            #059669
+        );
+
     color: white;
+
     padding: 12px;
+
     border-radius: 12px;
+
     cursor: pointer;
+
     font-weight: bold;
-    box-shadow: 0 8px 24px rgba(5,150,105,.16);
+
+    box-shadow:
+        0 8px 24px
+        rgba(5,150,105,.16);
+
     transition: .2s ease;
 }
 
 .nova-conversa:hover {
-    transform: translateY(-1px);
-    filter: brightness(1.08);
-    box-shadow: 0 10px 28px rgba(5,150,105,.22);
+
+    transform:
+        translateY(-1px);
+
+    filter:
+        brightness(1.08);
+
+    box-shadow:
+        0 10px 28px
+        rgba(5,150,105,.22);
 }
 
 .nova-conversa:disabled {
+
     opacity: .6;
+
     cursor: not-allowed;
+
     transform: none;
 }
 
-/* =========================
+
+/* ============================================================
    HISTÓRICO
-========================= */
+============================================================ */
 
 .historico-titulo {
+
     display: flex;
+
     align-items: center;
+
     gap: 7px;
+
     font-size: 11px;
-    color: rgba(255,255,255,.43);
+
+    color:
+        rgba(255,255,255,.43);
+
     font-weight: bold;
+
     text-transform: uppercase;
+
     letter-spacing: .8px;
-    padding: 7px 7px 4px;
+
+    padding:
+        7px 7px 4px;
 }
 
 .historico {
+
     flex: 1;
+
     min-height: 0;
+
     overflow-y: auto;
+
     display: flex;
+
     flex-direction: column;
+
     gap: 7px;
-    padding: 2px 3px 4px 2px;
+
+    padding:
+        2px 3px 4px 2px;
 }
 
 .historico::-webkit-scrollbar {
+
     width: 5px;
 }
 
 .historico::-webkit-scrollbar-track {
+
     background: transparent;
 }
 
 .historico::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,.11);
-    border-radius: 10px;
+
+    background:
+        rgba(255,255,255,.11);
+
+    border-radius:
+        10px;
 }
 
 .historico::-webkit-scrollbar-thumb:hover {
-    background: rgba(255,255,255,.18);
+
+    background:
+        rgba(255,255,255,.18);
 }
 
 .conversa-item {
+
     position: relative;
+
     display: flex;
+
     align-items: center;
+
     gap: 5px;
+
     padding: 6px;
+
     min-height: 46px;
+
     border-radius: 12px;
-    background: rgba(255,255,255,.025);
-    border: 1px solid rgba(255,255,255,.045);
+
+    background:
+        rgba(255,255,255,.025);
+
+    border:
+        1px solid
+        rgba(255,255,255,.045);
+
     transition:
         background .18s ease,
         border-color .18s ease,
@@ -195,429 +320,1111 @@ body {
 }
 
 .conversa-item:hover {
-    background: rgba(255,255,255,.055);
-    border-color: rgba(255,255,255,.085);
-    transform: translateX(1px);
+
+    background:
+        rgba(255,255,255,.055);
+
+    border-color:
+        rgba(255,255,255,.085);
+
+    transform:
+        translateX(1px);
 }
 
 .conversa-item.ativa {
+
     background:
         linear-gradient(
             135deg,
             rgba(124,58,237,.18),
             rgba(79,70,229,.10)
         );
-    border-color: rgba(124,58,237,.30);
+
+    border-color:
+        rgba(124,58,237,.30);
+
     box-shadow:
         inset 3px 0 0 #7c3aed,
-        0 5px 18px rgba(0,0,0,.12);
+        0 5px 18px
+        rgba(0,0,0,.12);
 }
 
 .conversa-item.selecionada {
+
     background:
         linear-gradient(
             135deg,
             rgba(124,58,237,.28),
             rgba(79,70,229,.18)
         ) !important;
-    border-color: rgba(167,139,250,.42);
+
+    border-color:
+        rgba(167,139,250,.42);
+
     box-shadow:
         inset 3px 0 0 #a78bfa,
-        0 6px 20px rgba(76,29,149,.18);
+        0 6px 20px
+        rgba(76,29,149,.18);
 }
 
 .conversa-abrir {
+
     flex: 1;
+
     min-width: 0;
+
     min-height: 34px;
+
     border: none;
+
     background: transparent;
+
     color: white;
+
     text-align: left;
+
     cursor: pointer;
+
     overflow: hidden;
-    padding: 0 6px;
+
+    padding:
+        0 6px;
 }
 
 .conversa-abrir:focus {
+
     outline: none;
 }
 
 .conversa-titulo {
+
     display: block;
+
     overflow: hidden;
+
     text-overflow: ellipsis;
+
     white-space: nowrap;
+
     font-size: 13px;
-    color: rgba(255,255,255,.89);
+
+    color:
+        rgba(255,255,255,.89);
 }
 
-.conversa-item.ativa .conversa-titulo {
+.conversa-item.ativa
+.conversa-titulo {
+
     color: white;
+
     font-weight: 600;
 }
 
 .conversa-acoes {
+
     display: flex;
+
     align-items: center;
+
     gap: 2px;
+
     flex-shrink: 0;
 }
 
 .btn-conversa {
+
     width: 29px;
+
     height: 29px;
-    border: 1px solid transparent;
+
+    border:
+        1px solid
+        transparent;
+
     border-radius: 8px;
-    background: transparent;
-    color: rgba(255,255,255,.48);
+
+    background:
+        transparent;
+
+    color:
+        rgba(255,255,255,.48);
+
     cursor: pointer;
+
     transition:
         .15s ease,
         transform .15s ease;
 }
 
 .btn-conversa:hover {
-    background: rgba(255,255,255,.085);
-    border-color: rgba(255,255,255,.05);
+
+    background:
+        rgba(255,255,255,.085);
+
+    border-color:
+        rgba(255,255,255,.05);
+
     color: white;
-    transform: scale(1.04);
+
+    transform:
+        scale(1.04);
 }
 
 .btn-selecionar:hover {
-    color: #c4b5fd;
+
+    color:
+        #c4b5fd;
 }
 
 .btn-renomear:hover {
-    color: #facc15;
+
+    color:
+        #facc15;
 }
 
 .btn-excluir:hover {
-    color: #f87171;
-    background: rgba(239,68,68,.10);
+
+    color:
+        #f87171;
+
+    background:
+        rgba(239,68,68,.10);
 }
 
 .historico-vazio {
+
     display: flex;
+
     align-items: center;
+
     justify-content: center;
+
     min-height: 90px;
+
     text-align: center;
-    padding: 14px 8px;
-    color: rgba(255,255,255,.28);
+
+    padding:
+        14px 8px;
+
+    color:
+        rgba(255,255,255,.28);
+
     font-size: 12px;
 }
 
-/* =========================
+
+/* ============================================================
    LOGOUT
-========================= */
+============================================================ */
 
 .logout {
+
     display: block;
+
     text-decoration: none;
-    color: rgba(255,255,255,.84);
-    background: rgba(255,255,255,.045);
-    border: 1px solid rgba(255,255,255,.06);
-    padding: 11px;
+
+    color:
+        rgba(255,255,255,.84);
+
+    background:
+        rgba(255,255,255,.045);
+
+    border:
+        1px solid
+        rgba(255,255,255,.06);
+
+    padding:
+        11px;
+
     border-radius: 11px;
+
     text-align: center;
+
     margin-top: auto;
+
     transition: .2s ease;
 }
 
 .logout:hover {
-    background: rgba(255,255,255,.075);
+
+    background:
+        rgba(255,255,255,.075);
+
     color: white;
 }
 
-/* =========================
+
+/* ============================================================
    MAIN
-========================= */
+============================================================ */
 
 .main {
+
     flex: 1;
+
     min-width: 0;
+
     display: flex;
+
     flex-direction: column;
+
     height: 100vh;
+
     position: relative;
 }
 
-/* =========================
+
+/* ============================================================
    HEADER
-========================= */
+============================================================ */
 
 .header {
+
     height: 62px;
+
     flex-shrink: 0;
+
     display: flex;
+
     align-items: center;
+
     justify-content: center;
-    padding: 0 18px;
-    border-bottom: 1px solid rgba(255,255,255,.055);
-    background: rgba(255,255,255,.018);
-    backdrop-filter: blur(16px);
+
+    padding:
+        0 18px;
+
+    border-bottom:
+        1px solid
+        rgba(255,255,255,.055);
+
+    background:
+        rgba(255,255,255,.018);
+
+    backdrop-filter:
+        blur(16px);
+
     font-weight: bold;
+
     position: relative;
-    z-index: 20;
+
+    z-index: 200;
 }
 
 #tituloConversa {
+
     max-width: 70%;
+
     overflow: hidden;
+
     text-overflow: ellipsis;
+
     white-space: nowrap;
 }
 
-/* =========================
-   BOTÃO PERFIL
-========================= */
 
-.botao-perfil {
+/* ============================================================
+   BOTÃO CONFIGURAÇÕES
+============================================================ */
+
+.botao-configuracoes {
+
     position: absolute;
+
     right: 18px;
 
     width: 40px;
+
     height: 40px;
 
     display: flex;
+
     align-items: center;
+
     justify-content: center;
 
     border-radius: 11px;
 
     text-decoration: none;
 
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.08);
+    background:
+        rgba(255,255,255,.06);
+
+    border:
+        1px solid
+        rgba(255,255,255,.08);
 
     color: white;
 
     font-size: 20px;
 
-    transition: .2s ease;
+    transition:
+        .2s ease;
 
     cursor: pointer;
 }
 
-.botao-perfil:hover {
-    background: rgba(255,255,255,.12);
-    transform: rotate(20deg);
+.botao-configuracoes:hover {
+
+    background:
+        rgba(255,255,255,.12);
+
+    transform:
+        rotate(20deg);
 }
 
-/* =========================
+
+/* ============================================================
+   PAINEL DE CONFIGURAÇÕES
+============================================================ */
+
+.painel-configuracoes {
+
+    position: absolute;
+
+    top: 56px;
+
+    right: 18px;
+
+    width: 330px;
+
+    max-width: calc(100vw - 24px);
+
+    padding: 16px;
+
+    border-radius: 18px;
+
+    background:
+        rgba(17,24,39,.97);
+
+    border:
+        1px solid
+        rgba(255,255,255,.10);
+
+    box-shadow:
+        0 25px 70px
+        rgba(0,0,0,.45);
+
+    backdrop-filter:
+        blur(22px);
+
+    opacity: 0;
+
+    visibility: hidden;
+
+    transform:
+        translateY(-8px)
+        scale(.98);
+
+    transition:
+        .18s ease;
+
+    z-index: 500;
+}
+
+.painel-configuracoes.aberto {
+
+    opacity: 1;
+
+    visibility: visible;
+
+    transform:
+        translateY(0)
+        scale(1);
+}
+
+.painel-titulo {
+
+    font-size: 17px;
+
+    font-weight: bold;
+
+    margin-bottom: 3px;
+}
+
+.painel-subtitulo {
+
+    font-size: 11px;
+
+    color:
+        rgba(255,255,255,.42);
+
+    margin-bottom: 14px;
+}
+
+
+/* ============================================================
+   CONFIG ITEM
+============================================================ */
+
+.config-item {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 12px;
+
+    padding:
+        11px 4px;
+
+    border-bottom:
+        1px solid
+        rgba(255,255,255,.055);
+}
+
+.config-item:last-of-type {
+
+    border-bottom: none;
+}
+
+.config-texto {
+
+    min-width: 0;
+}
+
+.config-nome {
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    margin-bottom: 3px;
+}
+
+.config-ajuda {
+
+    font-size: 10px;
+
+    line-height: 1.4;
+
+    color:
+        rgba(255,255,255,.38);
+}
+
+
+/* ============================================================
+   SELECT CONFIG
+============================================================ */
+
+.config-select {
+
+    min-width: 125px;
+
+    padding:
+        8px 10px;
+
+    border-radius: 9px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.10);
+
+    background:
+        rgba(255,255,255,.07);
+
+    color: white;
+
+    outline: none;
+
+    cursor: pointer;
+}
+
+.config-select option {
+
+    background:
+        #111827;
+
+    color: white;
+}
+
+
+/* ============================================================
+   SWITCH
+============================================================ */
+
+.config-switch {
+
+    position: relative;
+
+    width: 44px;
+
+    height: 24px;
+
+    flex-shrink: 0;
+}
+
+.config-switch input {
+
+    opacity: 0;
+
+    width: 0;
+
+    height: 0;
+}
+
+.config-slider {
+
+    position: absolute;
+
+    inset: 0;
+
+    cursor: pointer;
+
+    border-radius: 30px;
+
+    background:
+        rgba(255,255,255,.14);
+
+    transition: .2s;
+}
+
+.config-slider::before {
+
+    content: "";
+
+    position: absolute;
+
+    width: 18px;
+
+    height: 18px;
+
+    left: 3px;
+
+    top: 3px;
+
+    border-radius: 50%;
+
+    background: white;
+
+    transition: .2s;
+
+    box-shadow:
+        0 2px 7px
+        rgba(0,0,0,.25);
+}
+
+.config-switch input:checked
++ .config-slider {
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #4f46e5
+        );
+}
+
+.config-switch input:checked
++ .config-slider::before {
+
+    transform:
+        translateX(20px);
+}
+
+
+/* ============================================================
+   CONFIGURAÇÕES DE CONTA
+============================================================ */
+
+.config-conta {
+
+    width: 100%;
+
+    margin-top: 12px;
+
+    padding:
+        12px 13px;
+
+    border-radius: 11px;
+
+    border:
+        1px solid
+        rgba(124,58,237,.22);
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(124,58,237,.13),
+            rgba(79,70,229,.08)
+        );
+
+    color: white;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 10px;
+
+    transition: .18s ease;
+}
+
+.config-conta:hover {
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(124,58,237,.22),
+            rgba(79,70,229,.14)
+        );
+
+    transform:
+        translateY(-1px);
+}
+
+.config-conta-texto {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 3px;
+}
+
+.config-conta-titulo {
+
+    font-size: 13px;
+
+    font-weight: bold;
+}
+
+.config-conta-ajuda {
+
+    font-size: 10px;
+
+    color:
+        rgba(255,255,255,.48);
+}
+
+.config-conta-seta {
+
+    font-size: 18px;
+
+    color:
+        #c4b5fd;
+}
+
+.config-fechar {
+
+    width: 100%;
+
+    margin-top: 9px;
+
+    padding: 9px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    background:
+        rgba(255,255,255,.055);
+
+    color:
+        rgba(255,255,255,.70);
+
+    cursor: pointer;
+
+    font-size: 11px;
+}
+
+.config-fechar:hover {
+
+    background:
+        rgba(255,255,255,.085);
+
+    color: white;
+}
+
+
+/* ============================================================
    OPÇÕES
-========================= */
+============================================================ */
 
 .opcoes {
-    padding: 10px 18px;
-    border-bottom: 1px solid rgba(255,255,255,.045);
+
+    padding:
+        10px 18px;
+
+    border-bottom:
+        1px solid
+        rgba(255,255,255,.045);
+
     font-size: 13px;
-    color: rgba(255,255,255,.75);
+
+    color:
+        rgba(255,255,255,.75);
+
     flex-shrink: 0;
+
     position: relative;
+
     z-index: 20;
+
     display: flex;
+
     align-items: center;
+
     gap: 18px;
+
     flex-wrap: wrap;
-    background: rgba(255,255,255,.012);
+
+    background:
+        rgba(255,255,255,.012);
 }
 
 .opcoes label {
+
     cursor: pointer;
+
     user-select: none;
 }
 
 .opcoes input {
-    accent-color: #7c3aed;
+
+    accent-color:
+        #7c3aed;
+
     cursor: pointer;
 }
 
 .seletor-voz {
+
     display: flex;
+
     align-items: center;
+
     gap: 7px;
 }
 
 .seletor-voz select {
+
     max-width: 240px;
-    padding: 7px 10px;
+
+    padding:
+        7px 10px;
+
     border-radius: 9px;
-    border: 1px solid rgba(255,255,255,.10);
-    background: rgba(255,255,255,.07);
+
+    border:
+        1px solid
+        rgba(255,255,255,.10);
+
+    background:
+        rgba(255,255,255,.07);
+
     color: white;
+
     outline: none;
+
     cursor: pointer;
 }
 
 .seletor-voz select option {
-    background: #111827;
+
+    background:
+        #111827;
+
     color: white;
 }
 
 .btn-testar-voz {
-    padding: 7px 11px;
+
+    padding:
+        7px 11px;
+
     border-radius: 9px;
-    border: 1px solid rgba(255,255,255,.10);
-    background: rgba(255,255,255,.07);
+
+    border:
+        1px solid
+        rgba(255,255,255,.10);
+
+    background:
+        rgba(255,255,255,.07);
+
     color: white;
+
     cursor: pointer;
+
     transition: .18s ease;
 }
 
 .btn-testar-voz:hover {
-    background: rgba(255,255,255,.11);
+
+    background:
+        rgba(255,255,255,.11);
 }
 
-/* =========================
+
+/* ============================================================
    CHAT
-========================= */
+============================================================ */
 
 .chat-area {
+
     position: relative;
+
     flex: 1;
+
     min-height: 0;
+
     display: flex;
+
     flex-direction: column;
+
     overflow: hidden;
 }
 
 .chat {
+
     flex: 1;
+
     min-height: 0;
+
     overflow-y: auto;
+
     padding: 26px;
+
     display: flex;
+
     flex-direction: column;
+
     gap: 13px;
+
     scroll-behavior: smooth;
+
     position: relative;
+
     z-index: 1;
 }
 
 .chat::-webkit-scrollbar {
+
     width: 6px;
 }
 
 .chat::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,.09);
+
+    background:
+        rgba(255,255,255,.09);
+
     border-radius: 10px;
 }
 
 .msg-user,
 .msg-bot {
+
     max-width: 78%;
-    padding: 12px 14px;
-    animation: pop .15s ease;
-    box-shadow: 0 8px 22px rgba(0,0,0,.18);
+
+    padding:
+        12px 14px;
+
+    animation:
+        pop .15s ease;
+
+    box-shadow:
+        0 8px 22px
+        rgba(0,0,0,.18);
 }
 
 .msg-user {
-    align-self: flex-end;
-    border-radius: 17px 17px 4px 17px;
-    background: linear-gradient(
-        135deg,
-        #7c3aed,
-        #4f46e5
-    );
+
+    align-self:
+        flex-end;
+
+    border-radius:
+        17px 17px 4px 17px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #4f46e5
+        );
 }
 
 .msg-bot {
-    align-self: flex-start;
-    border-radius: 17px 17px 17px 4px;
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.08);
+
+    align-self:
+        flex-start;
+
+    border-radius:
+        17px 17px 17px 4px;
+
+    background:
+        rgba(255,255,255,.06);
+
+    border:
+        1px solid
+        rgba(255,255,255,.08);
 }
 
 .conteudo-mensagem {
-    line-height: 1.6;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+
+    line-height:
+        1.6;
+
+    word-wrap:
+        break-word;
+
+    overflow-wrap:
+        break-word;
 }
 
 .conteudo-mensagem h2 {
+
     font-size: 20px;
-    margin: 10px 0 8px;
+
+    margin:
+        10px 0 8px;
 }
 
 .conteudo-mensagem h3 {
+
     font-size: 18px;
-    margin: 10px 0 8px;
+
+    margin:
+        10px 0 8px;
 }
 
 .conteudo-mensagem h4 {
+
     font-size: 16px;
-    margin: 8px 0 6px;
+
+    margin:
+        8px 0 6px;
 }
 
 .conteudo-mensagem ul,
 .conteudo-mensagem ol {
-    margin: 8px 0 10px 20px;
-    padding-left: 18px;
+
+    margin:
+        8px 0 10px 20px;
+
+    padding-left:
+        18px;
 }
 
 .conteudo-mensagem li {
-    margin-bottom: 7px;
+
+    margin-bottom:
+        7px;
 }
 
 .codigo-pedrogpt {
+
     display: block;
-    margin: 10px 0;
+
+    margin:
+        10px 0;
+
     padding: 14px;
+
     border-radius: 10px;
-    background: rgba(0,0,0,.5);
-    border: 1px solid rgba(255,255,255,.1);
-    overflow-x: auto;
-    white-space: pre;
-    font-family: Consolas, Monaco, monospace;
-    font-size: 13px;
-    line-height: 1.5;
+
+    background:
+        rgba(0,0,0,.5);
+
+    border:
+        1px solid
+        rgba(255,255,255,.1);
+
+    overflow-x:
+        auto;
+
+    white-space:
+        pre;
+
+    font-family:
+        Consolas,
+        Monaco,
+        monospace;
+
+    font-size:
+        13px;
+
+    line-height:
+        1.5;
 }
 
-/* =========================
+
+/* ============================================================
    TYPING
-========================= */
+============================================================ */
 
 .typing-message {
-    opacity: .9;
+
+    opacity:
+        .9;
 }
 
 .typing-dots {
-    display: inline-flex;
+
+    display:
+        inline-flex;
+
     gap: 4px;
+
     margin-left: 5px;
 }
 
 .typing-dots span {
+
     width: 6px;
+
     height: 6px;
+
     border-radius: 50%;
-    background: #c4b5fd;
-    animation: typing 1.2s infinite;
+
+    background:
+        #c4b5fd;
+
+    animation:
+        typing 1.2s infinite;
 }
 
 .typing-dots span:nth-child(2) {
-    animation-delay: .15s;
+
+    animation-delay:
+        .15s;
 }
 
 .typing-dots span:nth-child(3) {
-    animation-delay: .3s;
+
+    animation-delay:
+        .3s;
 }
 
-/* =========================
+
+/* ============================================================
    WELCOME
-========================= */
+============================================================ */
 
 .welcome {
+
     position: absolute;
+
     inset: 0;
+
     display: flex;
+
     flex-direction: column;
+
     justify-content: center;
+
     align-items: center;
+
     gap: 14px;
+
     padding: 20px;
+
     background:
         radial-gradient(
             circle at 50% 35%,
@@ -629,181 +1436,340 @@ body {
             #111827,
             #0b0f19
         );
+
     text-align: center;
+
     z-index: 5;
+
     pointer-events: none;
 }
 
 .welcome.hidden {
-    display: none !important;
+
+    display:
+        none !important;
 }
 
 .welcome h2 {
-    font-size: 30px;
-    text-shadow: 0 0 25px rgba(124,58,237,.28);
+
+    font-size:
+        30px;
+
+    text-shadow:
+        0 0 25px
+        rgba(124,58,237,.28);
 }
 
 .welcome p {
-    color: rgba(255,255,255,.58);
+
+    color:
+        rgba(255,255,255,.58);
 }
 
 .quick-actions {
+
     display: flex;
+
     gap: 10px;
+
     flex-wrap: wrap;
+
     justify-content: center;
+
     max-width: 600px;
 }
 
 .quick {
-    padding: 11px 15px;
-    border-radius: 11px;
-    background: rgba(255,255,255,.065);
-    border: 1px solid rgba(255,255,255,.08);
+
+    padding:
+        11px 15px;
+
+    border-radius:
+        11px;
+
+    background:
+        rgba(255,255,255,.065);
+
+    border:
+        1px solid
+        rgba(255,255,255,.08);
+
     cursor: pointer;
+
     pointer-events: auto;
+
     color: white;
-    transition: .18s ease;
+
+    transition:
+        .18s ease;
 }
 
 .quick:hover {
-    background: rgba(255,255,255,.10);
-    transform: translateY(-1px);
+
+    background:
+        rgba(255,255,255,.10);
+
+    transform:
+        translateY(-1px);
 }
 
-/* =========================
+
+/* ============================================================
    ARQUIVO
-========================= */
+============================================================ */
 
 .arquivo-selecionado {
-    display: none;
-    align-items: center;
+
+    display:
+        none;
+
+    align-items:
+        center;
+
     gap: 8px;
-    margin: 0 14px 8px;
-    padding: 8px 11px;
-    border-radius: 10px;
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.08);
-    font-size: 12px;
+
+    margin:
+        0 14px 8px;
+
+    padding:
+        8px 11px;
+
+    border-radius:
+        10px;
+
+    background:
+        rgba(255,255,255,.06);
+
+    border:
+        1px solid
+        rgba(255,255,255,.08);
+
+    font-size:
+        12px;
 }
 
 .arquivo-selecionado.ativo {
-    display: flex;
+
+    display:
+        flex;
 }
 
 .nome-arquivo {
+
     flex: 1;
+
     min-width: 0;
+
     overflow: hidden;
+
     text-overflow: ellipsis;
+
     white-space: nowrap;
 }
 
 .remover-arquivo {
+
     border: none;
+
     background: transparent;
-    color: #f87171;
+
+    color:
+        #f87171;
+
     cursor: pointer;
 }
 
-/* =========================
+
+/* ============================================================
    ENTRADA
-========================= */
+============================================================ */
 
 .entrada {
+
     flex-shrink: 0;
+
     display: flex;
+
     gap: 10px;
+
     padding: 14px;
-    border-top: 1px solid rgba(255,255,255,.055);
-    background: rgba(0,0,0,.24);
-    backdrop-filter: blur(18px);
+
+    border-top:
+        1px solid
+        rgba(255,255,255,.055);
+
+    background:
+        rgba(0,0,0,.24);
+
+    backdrop-filter:
+        blur(18px);
+
     position: relative;
+
     z-index: 100;
 }
 
 .btn-arquivo {
+
     width: 48px;
+
     flex-shrink: 0;
-    padding: 14px 0;
-    border-radius: 13px;
-    border: 1px solid rgba(255,255,255,.1);
-    background: rgba(255,255,255,.07);
+
+    padding:
+        14px 0;
+
+    border-radius:
+        13px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.1);
+
+    background:
+        rgba(255,255,255,.07);
+
     color: white;
+
     cursor: pointer;
-    font-size: 18px;
-    transition: .18s ease;
+
+    font-size:
+        18px;
+
+    transition:
+        .18s ease;
 }
 
 .btn-arquivo:hover {
-    background: rgba(255,255,255,.11);
+
+    background:
+        rgba(255,255,255,.11);
 }
 
 .entrada input[type="text"] {
+
     flex: 1;
+
     min-width: 0;
-    padding: 14px;
-    border-radius: 13px;
-    border: 1px solid rgba(255,255,255,.1);
-    background: rgba(255,255,255,.06);
+
+    padding:
+        14px;
+
+    border-radius:
+        13px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.1);
+
+    background:
+        rgba(255,255,255,.06);
+
     color: white;
+
     outline: none;
+
     position: relative;
+
     z-index: 101;
-    transition: .18s ease;
+
+    transition:
+        .18s ease;
 }
 
 .entrada input[type="text"]:focus {
-    border-color: rgba(124,58,237,.8);
-    box-shadow: 0 0 0 3px rgba(124,58,237,.08);
+
+    border-color:
+        rgba(124,58,237,.8);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(124,58,237,.08);
 }
 
 .entrada button#btnEnviar {
-    padding: 14px 20px;
-    border-radius: 13px;
+
+    padding:
+        14px 20px;
+
+    border-radius:
+        13px;
+
     border: none;
+
     cursor: pointer;
-    background: linear-gradient(
-        135deg,
-        #7c3aed,
-        #4f46e5
-    );
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #4f46e5
+        );
+
     color: white;
+
     font-weight: bold;
-    position: relative;
+
+    position:
+        relative;
+
     z-index: 101;
-    transition: .18s ease;
+
+    transition:
+        .18s ease;
 }
 
 .entrada button#btnEnviar:hover {
-    filter: brightness(1.08);
-    transform: translateY(-1px);
+
+    filter:
+        brightness(1.08);
+
+    transform:
+        translateY(-1px);
 }
 
 .entrada button:disabled {
-    opacity: .55;
-    cursor: not-allowed;
-    transform: none;
+
+    opacity:
+        .55;
+
+    cursor:
+        not-allowed;
+
+    transform:
+        none;
 }
 
 .hidden {
-    display: none !important;
+
+    display:
+        none !important;
 }
 
-/* =========================
+
+/* ============================================================
    ANIMAÇÕES
-========================= */
+============================================================ */
 
 @keyframes pop {
 
     from {
+
         opacity: 0;
-        transform: translateY(5px) scale(.98);
+
+        transform:
+            translateY(5px)
+            scale(.98);
+
     }
 
     to {
+
         opacity: 1;
-        transform: translateY(0) scale(1);
+
+        transform:
+            translateY(0)
+            scale(1);
+
     }
 
 }
@@ -811,91 +1777,368 @@ body {
 @keyframes typing {
 
     0%,60%,100% {
+
         opacity: .3;
-        transform: translateY(0);
+
+        transform:
+            translateY(0);
     }
 
     30% {
+
         opacity: 1;
-        transform: translateY(-3px);
+
+        transform:
+            translateY(-3px);
     }
 
 }
 
-/* =========================
+
+/* ============================================================
+   TEMA CLARO
+============================================================ */
+
+body.tema-claro {
+
+    background:
+        radial-gradient(
+            circle at 15% 10%,
+            rgba(124,58,237,.12),
+            transparent 28%
+        ),
+        linear-gradient(
+            135deg,
+            #eef2ff,
+            #f8fafc
+        );
+
+    color:
+        #111827;
+}
+
+body.tema-claro .sidebar {
+
+    background:
+        rgba(255,255,255,.72);
+
+    border-color:
+        rgba(15,23,42,.08);
+}
+
+body.tema-claro .header {
+
+    background:
+        rgba(255,255,255,.55);
+
+    border-color:
+        rgba(15,23,42,.07);
+}
+
+body.tema-claro .usuario,
+body.tema-claro .conversa-item,
+body.tema-claro .botao-configuracoes,
+body.tema-claro .quick {
+
+    color:
+        #111827;
+
+    background:
+        rgba(15,23,42,.045);
+
+    border-color:
+        rgba(15,23,42,.08);
+}
+
+body.tema-claro .logout {
+
+    color:
+        #111827;
+
+    background:
+        rgba(15,23,42,.05);
+}
+
+body.tema-claro .welcome {
+
+    background:
+        radial-gradient(
+            circle at 50% 35%,
+            rgba(124,58,237,.08),
+            transparent 25%
+        ),
+        #f8fafc;
+}
+
+body.tema-claro .welcome p {
+
+    color:
+        rgba(15,23,42,.55);
+}
+
+body.tema-claro .entrada {
+
+    background:
+        rgba(255,255,255,.72);
+
+    border-color:
+        rgba(15,23,42,.08);
+}
+
+body.tema-claro .entrada input[type="text"] {
+
+    background:
+        rgba(15,23,42,.045);
+
+    color:
+        #111827;
+
+    border-color:
+        rgba(15,23,42,.10);
+}
+
+body.tema-claro .entrada input[type="text"]::placeholder {
+
+    color:
+        rgba(15,23,42,.4);
+}
+
+body.tema-claro .msg-bot {
+
+    background:
+        rgba(15,23,42,.045);
+
+    border-color:
+        rgba(15,23,42,.08);
+}
+
+body.tema-claro .opcoes {
+
+    color:
+        rgba(15,23,42,.72);
+
+    background:
+        rgba(255,255,255,.35);
+
+    border-color:
+        rgba(15,23,42,.07);
+}
+
+body.tema-claro .btn-arquivo,
+body.tema-claro .seletor-voz select,
+body.tema-claro .btn-testar-voz {
+
+    color:
+        #111827;
+
+    background:
+        rgba(15,23,42,.05);
+
+    border-color:
+        rgba(15,23,42,.10);
+}
+
+body.tema-claro .painel-configuracoes {
+
+    background:
+        rgba(255,255,255,.96);
+
+    border-color:
+        rgba(15,23,42,.10);
+}
+
+body.tema-claro .painel-configuracoes {
+
+    color:
+        #111827;
+}
+
+body.tema-claro .painel-subtitulo,
+body.tema-claro .config-ajuda,
+body.tema-claro .config-conta-ajuda {
+
+    color:
+        rgba(15,23,42,.48);
+}
+
+body.tema-claro .config-item {
+
+    border-color:
+        rgba(15,23,42,.07);
+}
+
+body.tema-claro .config-select {
+
+    background:
+        rgba(15,23,42,.05);
+
+    color:
+        #111827;
+}
+
+body.tema-claro .config-select option {
+
+    background:
+        white;
+
+    color:
+        #111827;
+}
+
+body.tema-claro .config-fechar {
+
+    color:
+        rgba(15,23,42,.65);
+
+    background:
+        rgba(15,23,42,.05);
+}
+
+body.tema-claro .config-fechar:hover {
+
+    background:
+        rgba(15,23,42,.09);
+
+    color:
+        #111827;
+}
+
+
+/* ============================================================
    MOBILE
-========================= */
+============================================================ */
 
 @media(max-width:768px) {
 
     body {
-        flex-direction: column;
+
+        flex-direction:
+            column;
     }
 
     .sidebar {
+
         width: 100%;
+
         height: auto;
+
         max-height: 250px;
+
         padding: 10px;
+
         gap: 8px;
+
         border-right: none;
-        border-bottom: 1px solid rgba(255,255,255,.08);
+
+        border-bottom:
+            1px solid
+            rgba(255,255,255,.08);
     }
 
     .historico {
-        max-height: 100px;
+
+        max-height:
+            100px;
     }
 
     .main {
-        height: calc(100vh - 250px);
+
+        height:
+            calc(100vh - 250px);
     }
 
     .chat {
-        padding: 13px;
+
+        padding:
+            13px;
     }
 
     .msg-user,
     .msg-bot {
-        max-width: 91%;
+
+        max-width:
+            91%;
     }
 
     .opcoes {
-        padding: 8px 10px;
-        gap: 10px;
+
+        padding:
+            8px 10px;
+
+        gap:
+            10px;
     }
 
     .seletor-voz {
-        width: 100%;
+
+        width:
+            100%;
     }
 
     .seletor-voz select {
-        flex: 1;
-        max-width: none;
+
+        flex:
+            1;
+
+        max-width:
+            none;
     }
 
     .entrada {
-        padding: 9px;
-        gap: 7px;
+
+        padding:
+            9px;
+
+        gap:
+            7px;
     }
 
     .entrada input[type="text"] {
-        padding: 12px;
+
+        padding:
+            12px;
     }
 
     .entrada button#btnEnviar {
-        padding: 12px 15px;
+
+        padding:
+            12px 15px;
     }
 
     .btn-arquivo {
-        width: 43px;
-        padding: 12px 0;
+
+        width:
+            43px;
+
+        padding:
+            12px 0;
     }
 
-    .botao-perfil {
-        right: 10px;
-        width: 38px;
-        height: 38px;
-        font-size: 19px;
+    .botao-configuracoes {
+
+        right:
+            10px;
+
+        width:
+            38px;
+
+        height:
+            38px;
+
+        font-size:
+            19px;
+    }
+
+    .painel-configuracoes {
+
+        top:
+            54px;
+
+        right:
+            10px;
+
+        width:
+            320px;
     }
 
 }
@@ -906,37 +2149,61 @@ body {
 
 <body>
 
+
+<!-- ============================================================
+     SIDEBAR
+============================================================ -->
+
 <aside class="sidebar">
 
 <div class="logo">
-    <h2>🤖 Orion AI</h2>
+
+    <h2>
+        🤖 Orion AI
+    </h2>
+
 </div>
 
+
 <div class="usuario">
+
     Olá, {{ username }}
+
 </div>
+
 
 <div class="plano">
 
     {% if plan == "premium" %}
+
         ⭐ Plano PREMIUM
+
     {% else %}
+
         🆓 Plano FREE
+
     {% endif %}
 
 </div>
+
 
 <button
     class="nova-conversa"
     type="button"
     id="btnNovaConversa"
 >
+
     🆕 Nova conversa
+
 </button>
 
+
 <div class="historico-titulo">
+
     🗂️ Suas conversas
+
 </div>
+
 
 <div
     id="historicoConversas"
@@ -944,40 +2211,318 @@ body {
 >
 
     <div class="historico-vazio">
+
         Carregando conversas...
+
     </div>
 
 </div>
+
 
 <a
     href="/logout"
     class="logout"
 >
+
     🚪 Sair
+
 </a>
 
 </aside>
 
+
+<!-- ============================================================
+     MAIN
+============================================================ -->
+
 <main class="main">
+
 
 <header class="header">
 
 <span id="tituloConversa">
+
     Orion AI
+
 </span>
 
-<a
-    href="/perfil"
-    class="botao-perfil"
-    title="Meu perfil"
-    aria-label="Meu perfil"
+
+<button
+    type="button"
+    id="btnAbrirConfiguracoes"
+    class="botao-configuracoes"
+    title="Configurações"
+    aria-label="Configurações"
 >
+
     ⚙️
-</a>
+
+</button>
+
+
+<!-- =========================================================
+     PAINEL CONFIGURAÇÕES
+========================================================= -->
+
+<div
+    id="painelConfiguracoes"
+    class="painel-configuracoes"
+>
+
+
+    <div class="painel-titulo">
+
+        ⚙️ Configurações
+
+    </div>
+
+
+    <div class="painel-subtitulo">
+
+        Personalize sua experiência no Orion AI.
+
+    </div>
+
+
+    <!-- TEMA -->
+
+    <div class="config-item">
+
+        <div class="config-texto">
+
+            <div class="config-nome">
+
+                🎨 Tema
+
+            </div>
+
+            <div class="config-ajuda">
+
+                Escolha o tema claro ou escuro.
+
+            </div>
+
+        </div>
+
+
+        <select
+            id="configTema"
+            class="config-select"
+        >
+
+            <option value="escuro">
+                🌙 Escuro
+            </option>
+
+            <option value="claro">
+                ☀️ Claro
+            </option>
+
+        </select>
+
+    </div>
+
+
+    <!-- SOM -->
+
+    <div class="config-item">
+
+        <div class="config-texto">
+
+            <div class="config-nome">
+
+                🔊 Som
+
+            </div>
+
+            <div class="config-ajuda">
+
+                Ouvir automaticamente as respostas.
+
+            </div>
+
+        </div>
+
+
+        <label class="config-switch">
+
+            <input
+                type="checkbox"
+                id="configSom"
+            >
+
+            <span class="config-slider"></span>
+
+        </label>
+
+    </div>
+
+
+    <!-- VOZ -->
+
+    <div class="config-item">
+
+        <div class="config-texto">
+
+            <div class="config-nome">
+
+                🎙️ Voz padrão
+
+            </div>
+
+            <div class="config-ajuda">
+
+                Escolha a voz utilizada pelo Orion.
+
+            </div>
+
+        </div>
+
+
+        <select
+            id="configVoz"
+            class="config-select"
+        >
+
+            <option value="padrao">
+
+                🔊 Voz padrão
+
+            </option>
+
+        </select>
+
+    </div>
+
+
+    <!-- ANIMAÇÕES -->
+
+    <div class="config-item">
+
+        <div class="config-texto">
+
+            <div class="config-nome">
+
+                ✨ Animações
+
+            </div>
+
+            <div class="config-ajuda">
+
+                Ativar animações das mensagens.
+
+            </div>
+
+        </div>
+
+
+        <label class="config-switch">
+
+            <input
+                type="checkbox"
+                id="configAnimacoes"
+                checked
+            >
+
+            <span class="config-slider"></span>
+
+        </label>
+
+    </div>
+
+
+    <!-- ENTER -->
+
+    <div class="config-item">
+
+        <div class="config-texto">
+
+            <div class="config-nome">
+
+                ↵ Enter para enviar
+
+            </div>
+
+            <div class="config-ajuda">
+
+                Usar Enter para enviar mensagens.
+
+            </div>
+
+        </div>
+
+
+        <label class="config-switch">
+
+            <input
+                type="checkbox"
+                id="configEnter"
+                checked
+            >
+
+            <span class="config-slider"></span>
+
+        </label>
+
+    </div>
+
+
+    <!-- CONTA -->
+
+    <button
+        type="button"
+        class="config-conta"
+        id="btnConfiguracoesConta"
+    >
+
+        <span class="config-conta-texto">
+
+            <span class="config-conta-titulo">
+
+                👤 Configurações de conta
+
+            </span>
+
+            <span class="config-conta-ajuda">
+
+                Nome de usuário, senha e outras informações.
+
+            </span>
+
+        </span>
+
+
+        <span class="config-conta-seta">
+
+            →
+
+        </span>
+
+    </button>
+
+
+    <button
+        type="button"
+        class="config-fechar"
+        id="btnFecharConfiguracoes"
+    >
+
+        Fechar
+
+    </button>
+
+
+</div>
 
 </header>
 
+
+<!-- ============================================================
+     OPÇÕES
+============================================================ -->
+
 <div class="opcoes">
+
 
 <label>
 
@@ -991,79 +2536,114 @@ body {
 
 </label>
 
+
 <div class="seletor-voz">
 
-    <span>🎙️ Voz:</span>
+    <span>
+        🎙️ Voz:
+    </span>
+
 
     <select id="seletorVoz">
 
         <option value="default">
+
             Voz padrão do navegador
+
         </option>
 
     </select>
+
 
     <button
         type="button"
         id="btnTestarVoz"
         class="btn-testar-voz"
     >
+
         ▶️ Testar
+
     </button>
 
 </div>
 
 </div>
 
+
+<!-- ============================================================
+     CHAT
+============================================================ -->
+
 <div class="chat-area">
+
 
 <div
     id="chat"
     class="chat"
 ></div>
 
+
 <div
     id="welcome"
     class="welcome"
 >
 
-    <h2>🤖 Orion AI</h2>
+    <h2>
+        🤖 Orion AI
+    </h2>
 
-    <p>Como posso ajudar hoje?</p>
+
+    <p>
+        Como posso ajudar hoje?
+    </p>
+
 
     <div class="quick-actions">
+
 
         <button
             type="button"
             class="quick"
             data-texto="Criar código"
         >
+
             💻 Criar código
+
         </button>
+
 
         <button
             type="button"
             class="quick"
             data-texto="Estudar"
         >
+
             📚 Estudar
+
         </button>
+
 
         <button
             type="button"
             class="quick"
             data-texto="Fazer resumo"
         >
+
             📝 Fazer resumo
+
         </button>
+
 
         <button
             type="button"
             class="quick"
             data-texto="Tirar dúvidas"
         >
+
             ❓ Tirar dúvidas
+
         </button>
+
 
     </div>
 
@@ -1071,31 +2651,50 @@ body {
 
 </div>
 
+
+<!-- ============================================================
+     ARQUIVO
+============================================================ -->
+
 <div
     id="arquivoSelecionado"
     class="arquivo-selecionado"
 >
 
-<span>📎</span>
+<span>
+    📎
+</span>
+
 
 <span
     id="nomeArquivo"
     class="nome-arquivo"
 >
+
     Nenhum arquivo selecionado
+
 </span>
+
 
 <button
     type="button"
     id="removerArquivo"
     class="remover-arquivo"
 >
+
     ✕
+
 </button>
 
 </div>
 
+
+<!-- ============================================================
+     ENTRADA
+============================================================ -->
+
 <div class="entrada">
+
 
 <input
     type="file"
@@ -1104,13 +2703,17 @@ body {
     hidden
 >
 
+
 <button
     type="button"
     id="btnArquivo"
     class="btn-arquivo"
 >
+
     📎
+
 </button>
+
 
 <input
     type="text"
@@ -1120,20 +2723,715 @@ body {
     spellcheck="true"
 >
 
+
 <button
     id="btnEnviar"
     type="button"
 >
+
     Enviar
+
 </button>
+
 
 </div>
 
 </main>
+
+
+<script>
+
+
+/* ============================================================
+   CONFIGURAÇÕES
+============================================================ */
+
+const CHAVE_CONFIG =
+    "orion_ai_config";
+
+
+const configuracaoPadrao = {
+
+    tema:
+        "escuro",
+
+    som:
+        true,
+
+    voz:
+        "padrao",
+
+    animacoes:
+        true,
+
+    enterEnviar:
+        true
+
+};
+
+
+/* ============================================================
+   ELEMENTOS
+============================================================ */
+
+const btnAbrirConfiguracoes =
+    document.getElementById(
+        "btnAbrirConfiguracoes"
+    );
+
+
+const painelConfiguracoes =
+    document.getElementById(
+        "painelConfiguracoes"
+    );
+
+
+const btnFecharConfiguracoes =
+    document.getElementById(
+        "btnFecharConfiguracoes"
+    );
+
+
+const btnConfiguracoesConta =
+    document.getElementById(
+        "btnConfiguracoesConta"
+    );
+
+
+const configTema =
+    document.getElementById(
+        "configTema"
+    );
+
+
+const configSom =
+    document.getElementById(
+        "configSom"
+    );
+
+
+const configVoz =
+    document.getElementById(
+        "configVoz"
+    );
+
+
+const configAnimacoes =
+    document.getElementById(
+        "configAnimacoes"
+    );
+
+
+const configEnter =
+    document.getElementById(
+        "configEnter"
+    );
+
+
+const vozChat =
+    document.getElementById(
+        "voz"
+    );
+
+
+const seletorVoz =
+    document.getElementById(
+        "seletorVoz"
+    );
+
+
+const mensagemInput =
+    document.getElementById(
+        "mensagem"
+    );
+
+
+/* ============================================================
+   LER CONFIGURAÇÕES
+============================================================ */
+
+function obterConfiguracoes() {
+
+    let config = {};
+
+    try {
+
+        config =
+            JSON.parse(
+                localStorage.getItem(
+                    CHAVE_CONFIG
+                )
+            ) || {};
+
+    } catch (erro) {
+
+        config = {};
+
+    }
+
+    return {
+
+        ...configuracaoPadrao,
+
+        ...config
+
+    };
+
+}
+
+
+/* ============================================================
+   SALVAR CONFIGURAÇÕES
+============================================================ */
+
+function salvarConfiguracoes(
+    config
+) {
+
+    localStorage.setItem(
+
+        CHAVE_CONFIG,
+
+        JSON.stringify(config)
+
+    );
+
+}
+
+
+/* ============================================================
+   APLICAR TEMA
+============================================================ */
+
+function aplicarTema(
+    tema
+) {
+
+    if (
+        tema === "claro"
+    ) {
+
+        document.body.classList.add(
+            "tema-claro"
+        );
+
+    } else {
+
+        document.body.classList.remove(
+            "tema-claro"
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   PREENCHER VOZES
+============================================================ */
+
+let vozesDisponiveis = [];
+
+
+function carregarVozesConfiguracao() {
+
+    if (
+        !("speechSynthesis" in window)
+    ) {
+
+        return;
+
+    }
+
+
+    vozesDisponiveis =
+        window.speechSynthesis
+            .getVoices();
+
+
+    const listaPT =
+        vozesDisponiveis.filter(
+            voz =>
+                voz.lang &&
+                voz.lang
+                    .toLowerCase()
+                    .startsWith("pt")
+        );
+
+
+    const lista =
+        listaPT.length
+            ? listaPT
+            : vozesDisponiveis;
+
+
+    configVoz.innerHTML =
+        `
+        <option value="padrao">
+            🔊 Voz padrão
+        </option>
+        `;
+
+
+    seletorVoz.innerHTML =
+        `
+        <option value="default">
+            Voz padrão do navegador
+        </option>
+        `;
+
+
+    lista.forEach(
+        vozItem => {
+
+            const valor =
+                vozItem.name +
+                "|" +
+                vozItem.lang;
+
+
+            const optionConfig =
+                document.createElement(
+                    "option"
+                );
+
+            optionConfig.value =
+                valor;
+
+            optionConfig.textContent =
+                `${vozItem.name} (${vozItem.lang})`;
+
+            configVoz.appendChild(
+                optionConfig
+            );
+
+
+            const optionChat =
+                document.createElement(
+                    "option"
+                );
+
+            optionChat.value =
+                String(
+                    vozesDisponiveis.indexOf(
+                        vozItem
+                    )
+                );
+
+            optionChat.textContent =
+                `${vozItem.name} (${vozItem.lang})`;
+
+            seletorVoz.appendChild(
+                optionChat
+            );
+
+        }
+    );
+
+
+    aplicarVozSalva();
+
+}
+
+
+/* ============================================================
+   APLICAR VOZ SALVA
+============================================================ */
+
+function aplicarVozSalva() {
+
+    const config =
+        obterConfiguracoes();
+
+
+    configVoz.value =
+        config.voz;
+
+
+    if (
+        config.voz !== "padrao"
+    ) {
+
+        const indice =
+            vozesDisponiveis.findIndex(
+                vozItem =>
+                    (
+                        vozItem.name +
+                        "|" +
+                        vozItem.lang
+                    ) === config.voz
+            );
+
+
+        if (indice >= 0) {
+
+            seletorVoz.value =
+                String(indice);
+
+        }
+
+    }
+
+}
+
+
+/* ============================================================
+   CARREGAR CONFIGURAÇÕES
+============================================================ */
+
+function carregarConfiguracoes() {
+
+    const config =
+        obterConfiguracoes();
+
+
+    configTema.value =
+        config.tema;
+
+
+    configSom.checked =
+        config.som;
+
+
+    configAnimacoes.checked =
+        config.animacoes;
+
+
+    configEnter.checked =
+        config.enterEnviar;
+
+
+    aplicarTema(
+        config.tema
+    );
+
+
+    if (vozChat) {
+
+        vozChat.checked =
+            config.som;
+
+    }
+
+
+    if (config.voz === "padrao") {
+
+        if (seletorVoz) {
+
+            seletorVoz.value =
+                "default";
+
+        }
+
+    }
+
+}
+
+
+/* ============================================================
+   ATUALIZAR CONFIGURAÇÕES
+============================================================ */
+
+function atualizarConfig(
+    chave,
+    valor
+) {
+
+    const config =
+        obterConfiguracoes();
+
+
+    config[chave] =
+        valor;
+
+
+    salvarConfiguracoes(
+        config
+    );
+
+
+    aplicarTema(
+        config.tema
+    );
+
+
+    if (
+        chave === "som"
+        && vozChat
+    ) {
+
+        vozChat.checked =
+            valor;
+
+    }
+
+}
+
+
+/* ============================================================
+   ABRIR PAINEL
+============================================================ */
+
+function abrirPainelConfiguracoes() {
+
+    painelConfiguracoes.classList.add(
+        "aberto"
+    );
+
+}
+
+
+/* ============================================================
+   FECHAR PAINEL
+============================================================ */
+
+function fecharPainelConfiguracoes() {
+
+    painelConfiguracoes.classList.remove(
+        "aberto"
+    );
+
+}
+
+
+/* ============================================================
+   EVENTOS CONFIGURAÇÕES
+============================================================ */
+
+if (btnAbrirConfiguracoes) {
+
+    btnAbrirConfiguracoes.addEventListener(
+        "click",
+        function (event) {
+
+            event.stopPropagation();
+
+            painelConfiguracoes.classList.toggle(
+                "aberto"
+            );
+
+        }
+    );
+
+}
+
+
+if (btnFecharConfiguracoes) {
+
+    btnFecharConfiguracoes.addEventListener(
+        "click",
+        fecharPainelConfiguracoes
+    );
+
+}
+
+
+if (btnConfiguracoesConta) {
+
+    btnConfiguracoesConta.addEventListener(
+        "click",
+        function () {
+
+            window.location.href =
+                "/perfil";
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   FECHAR AO CLICAR FORA
+============================================================ */
+
+document.addEventListener(
+    "click",
+    function (event) {
+
+        if (
+            !painelConfiguracoes.contains(
+                event.target
+            )
+            &&
+            event.target !==
+                btnAbrirConfiguracoes
+        ) {
+
+            fecharPainelConfiguracoes();
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   TEMA
+============================================================ */
+
+if (configTema) {
+
+    configTema.addEventListener(
+        "change",
+        function () {
+
+            atualizarConfig(
+                "tema",
+                configTema.value
+            );
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   SOM
+============================================================ */
+
+if (configSom) {
+
+    configSom.addEventListener(
+        "change",
+        function () {
+
+            atualizarConfig(
+                "som",
+                configSom.checked
+            );
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   VOZ
+============================================================ */
+
+if (configVoz) {
+
+    configVoz.addEventListener(
+        "change",
+        function () {
+
+            atualizarConfig(
+                "voz",
+                configVoz.value
+            );
+
+            aplicarVozSalva();
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   ANIMAÇÕES
+============================================================ */
+
+if (configAnimacoes) {
+
+    configAnimacoes.addEventListener(
+        "change",
+        function () {
+
+            atualizarConfig(
+                "animacoes",
+                configAnimacoes.checked
+            );
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   ENTER
+============================================================ */
+
+if (configEnter) {
+
+    configEnter.addEventListener(
+        "change",
+        function () {
+
+            atualizarConfig(
+                "enterEnviar",
+                configEnter.checked
+            );
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   VOZ DO CHAT
+============================================================ */
+
+if (vozChat) {
+
+    vozChat.addEventListener(
+        "change",
+        function () {
+
+            atualizarConfig(
+                "som",
+                vozChat.checked
+            );
+
+            if (configSom) {
+
+                configSom.checked =
+                    vozChat.checked;
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   INICIALIZAÇÃO
+============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        carregarConfiguracoes();
+
+        carregarVozesConfiguracao();
+
+    }
+);
+
+
+if (
+    "speechSynthesis" in window
+) {
+
+    window.speechSynthesis.onvoiceschanged =
+        carregarVozesConfiguracao;
+
+}
+
+
+</script>
+
 
 <script src="{{ url_for('static', filename='script.js') }}"></script>
 
 </body>
 
 </html>
-
