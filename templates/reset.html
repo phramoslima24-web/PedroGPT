@@ -1,0 +1,965 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>Redefinir senha - Orion AI</title>
+
+<style>
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+
+    min-height: 100vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 20px;
+
+    background:
+        radial-gradient(
+            circle at top,
+            #312e81,
+            #111827 55%,
+            #05070d
+        );
+
+    color: white;
+}
+
+.card {
+
+    width: 390px;
+    max-width: 100%;
+
+    padding: 35px;
+
+    border-radius: 24px;
+
+    background:
+        rgba(255,255,255,0.07);
+
+    backdrop-filter:
+        blur(18px);
+
+    border:
+        1px solid
+        rgba(255,255,255,0.12);
+
+    box-shadow:
+        0 25px 70px
+        rgba(0,0,0,0.5);
+}
+
+.logo {
+
+    text-align: center;
+
+    margin-bottom: 28px;
+}
+
+.logo h1 {
+
+    font-size: 30px;
+
+    margin-bottom: 7px;
+}
+
+.logo p {
+
+    color:
+        rgba(255,255,255,0.65);
+
+    font-size: 14px;
+
+    line-height: 1.5;
+}
+
+.campo {
+
+    margin-bottom: 17px;
+}
+
+.campo label {
+
+    display: block;
+
+    margin-bottom: 7px;
+
+    font-size: 14px;
+
+    color:
+        rgba(255,255,255,0.85);
+}
+
+.senha-box {
+
+    position: relative;
+
+    width: 100%;
+}
+
+.senha-box input {
+
+    width: 100%;
+
+    padding:
+        14px 50px 14px 14px;
+
+    border-radius: 12px;
+
+    border:
+        1px solid
+        rgba(255,255,255,0.1);
+
+    outline: none;
+
+    background:
+        rgba(255,255,255,0.08);
+
+    color: white;
+
+    font-size: 14px;
+
+    transition: 0.2s;
+}
+
+.senha-box input:focus {
+
+    border-color:
+        #8b5cf6;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(139,92,246,0.15);
+}
+
+.senha-box input::placeholder {
+
+    color:
+        rgba(255,255,255,0.4);
+}
+
+.olho {
+
+    position: absolute;
+
+    right: 10px;
+    top: 50%;
+
+    transform:
+        translateY(-50%);
+
+    width: 34px;
+    height: 34px;
+
+    border: none;
+
+    border-radius: 9px;
+
+    background:
+        transparent;
+
+    color: white;
+
+    cursor: pointer;
+
+    font-size: 18px;
+
+    opacity: .75;
+
+    transition: .15s;
+}
+
+.olho:hover {
+
+    opacity: 1;
+
+    background:
+        rgba(255,255,255,.07);
+}
+
+.forca {
+
+    width: 100%;
+
+    height: 5px;
+
+    margin-top: 8px;
+
+    border-radius: 10px;
+
+    overflow: hidden;
+
+    background:
+        rgba(255,255,255,.08);
+}
+
+.forca-bar {
+
+    width: 0%;
+
+    height: 100%;
+
+    border-radius: 10px;
+
+    transition:
+        width .25s ease;
+}
+
+.requisitos {
+
+    margin-top: 8px;
+
+    font-size: 12px;
+
+    color:
+        rgba(255,255,255,.5);
+
+    line-height: 1.5;
+}
+
+.requisitos span {
+
+    display: block;
+
+    margin-top: 3px;
+}
+
+.ok {
+
+    color:
+        #4ade80;
+}
+
+.erro-requisito {
+
+    color:
+        #f87171;
+}
+
+.btn {
+
+    width: 100%;
+
+    padding: 14px;
+
+    margin-top: 8px;
+
+    border: none;
+
+    border-radius: 12px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #7c3aed,
+            #4f46e5
+        );
+
+    color: white;
+
+    font-size: 15px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition: .2s;
+}
+
+.btn:hover {
+
+    transform:
+        translateY(-2px);
+
+    box-shadow:
+        0 8px 25px
+        rgba(79,70,229,.35);
+}
+
+.btn:disabled {
+
+    opacity: .55;
+
+    cursor: not-allowed;
+
+    transform: none;
+
+    box-shadow: none;
+}
+
+.msg {
+
+    min-height: 22px;
+
+    margin-top: 15px;
+
+    text-align: center;
+
+    font-size: 14px;
+
+    line-height: 1.4;
+}
+
+.msg.erro {
+
+    color:
+        #f87171;
+}
+
+.msg.sucesso {
+
+    color:
+        #4ade80;
+}
+
+.footer {
+
+    text-align: center;
+
+    margin-top: 20px;
+
+    font-size: 14px;
+
+    color:
+        rgba(255,255,255,.65);
+}
+
+.footer a {
+
+    color:
+        #a78bfa;
+
+    text-decoration: none;
+
+    font-weight: bold;
+}
+
+.footer a:hover {
+
+    text-decoration: underline;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+    <div class="logo">
+
+        <h1>
+            🤖 Orion AI
+        </h1>
+
+        <p>
+            Crie uma nova senha para sua conta
+        </p>
+
+    </div>
+
+
+    <div class="campo">
+
+        <label for="novaSenha">
+            Nova senha
+        </label>
+
+        <div class="senha-box">
+
+            <input
+                type="password"
+                id="novaSenha"
+                placeholder="Digite sua nova senha"
+                autocomplete="new-password"
+                maxlength="200"
+            >
+
+            <button
+                type="button"
+                class="olho"
+                id="olhoNovaSenha"
+                onclick="alternarSenha(
+                    'novaSenha',
+                    'olhoNovaSenha'
+                )"
+                aria-label="Mostrar senha"
+            >
+                👁️
+            </button>
+
+        </div>
+
+
+        <div class="forca">
+
+            <div
+                id="forcaBar"
+                class="forca-bar"
+            ></div>
+
+        </div>
+
+
+        <div class="requisitos">
+
+            <span id="reqTamanho">
+                ○ Pelo menos 6 caracteres
+            </span>
+
+            <span id="reqNumero">
+                ○ Pelo menos 1 número
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="campo">
+
+        <label for="confirmarSenha">
+            Confirmar nova senha
+        </label>
+
+        <div class="senha-box">
+
+            <input
+                type="password"
+                id="confirmarSenha"
+                placeholder="Digite a senha novamente"
+                autocomplete="new-password"
+                maxlength="200"
+            >
+
+            <button
+                type="button"
+                class="olho"
+                id="olhoConfirmarSenha"
+                onclick="alternarSenha(
+                    'confirmarSenha',
+                    'olhoConfirmarSenha'
+                )"
+                aria-label="Mostrar confirmação"
+            >
+                👁️
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <button
+        type="button"
+        class="btn"
+        id="btnReset"
+        onclick="redefinirSenha()"
+    >
+        Redefinir senha
+    </button>
+
+
+    <div
+        id="msg"
+        class="msg"
+    ></div>
+
+
+    <div class="footer">
+
+        <a href="/login">
+            ← Voltar para o login
+        </a>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const novaSenha =
+    document.getElementById("novaSenha");
+
+const confirmarSenha =
+    document.getElementById("confirmarSenha");
+
+const btnReset =
+    document.getElementById("btnReset");
+
+const msg =
+    document.getElementById("msg");
+
+const forcaBar =
+    document.getElementById("forcaBar");
+
+const reqTamanho =
+    document.getElementById("reqTamanho");
+
+const reqNumero =
+    document.getElementById("reqNumero");
+
+
+/* ============================================================
+   PEGAR TOKEN DA URL
+============================================================ */
+
+const parametros =
+    new URLSearchParams(
+        window.location.search
+    );
+
+const token =
+    parametros.get("token");
+
+
+/* ============================================================
+   MENSAGEM
+============================================================ */
+
+function mostrarMensagem(
+    texto,
+    tipo = "erro"
+) {
+
+    msg.textContent =
+        texto;
+
+    msg.className =
+        "msg " + tipo;
+
+}
+
+
+/* ============================================================
+   OLHO
+============================================================ */
+
+function alternarSenha(
+    idCampo,
+    idBotao
+) {
+
+    const campo =
+        document.getElementById(
+            idCampo
+        );
+
+    const botao =
+        document.getElementById(
+            idBotao
+        );
+
+    if (!campo || !botao) {
+        return;
+    }
+
+    if (
+        campo.type === "password"
+    ) {
+
+        campo.type =
+            "text";
+
+        botao.textContent =
+            "🙈";
+
+    } else {
+
+        campo.type =
+            "password";
+
+        botao.textContent =
+            "👁️";
+
+    }
+
+}
+
+
+/* ============================================================
+   FORÇA DA SENHA
+============================================================ */
+
+novaSenha.addEventListener(
+    "input",
+    atualizarForca
+);
+
+
+function atualizarForca() {
+
+    const senha =
+        novaSenha.value;
+
+    let pontos = 0;
+
+
+    if (
+        senha.length >= 6
+    ) {
+
+        pontos++;
+
+        reqTamanho.textContent =
+            "✓ Pelo menos 6 caracteres";
+
+        reqTamanho.className =
+            "ok";
+
+    } else {
+
+        reqTamanho.textContent =
+            "○ Pelo menos 6 caracteres";
+
+        reqTamanho.className =
+            "erro-requisito";
+
+    }
+
+
+    if (
+        /\d/.test(senha)
+    ) {
+
+        pontos++;
+
+        reqNumero.textContent =
+            "✓ Pelo menos 1 número";
+
+        reqNumero.className =
+            "ok";
+
+    } else {
+
+        reqNumero.textContent =
+            "○ Pelo menos 1 número";
+
+        reqNumero.className =
+            "erro-requisito";
+
+    }
+
+
+    if (
+        senha.length >= 10
+    ) {
+        pontos++;
+    }
+
+    if (
+        /[A-Z]/.test(senha)
+    ) {
+        pontos++;
+    }
+
+    if (
+        /[^A-Za-z0-9]/.test(senha)
+    ) {
+        pontos++;
+    }
+
+
+    const porcentagem =
+        Math.min(
+            pontos * 20,
+            100
+        );
+
+    forcaBar.style.width =
+        porcentagem + "%";
+
+}
+
+
+/* ============================================================
+   REDEFINIR SENHA
+============================================================ */
+
+async function redefinirSenha() {
+
+    const senha =
+        novaSenha.value;
+
+    const confirmacao =
+        confirmarSenha.value;
+
+
+    mostrarMensagem("");
+
+
+    if (!token) {
+
+        mostrarMensagem(
+            "O link de recuperação é inválido ou expirou."
+        );
+
+        return;
+    }
+
+
+    if (!senha) {
+
+        mostrarMensagem(
+            "Digite sua nova senha."
+        );
+
+        novaSenha.focus();
+
+        return;
+    }
+
+
+    if (
+        senha.length < 6
+    ) {
+
+        mostrarMensagem(
+            "A senha precisa ter pelo menos 6 caracteres."
+        );
+
+        novaSenha.focus();
+
+        return;
+    }
+
+
+    if (
+        !/\d/.test(senha)
+    ) {
+
+        mostrarMensagem(
+            "A senha precisa ter pelo menos 1 número."
+        );
+
+        novaSenha.focus();
+
+        return;
+    }
+
+
+    if (
+        senha.length > 200
+    ) {
+
+        mostrarMensagem(
+            "A senha é muito longa."
+        );
+
+        return;
+    }
+
+
+    if (
+        senha !== confirmacao
+    ) {
+
+        mostrarMensagem(
+            "As senhas não são iguais."
+        );
+
+        confirmarSenha.focus();
+
+        return;
+    }
+
+
+    btnReset.disabled =
+        true;
+
+    btnReset.textContent =
+        "Redefinindo...";
+
+
+    try {
+
+        const resposta =
+            await fetch(
+                "/api/reset-password",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+
+                        "Accept":
+                            "application/json"
+                    },
+
+                    credentials:
+                        "same-origin",
+
+                    body:
+                        JSON.stringify({
+
+                            token:
+                                token,
+
+                            new_password:
+                                senha,
+
+                            confirm_password:
+                                confirmacao
+
+                        })
+                }
+            );
+
+
+        let dados = {};
+
+        try {
+
+            dados =
+                await resposta.json();
+
+        } catch (erroJson) {
+
+            dados = {};
+
+        }
+
+
+        if (
+            !resposta.ok ||
+            dados.success === false
+        ) {
+
+            throw new Error(
+                dados.message ||
+                "Não foi possível redefinir a senha."
+            );
+        }
+
+
+        mostrarMensagem(
+            dados.message ||
+            "Senha redefinida com sucesso!",
+            "sucesso"
+        );
+
+
+        novaSenha.value = "";
+        confirmarSenha.value = "";
+
+        btnReset.textContent =
+            "Senha alterada ✓";
+
+
+        setTimeout(
+            function () {
+
+                window.location.href =
+                    "/login";
+
+            },
+            1200
+        );
+
+
+    } catch (erro) {
+
+        console.error(
+            "ERRO RESET SENHA:",
+            erro
+        );
+
+        mostrarMensagem(
+            "❌ " +
+            erro.message
+        );
+
+        btnReset.disabled =
+            false;
+
+        btnReset.textContent =
+            "Redefinir senha";
+
+    }
+
+}
+
+
+/* ============================================================
+   ENTER
+============================================================ */
+
+[
+    novaSenha,
+    confirmarSenha
+].forEach(
+    function(campo) {
+
+        campo.addEventListener(
+            "keydown",
+            function(event) {
+
+                if (
+                    event.key === "Enter"
+                ) {
+
+                    event.preventDefault();
+
+                    redefinirSenha();
+
+                }
+
+            }
+        );
+
+    }
+);
+
+
+/* ============================================================
+   VERIFICAR TOKEN
+============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+        if (!token) {
+
+            mostrarMensagem(
+                "O link de recuperação é inválido ou expirou."
+            );
+
+            btnReset.disabled =
+                true;
+
+            return;
+        }
+
+        novaSenha.focus();
+
+    }
+);
+
+</script>
+
+</body>
+
+</html>
+
