@@ -1,12 +1,17 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Criar conta - PedroGPT</title>
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>Criar conta - Orion AI</title>
 
 <style>
 
@@ -50,7 +55,8 @@ body {
     background:
         rgba(255,255,255,0.07);
 
-    backdrop-filter: blur(18px);
+    backdrop-filter:
+        blur(18px);
 
     border:
         1px solid
@@ -131,7 +137,8 @@ body {
 
 .input-box input:focus {
 
-    border-color: #8b5cf6;
+    border-color:
+        #8b5cf6;
 
     box-shadow:
         0 0 0 3px
@@ -146,7 +153,7 @@ body {
 
 .password-box input {
 
-    padding-right: 50px;
+    padding-right: 52px;
 }
 
 .eye {
@@ -156,7 +163,16 @@ body {
     right: 13px;
     top: 50%;
 
-    transform: translateY(-50%);
+    transform:
+        translateY(-50%);
+
+    width: 30px;
+    height: 30px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
 
     border: none;
 
@@ -169,11 +185,17 @@ body {
     font-size: 18px;
 
     opacity: 0.75;
+
+    transition: .15s ease;
 }
 
 .eye:hover {
 
     opacity: 1;
+
+    transform:
+        translateY(-50%)
+        scale(1.08);
 }
 
 .forca {
@@ -222,12 +244,14 @@ body {
 
 .requisito-ok {
 
-    color: #4ade80 !important;
+    color:
+        #4ade80 !important;
 }
 
 .requisito-erro {
 
-    color: #f87171 !important;
+    color:
+        #f87171 !important;
 }
 
 .btn {
@@ -292,12 +316,14 @@ body {
 
 .erro {
 
-    color: #f87171;
+    color:
+        #f87171;
 }
 
 .sucesso {
 
-    color: #4ade80;
+    color:
+        #4ade80;
 }
 
 .login {
@@ -314,7 +340,8 @@ body {
 
 .login a {
 
-    color: #a78bfa;
+    color:
+        #a78bfa;
 
     text-decoration: none;
 
@@ -324,6 +351,16 @@ body {
 .login a:hover {
 
     text-decoration: underline;
+}
+
+@media(max-width:600px) {
+
+    .card {
+
+        padding: 25px 20px;
+
+    }
+
 }
 
 </style>
@@ -336,14 +373,20 @@ body {
 
     <div class="logo">
 
-        <h1>🤖 PedroGPT</h1>
+        <h1>
+            🤖 Orion AI
+        </h1>
 
-        <p>Crie sua conta gratuitamente</p>
+        <p>
+            Crie sua conta gratuitamente
+        </p>
 
     </div>
 
 
-    <!-- USUÁRIO -->
+    <!-- ====================================================
+         USUÁRIO
+    ===================================================== -->
 
     <div class="campo">
 
@@ -366,7 +409,9 @@ body {
     </div>
 
 
-    <!-- SENHA -->
+    <!-- ====================================================
+         SENHA
+    ===================================================== -->
 
     <div class="campo">
 
@@ -388,6 +433,7 @@ body {
                 class="eye"
                 id="eye"
                 onclick="toggleSenha()"
+                aria-label="Mostrar senha"
             >
                 👁️
             </button>
@@ -420,7 +466,9 @@ body {
     </div>
 
 
-    <!-- CONFIRMAR SENHA -->
+    <!-- ====================================================
+         CONFIRMAR SENHA
+    ===================================================== -->
 
     <div class="campo">
 
@@ -440,7 +488,9 @@ body {
             <button
                 type="button"
                 class="eye"
+                id="eyeConfirm"
                 onclick="toggleConfirmacao()"
+                aria-label="Mostrar confirmação"
             >
                 👁️
             </button>
@@ -450,20 +500,33 @@ body {
     </div>
 
 
+    <!-- ====================================================
+         BOTÃO
+    ===================================================== -->
+
     <button
         class="btn"
         id="btnRegister"
         onclick="register()"
+        type="button"
     >
         Criar conta
     </button>
 
+
+    <!-- ====================================================
+         MENSAGEM
+    ===================================================== -->
 
     <div
         id="msg"
         class="msg"
     ></div>
 
+
+    <!-- ====================================================
+         LOGIN
+    ===================================================== -->
 
     <div class="login">
 
@@ -480,9 +543,9 @@ body {
 
 <script>
 
-/* =========================
+/* ============================================================
    ELEMENTOS
-========================= */
+============================================================ */
 
 const username =
     document.getElementById("username");
@@ -499,70 +562,125 @@ const btn =
 const msg =
     document.getElementById("msg");
 
+const eye =
+    document.getElementById("eye");
 
-/* =========================
+const eyeConfirm =
+    document.getElementById("eyeConfirm");
+
+
+/* ============================================================
    MENSAGEM
-========================= */
+============================================================ */
 
 function mostrarMensagem(
     texto,
     tipo = "erro"
 ) {
 
-    msg.textContent = texto;
+    if (!msg) {
+        return;
+    }
+
+    msg.textContent =
+        texto;
 
     msg.className =
         "msg " + tipo;
 }
 
 
-/* =========================
-   MOSTRAR SENHA
-========================= */
+/* ============================================================
+   MOSTRAR / ESCONDER SENHA
+============================================================ */
 
 function toggleSenha() {
 
+    if (!password || !eye) {
+        return;
+    }
+
     if (
-        password.type ===
-        "password"
+        password.type === "password"
     ) {
 
         password.type = "text";
 
+        eye.textContent =
+            "🙈";
+
+        eye.setAttribute(
+            "aria-label",
+            "Esconder senha"
+        );
+
     } else {
 
         password.type = "password";
+
+        eye.textContent =
+            "👁️";
+
+        eye.setAttribute(
+            "aria-label",
+            "Mostrar senha"
+        );
 
     }
 
 }
 
 
-/* =========================
-   MOSTRAR CONFIRMAÇÃO
-========================= */
+/* ============================================================
+   MOSTRAR / ESCONDER CONFIRMAÇÃO
+============================================================ */
 
 function toggleConfirmacao() {
+
+    if (
+        !confirmPassword ||
+        !eyeConfirm
+    ) {
+        return;
+    }
 
     if (
         confirmPassword.type ===
         "password"
     ) {
 
-        confirmPassword.type = "text";
+        confirmPassword.type =
+            "text";
+
+        eyeConfirm.textContent =
+            "🙈";
+
+        eyeConfirm.setAttribute(
+            "aria-label",
+            "Esconder confirmação"
+        );
 
     } else {
 
-        confirmPassword.type = "password";
+        confirmPassword.type =
+            "password";
+
+        eyeConfirm.textContent =
+            "👁️";
+
+        eyeConfirm.setAttribute(
+            "aria-label",
+            "Mostrar confirmação"
+        );
 
     }
 
 }
 
 
-/* =========================
+/* ============================================================
    FORÇA DA SENHA
-========================= */
+============================================================ */
 
 password.addEventListener(
     "input",
@@ -589,13 +707,23 @@ function atualizarForca() {
             "reqNumero"
         );
 
+    if (
+        !barra ||
+        !reqTamanho ||
+        !reqNumero
+    ) {
+        return;
+    }
+
 
     let pontos = 0;
 
 
     /* TAMANHO */
 
-    if (senha.length >= 6) {
+    if (
+        senha.length >= 6
+    ) {
 
         pontos++;
 
@@ -618,7 +746,9 @@ function atualizarForca() {
 
     /* NÚMERO */
 
-    if (/\d/.test(senha)) {
+    if (
+        /\d/.test(senha)
+    ) {
 
         pontos++;
 
@@ -641,7 +771,9 @@ function atualizarForca() {
 
     /* TAMANHO EXTRA */
 
-    if (senha.length >= 10) {
+    if (
+        senha.length >= 10
+    ) {
 
         pontos++;
 
@@ -650,7 +782,9 @@ function atualizarForca() {
 
     /* MAIÚSCULA */
 
-    if (/[A-Z]/.test(senha)) {
+    if (
+        /[A-Z]/.test(senha)
+    ) {
 
         pontos++;
 
@@ -659,7 +793,9 @@ function atualizarForca() {
 
     /* SÍMBOLO */
 
-    if (/[^A-Za-z0-9]/.test(senha)) {
+    if (
+        /[^A-Za-z0-9]/.test(senha)
+    ) {
 
         pontos++;
 
@@ -672,16 +808,15 @@ function atualizarForca() {
             100
         );
 
-
     barra.style.width =
         porcentagem + "%";
 
 }
 
 
-/* =========================
+/* ============================================================
    REGISTRO
-========================= */
+============================================================ */
 
 async function register() {
 
@@ -695,9 +830,7 @@ async function register() {
         confirmPassword.value;
 
 
-    /* =========================
-       VALIDAÇÕES
-    ========================= */
+    /* VALIDAÇÕES */
 
     if (!nome) {
 
@@ -711,7 +844,9 @@ async function register() {
     }
 
 
-    if (nome.length < 3) {
+    if (
+        nome.length < 3
+    ) {
 
         mostrarMensagem(
             "O usuário precisa ter pelo menos 3 caracteres."
@@ -723,7 +858,9 @@ async function register() {
     }
 
 
-    if (senha.length < 6) {
+    if (
+        senha.length < 6
+    ) {
 
         mostrarMensagem(
             "A senha precisa ter pelo menos 6 caracteres."
@@ -735,7 +872,9 @@ async function register() {
     }
 
 
-    if (!/\d/.test(senha)) {
+    if (
+        !/\d/.test(senha)
+    ) {
 
         mostrarMensagem(
             "A senha precisa ter pelo menos 1 número."
@@ -747,7 +886,9 @@ async function register() {
     }
 
 
-    if (senha !== confirmacao) {
+    if (
+        senha !== confirmacao
+    ) {
 
         mostrarMensagem(
             "As senhas não são iguais."
@@ -759,9 +900,7 @@ async function register() {
     }
 
 
-    /* =========================
-       CARREGANDO
-    ========================= */
+    /* CARREGANDO */
 
     btn.disabled = true;
 
@@ -781,53 +920,71 @@ async function register() {
 
                     headers: {
                         "Content-Type":
+                            "application/json",
+
+                        "Accept":
                             "application/json"
                     },
 
-                    body: JSON.stringify({
-                        username: nome,
-                        password: senha
-                    })
+                    credentials:
+                        "same-origin",
+
+                    body:
+                        JSON.stringify({
+                            username:
+                                nome,
+
+                            password:
+                                senha
+                        })
                 }
             );
 
 
-        const data =
-            await resposta.json();
+        let data = {};
+
+        try {
+
+            data =
+                await resposta.json();
+
+        } catch (erroJson) {
+
+            data = {};
+
+        }
 
 
-        /* =========================
-           SUCESSO
-        ========================= */
+        /* SUCESSO */
 
-        if (data.success) {
+        if (
+            resposta.ok &&
+            data.success
+        ) {
 
             mostrarMensagem(
                 "Conta criada com sucesso!",
                 "sucesso"
             );
 
-
             btn.textContent =
                 "Conta criada ✓";
 
-
             setTimeout(
-                () => {
+                function () {
+
                     window.location.href =
                         "/login";
+
                 },
                 900
             );
-
 
             return;
         }
 
 
-        /* =========================
-           ERRO
-        ========================= */
+        /* ERRO */
 
         mostrarMensagem(
             data.message ||
@@ -857,20 +1014,24 @@ async function register() {
 }
 
 
-/* =========================
+/* ============================================================
    ENTER
-========================= */
+============================================================ */
 
 [
     username,
     password,
     confirmPassword
 ].forEach(
-    campo => {
+    function (campo) {
+
+        if (!campo) {
+            return;
+        }
 
         campo.addEventListener(
             "keydown",
-            event => {
+            function (event) {
 
                 if (
                     event.key === "Enter"
@@ -891,4 +1052,6 @@ async function register() {
 </script>
 
 </body>
+
 </html>
+
