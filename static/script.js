@@ -1,3 +1,4 @@
+
 // ============================================================
 // ORION AI - SCRIPT.JS
 // ============================================================
@@ -8,6 +9,86 @@ let vozes = [];
 
 let conversaSelecionada = null;
 let modoSelecao = false;
+
+
+// ============================================================
+// CONFIGURAÇÕES
+// ============================================================
+
+const CHAVE_CONFIG =
+    "orion_ai_config";
+
+const configuracaoPadrao = {
+    tema: "escuro",
+    som: true,
+    voz: "padrao",
+    animacoes: true,
+    enterEnviar: true
+};
+
+
+function obterConfiguracoes() {
+
+    let config = {};
+
+    try {
+
+        config =
+            JSON.parse(
+                localStorage.getItem(
+                    CHAVE_CONFIG
+                )
+            ) || {};
+
+    } catch (erro) {
+
+        config = {};
+
+    }
+
+    return {
+        ...configuracaoPadrao,
+        ...config
+    };
+}
+
+
+function salvarConfiguracoes(config) {
+
+    try {
+
+        localStorage.setItem(
+            CHAVE_CONFIG,
+            JSON.stringify(config)
+        );
+
+    } catch (erro) {
+
+        console.warn(
+            "Não foi possível salvar configurações:",
+            erro
+        );
+    }
+}
+
+
+function atualizarConfiguracao(
+    chave,
+    valor
+) {
+
+    const config =
+        obterConfiguracoes();
+
+    config[chave] =
+        valor;
+
+    salvarConfiguracoes(
+        config
+    );
+
+    aplicarConfiguracoes();
+}
 
 
 // ============================================================
@@ -27,6 +108,44 @@ const arquivoInput = elemento("arquivo");
 const arquivoBox = elemento("arquivoSelecionado");
 const nomeArquivo = elemento("nomeArquivo");
 const removerArquivo = elemento("removerArquivo");
+
+
+// ============================================================
+// CONFIGURAÇÕES - ELEMENTOS
+// ============================================================
+
+const configTema =
+    elemento("configTema");
+
+const configSom =
+    elemento("configSom");
+
+const configVoz =
+    elemento("configVoz");
+
+const configAnimacoes =
+    elemento("configAnimacoes");
+
+const configEnter =
+    elemento("configEnter");
+
+const vozChat =
+    elemento("voz");
+
+const seletorVoz =
+    elemento("seletorVoz");
+
+const btnAbrirConfiguracoes =
+    elemento("btnAbrirConfiguracoes");
+
+const painelConfiguracoes =
+    elemento("painelConfiguracoes");
+
+const btnFecharConfiguracoes =
+    elemento("btnFecharConfiguracoes");
+
+const btnConfiguracoesConta =
+    elemento("btnConfiguracoesConta");
 
 
 // ============================================================
@@ -55,9 +174,16 @@ function atualizarWelcome() {
     }
 
     if (chat.children.length === 0) {
-        welcome.classList.remove("hidden");
+
+        welcome.classList.remove(
+            "hidden"
+        );
+
     } else {
-        welcome.classList.add("hidden");
+
+        welcome.classList.add(
+            "hidden"
+        );
     }
 }
 
@@ -66,20 +192,29 @@ function atualizarWelcome() {
 // ADICIONAR MENSAGEM DO USUÁRIO
 // ============================================================
 
-function adicionarMensagem(texto, tipo = "user") {
+function adicionarMensagem(
+    texto,
+    tipo = "user"
+) {
 
     if (!chat) {
         return null;
     }
 
-    const div = document.createElement("div");
+    const div =
+        document.createElement(
+            "div"
+        );
 
     div.className =
         tipo === "user"
             ? "msg-user"
             : "msg-bot";
 
-    const conteudo = document.createElement("div");
+    const conteudo =
+        document.createElement(
+            "div"
+        );
 
     conteudo.className =
         "conteudo-mensagem";
@@ -87,9 +222,13 @@ function adicionarMensagem(texto, tipo = "user") {
     conteudo.textContent =
         texto;
 
-    div.appendChild(conteudo);
+    div.appendChild(
+        conteudo
+    );
 
-    chat.appendChild(div);
+    chat.appendChild(
+        div
+    );
 
     atualizarWelcome();
 
@@ -157,30 +296,51 @@ function formatarResposta(texto) {
 // ADICIONAR RESPOSTA DA IA
 // ============================================================
 
-function adicionarResposta(texto, falar = true) {
+function adicionarResposta(
+    texto,
+    falar = true
+) {
 
     if (!chat) {
         return null;
     }
 
     const div =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     div.className =
         "msg-bot";
 
+    if (
+        obterConfiguracoes().animacoes === false
+    ) {
+
+        div.style.animation =
+            "none";
+    }
+
     const conteudo =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     conteudo.className =
         "conteudo-mensagem";
 
     conteudo.innerHTML =
-        formatarResposta(texto);
+        formatarResposta(
+            texto
+        );
 
-    div.appendChild(conteudo);
+    div.appendChild(
+        conteudo
+    );
 
-    chat.appendChild(div);
+    chat.appendChild(
+        div
+    );
 
     atualizarWelcome();
 
@@ -188,7 +348,9 @@ function adicionarResposta(texto, falar = true) {
         chat.scrollHeight;
 
     if (falar) {
-        falarResposta(texto);
+        falarResposta(
+            texto
+        );
     }
 
     return div;
@@ -208,13 +370,23 @@ function mostrarTyping() {
     removerTyping();
 
     const div =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     div.className =
         "msg-bot typing-message";
 
     div.id =
         "typingMessage";
+
+    if (
+        obterConfiguracoes().animacoes === false
+    ) {
+
+        div.style.animation =
+            "none";
+    }
 
     div.innerHTML = `
         <div class="conteudo-mensagem">
@@ -227,7 +399,9 @@ function mostrarTyping() {
         </div>
     `;
 
-    chat.appendChild(div);
+    chat.appendChild(
+        div
+    );
 
     atualizarWelcome();
 
@@ -262,7 +436,9 @@ async function novaConversa() {
     sairModoSelecao();
 
     const botao =
-        document.querySelector(".nova-conversa");
+        document.querySelector(
+            ".nova-conversa"
+        );
 
     const textoOriginal =
         botao
@@ -286,19 +462,26 @@ async function novaConversa() {
                 "/new_chat",
                 {
                     method: "POST",
-                    credentials: "same-origin",
+
+                    credentials:
+                        "same-origin",
+
                     headers: {
                         "Accept":
                             "application/json",
+
                         "Content-Type":
                             "application/json"
                     },
+
                     body:
                         JSON.stringify({})
                 }
             );
 
-        if (resposta.redirected) {
+        if (
+            resposta.redirected
+        ) {
 
             window.location.href =
                 resposta.url;
@@ -341,7 +524,9 @@ async function novaConversa() {
             );
         }
 
-        if (dados.conversation_id) {
+        if (
+            dados.conversation_id
+        ) {
 
             window.conversationId =
                 dados.conversation_id;
@@ -360,7 +545,9 @@ async function novaConversa() {
         limparArquivo();
 
         const titulo =
-            elemento("tituloConversa");
+            elemento(
+                "tituloConversa"
+            );
 
         if (titulo) {
 
@@ -425,7 +612,10 @@ async function enviar() {
     const temArquivo =
         arquivoSelecionado !== null;
 
-    if (!texto && !temArquivo) {
+    if (
+        !texto &&
+        !temArquivo
+    ) {
 
         mensagemInput.focus();
 
@@ -436,7 +626,8 @@ async function enviar() {
 
     if (btnEnviar) {
 
-        btnEnviar.disabled = true;
+        btnEnviar.disabled =
+            true;
 
         btnEnviar.textContent =
             "Enviando...";
@@ -475,7 +666,9 @@ async function enviar() {
 
             if (
                 arquivo.type &&
-                arquivo.type.startsWith("image/")
+                arquivo.type.startsWith(
+                    "image/"
+                )
             ) {
 
                 const base64 =
@@ -508,13 +701,18 @@ async function enviar() {
                 "/chat",
                 {
                     method: "POST",
-                    credentials: "same-origin",
+
+                    credentials:
+                        "same-origin",
+
                     headers: {
                         "Accept":
                             "application/json",
+
                         "Content-Type":
                             "application/json"
                     },
+
                     body:
                         JSON.stringify(
                             dadosEnvio
@@ -522,7 +720,9 @@ async function enviar() {
                 }
             );
 
-        if (resposta.redirected) {
+        if (
+            resposta.redirected
+        ) {
 
             window.location.href =
                 resposta.url;
@@ -572,7 +772,9 @@ async function enviar() {
             return;
         }
 
-        if (dados.conversation_id) {
+        if (
+            dados.conversation_id
+        ) {
 
             window.conversationId =
                 dados.conversation_id;
@@ -586,7 +788,9 @@ async function enviar() {
         if (dados.title) {
 
             const titulo =
-                elemento("tituloConversa");
+                elemento(
+                    "tituloConversa"
+                );
 
             if (titulo) {
 
@@ -597,7 +801,6 @@ async function enviar() {
 
         limparArquivo();
 
-        // Atualiza lista lateral
         carregarHistoricoConversas();
 
     } catch (erro) {
@@ -621,7 +824,8 @@ async function enviar() {
 
         if (btnEnviar) {
 
-            btnEnviar.disabled = false;
+            btnEnviar.disabled =
+                false;
 
             btnEnviar.textContent =
                 "Enviar";
@@ -638,10 +842,15 @@ async function enviar() {
 // CONVERTER ARQUIVO
 // ============================================================
 
-function converterArquivoBase64(arquivo) {
+function converterArquivoBase64(
+    arquivo
+) {
 
     return new Promise(
-        (resolve, reject) => {
+        function (
+            resolve,
+            reject
+        ) {
 
             const leitor =
                 new FileReader();
@@ -673,8 +882,12 @@ function converterArquivoBase64(arquivo) {
 
 
 // ============================================================
-// ENTER
+// ENTER PARA ENVIAR
 // ============================================================
+
+// Usamos CAPTURE para conseguir bloquear
+// qualquer listener anterior do index.html
+// quando Enter estiver desativado.
 
 if (mensagemInput) {
 
@@ -682,18 +895,67 @@ if (mensagemInput) {
         "keydown",
         function (event) {
 
+            const config =
+                obterConfiguracoes();
+
             if (
                 event.key === "Enter" &&
                 !event.shiftKey
             ) {
 
-                event.preventDefault();
+                if (
+                    config.enterEnviar
+                ) {
 
-                enviar();
+                    event.preventDefault();
+
+                    enviar();
+
+                } else {
+
+                    // Permite Enter normal quando
+                    // a opção estiver desativada.
+                    return;
+                }
             }
         }
     );
+
 }
+
+
+// ============================================================
+// BLOQUEAR ENTER DO INLINE QUANDO DESATIVADO
+// ============================================================
+
+document.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (
+            event.target !==
+            mensagemInput
+        ) {
+
+            return;
+        }
+
+        const config =
+            obterConfiguracoes();
+
+        if (
+            event.key === "Enter" &&
+            !event.shiftKey &&
+            config.enterEnviar === false
+        ) {
+
+            event.stopImmediatePropagation();
+
+        }
+
+    },
+    true
+);
 
 
 // ============================================================
@@ -761,7 +1023,10 @@ function atalho(texto) {
 // ARQUIVO
 // ============================================================
 
-if (btnArquivo && arquivoInput) {
+if (
+    btnArquivo &&
+    arquivoInput
+) {
 
     btnArquivo.addEventListener(
         "click",
@@ -885,7 +1150,7 @@ if (removerArquivo) {
 
 
 // ============================================================
-// VOZ
+// VOZES
 // ============================================================
 
 function carregarVozes() {
@@ -933,10 +1198,28 @@ function carregarVozes() {
     if (!lista.length) {
 
         seletor.innerHTML =
-            `<option value="">Nenhuma voz disponível</option>`;
+            `<option value="default">Voz padrão do navegador</option>`;
 
         return;
     }
+
+    const config =
+        obterConfiguracoes();
+
+    const opcaoPadrao =
+        document.createElement(
+            "option"
+        );
+
+    opcaoPadrao.value =
+        "default";
+
+    opcaoPadrao.textContent =
+        "Voz padrão do navegador";
+
+    seletor.appendChild(
+        opcaoPadrao
+    );
 
     lista.forEach(
         function (voz) {
@@ -948,7 +1231,9 @@ function carregarVozes() {
 
             option.value =
                 String(
-                    vozes.indexOf(voz)
+                    vozes.indexOf(
+                        voz
+                    )
                 );
 
             option.textContent =
@@ -957,8 +1242,44 @@ function carregarVozes() {
             seletor.appendChild(
                 option
             );
+
         }
     );
+
+    if (
+        config.voz &&
+        config.voz !== "padrao"
+    ) {
+
+        const indice =
+            vozes.findIndex(
+                function (voz) {
+
+                    return (
+                        voz.name +
+                        "|" +
+                        voz.lang
+                    ) === config.voz;
+
+                }
+            );
+
+        if (
+            indice >= 0
+        ) {
+
+            seletor.value =
+                String(indice);
+
+        }
+
+    } else {
+
+        seletor.value =
+            "default";
+    }
+
+    sincronizarVozConfiguracao();
 }
 
 
@@ -975,18 +1296,96 @@ if (
 
 
 // ============================================================
+// SINCRONIZAR VOZ NO PAINEL
+// ============================================================
+
+function sincronizarVozConfiguracao() {
+
+    if (
+        !configVoz ||
+        !seletorVoz
+    ) {
+        return;
+    }
+
+    const config =
+        obterConfiguracoes();
+
+    configVoz.value =
+        config.voz;
+
+}
+
+
+// ============================================================
+// ALTERAR VOZ PELO SELECT PRINCIPAL
+// ============================================================
+
+if (seletorVoz) {
+
+    seletorVoz.addEventListener(
+        "change",
+        function () {
+
+            const indice =
+                Number(
+                    seletorVoz.value
+                );
+
+            const config =
+                obterConfiguracoes();
+
+            if (
+                seletorVoz.value ===
+                "default"
+            ) {
+
+                config.voz =
+                    "padrao";
+
+            } else if (
+                vozes[indice]
+            ) {
+
+                config.voz =
+                    vozes[indice].name +
+                    "|" +
+                    vozes[indice].lang;
+            }
+
+            salvarConfiguracoes(
+                config
+            );
+
+            sincronizarVozConfiguracao();
+
+        }
+    );
+}
+
+
+// ============================================================
 // FALAR RESPOSTA
 // ============================================================
 
-function falarResposta(texto) {
+function falarResposta(
+    texto
+) {
+
+    const config =
+        obterConfiguracoes();
 
     const checkbox =
         elemento("voz");
 
-    if (
-        !checkbox ||
-        !checkbox.checked
-    ) {
+    const somAtivo =
+        config.som &&
+        (
+            !checkbox ||
+            checkbox.checked
+        );
+
+    if (!somAtivo) {
         return;
     }
 
@@ -1018,29 +1417,69 @@ function falarResposta(texto) {
             textoLimpo
         );
 
-    const seletor =
-        elemento("seletorVoz");
+    let vozEscolhida =
+        null;
 
     if (
-        seletor &&
-        seletor.value !== ""
+        config.voz &&
+        config.voz !== "padrao"
+    ) {
+
+        vozEscolhida =
+            vozes.find(
+                function (voz) {
+
+                    return (
+                        voz.name +
+                        "|" +
+                        voz.lang
+                    ) === config.voz;
+
+                }
+            );
+
+    }
+
+
+    if (
+        !vozEscolhida &&
+        seletorVoz &&
+        seletorVoz.value !== "default" &&
+        seletorVoz.value !== ""
     ) {
 
         const indice =
             Number(
-                seletor.value
+                seletorVoz.value
             );
 
         if (vozes[indice]) {
 
-            fala.voice =
+            vozEscolhida =
                 vozes[indice];
         }
     }
 
-    fala.lang = "pt-BR";
-    fala.rate = 1;
-    fala.pitch = 1;
+
+    if (vozEscolhida) {
+
+        fala.voice =
+            vozEscolhida;
+
+        fala.lang =
+            vozEscolhida.lang;
+
+    } else {
+
+        fala.lang =
+            "pt-BR";
+    }
+
+    fala.rate =
+        1;
+
+    fala.pitch =
+        1;
 
     window.speechSynthesis.speak(
         fala
@@ -1053,7 +1492,9 @@ function falarResposta(texto) {
 // ============================================================
 
 const btnTestarVoz =
-    elemento("btnTestarVoz");
+    elemento(
+        "btnTestarVoz"
+    );
 
 if (btnTestarVoz) {
 
@@ -1061,9 +1502,81 @@ if (btnTestarVoz) {
         "click",
         function () {
 
+            const config =
+                obterConfiguracoes();
+
+            const configAntiga =
+                config.som;
+
+            config.som =
+                true;
+
+            salvarConfiguracoes(
+                config
+            );
+
+            const checkbox =
+                elemento("voz");
+
+            const checkboxAntigo =
+                checkbox
+                    ? checkbox.checked
+                    : true;
+
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+
             falarResposta(
                 "Olá! Eu sou o Orion AI. Esta é a minha voz."
             );
+
+            config.som =
+                configAntiga;
+
+            salvarConfiguracoes(
+                config
+            );
+
+            if (checkbox) {
+
+                checkbox.checked =
+                    checkboxAntigo;
+            }
+        }
+    );
+}
+
+
+// ============================================================
+// VOZ CHAT - CHECKBOX
+// ============================================================
+
+if (vozChat) {
+
+    vozChat.addEventListener(
+        "change",
+        function () {
+
+            atualizarConfiguracao(
+                "som",
+                vozChat.checked
+            );
+
+            if (configSom) {
+
+                configSom.checked =
+                    vozChat.checked;
+            }
+
+            if (
+                !vozChat.checked &&
+                "speechSynthesis" in window
+            ) {
+
+                window.speechSynthesis.cancel();
+            }
+
         }
     );
 }
@@ -1086,7 +1599,10 @@ async function carregarHistorico() {
                 "/history",
                 {
                     method: "GET",
-                    credentials: "same-origin",
+
+                    credentials:
+                        "same-origin",
+
                     headers: {
                         "Accept":
                             "application/json"
@@ -1095,7 +1611,8 @@ async function carregarHistorico() {
             );
 
         if (
-            resposta.status === 401
+            resposta.status ===
+            401
         ) {
 
             window.location.href =
@@ -1122,7 +1639,9 @@ async function carregarHistorico() {
         chat.innerHTML = "";
 
         if (
-            Array.isArray(historico)
+            Array.isArray(
+                historico
+            )
         ) {
 
             historico.forEach(
@@ -1145,6 +1664,7 @@ async function carregarHistorico() {
                             false
                         );
                     }
+
                 }
             );
         }
@@ -1173,7 +1693,9 @@ async function carregarHistorico() {
 async function carregarHistoricoConversas() {
 
     const container =
-        elemento("historicoConversas");
+        elemento(
+            "historicoConversas"
+        );
 
     if (!container) {
         return;
@@ -1186,7 +1708,10 @@ async function carregarHistoricoConversas() {
                 "/conversations",
                 {
                     method: "GET",
-                    credentials: "same-origin",
+
+                    credentials:
+                        "same-origin",
+
                     headers: {
                         "Accept":
                             "application/json"
@@ -1195,7 +1720,8 @@ async function carregarHistoricoConversas() {
             );
 
         if (
-            resposta.status === 401
+            resposta.status ===
+            401
         ) {
 
             window.location.href =
@@ -1226,11 +1752,14 @@ async function carregarHistoricoConversas() {
         const conversas =
             Array.isArray(dados)
                 ? dados
-                : dados.conversations || [];
+                : dados.conversations ||
+                  [];
 
         container.innerHTML = "";
 
-        if (!conversas.length) {
+        if (
+            !conversas.length
+        ) {
 
             container.innerHTML = `
                 <div class="historico-vazio">
@@ -1247,6 +1776,7 @@ async function carregarHistoricoConversas() {
                 criarItemConversa(
                     conversa
                 );
+
             }
         );
 
@@ -1272,10 +1802,14 @@ async function carregarHistoricoConversas() {
 // CRIAR ITEM DA CONVERSA
 // ============================================================
 
-function criarItemConversa(conversa) {
+function criarItemConversa(
+    conversa
+) {
 
     const container =
-        elemento("historicoConversas");
+        elemento(
+            "historicoConversas"
+        );
 
     if (!container) {
         return;
@@ -1291,7 +1825,9 @@ function criarItemConversa(conversa) {
         "Nova conversa";
 
     const item =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     item.className =
         "conversa-item";
@@ -1300,9 +1836,12 @@ function criarItemConversa(conversa) {
         id;
 
     const abrir =
-        document.createElement("button");
+        document.createElement(
+            "button"
+        );
 
-    abrir.type = "button";
+    abrir.type =
+        "button";
 
     abrir.className =
         "conversa-abrir";
@@ -1327,19 +1866,30 @@ function criarItemConversa(conversa) {
                 return;
             }
 
-            abrirConversa(id);
+            abrirConversa(
+                id
+            );
+
         }
     );
 
     const acoes =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     acoes.className =
         "conversa-acoes";
 
-    // Botão selecionar
+
+    // --------------------------------------------------------
+    // SELECIONAR
+    // --------------------------------------------------------
+
     const btnSelecionar =
-        document.createElement("button");
+        document.createElement(
+            "button"
+        );
 
     btnSelecionar.type =
         "button";
@@ -1363,12 +1913,19 @@ function criarItemConversa(conversa) {
                 id,
                 item
             );
+
         }
     );
 
-    // Botão renomear
+
+    // --------------------------------------------------------
+    // RENOMEAR
+    // --------------------------------------------------------
+
     const btnRenomear =
-        document.createElement("button");
+        document.createElement(
+            "button"
+        );
 
     btnRenomear.type =
         "button";
@@ -1392,12 +1949,19 @@ function criarItemConversa(conversa) {
                 id,
                 titulo
             );
+
         }
     );
 
-    // Botão excluir individual
+
+    // --------------------------------------------------------
+    // EXCLUIR
+    // --------------------------------------------------------
+
     const btnExcluir =
-        document.createElement("button");
+        document.createElement(
+            "button"
+        );
 
     btnExcluir.type =
         "button";
@@ -1420,8 +1984,10 @@ function criarItemConversa(conversa) {
             excluirConversa(
                 id
             );
+
         }
     );
+
 
     acoes.appendChild(
         btnSelecionar
@@ -1470,7 +2036,10 @@ async function abrirConversa(id) {
                 `/conversation/${encodeURIComponent(id)}`,
                 {
                     method: "GET",
-                    credentials: "same-origin",
+
+                    credentials:
+                        "same-origin",
+
                     headers: {
                         "Accept":
                             "application/json"
@@ -1479,7 +2048,8 @@ async function abrirConversa(id) {
             );
 
         if (
-            resposta.status === 401
+            resposta.status ===
+            401
         ) {
 
             window.location.href =
@@ -1533,11 +2103,14 @@ async function abrirConversa(id) {
                         false
                     );
                 }
+
             }
         );
 
         const titulo =
-            elemento("tituloConversa");
+            elemento(
+                "tituloConversa"
+            );
 
         if (titulo) {
 
@@ -1560,12 +2133,14 @@ async function abrirConversa(id) {
                             item.dataset.id
                         ) === String(id)
                     );
+
                 }
             );
 
         atualizarWelcome();
 
         if (chat) {
+
             chat.scrollTop =
                 chat.scrollHeight;
         }
@@ -1600,7 +2175,8 @@ async function renomearConversa(
         );
 
     if (
-        novoTitulo === null
+        novoTitulo ===
+        null
     ) {
         return;
     }
@@ -1624,17 +2200,23 @@ async function renomearConversa(
                 "/rename_conversation",
                 {
                     method: "POST",
-                    credentials: "same-origin",
+
+                    credentials:
+                        "same-origin",
+
                     headers: {
                         "Accept":
                             "application/json",
+
                         "Content-Type":
                             "application/json"
                     },
+
                     body:
                         JSON.stringify({
                             conversation_id:
                                 id,
+
                             title:
                                 titulo
                         })
@@ -1675,7 +2257,9 @@ async function renomearConversa(
         }
 
         if (
-            String(window.conversationId) ===
+            String(
+                window.conversationId
+            ) ===
             String(id)
         ) {
 
@@ -1707,10 +2291,12 @@ async function renomearConversa(
 
 
 // ============================================================
-// EXCLUIR UMA CONVERSA
+// EXCLUIR CONVERSA
 // ============================================================
 
-async function excluirConversa(id) {
+async function excluirConversa(
+    id
+) {
 
     if (!id) {
         return;
@@ -1733,13 +2319,18 @@ async function excluirConversa(id) {
                 "/delete_conversation",
                 {
                     method: "POST",
-                    credentials: "same-origin",
+
+                    credentials:
+                        "same-origin",
+
                     headers: {
                         "Accept":
                             "application/json",
+
                         "Content-Type":
                             "application/json"
                     },
+
                     body:
                         JSON.stringify({
                             conversation_id:
@@ -1763,7 +2354,9 @@ async function excluirConversa(id) {
         }
 
         if (
-            String(window.conversationId) ===
+            String(
+                window.conversationId
+            ) ===
             String(id)
         ) {
 
@@ -1806,7 +2399,7 @@ async function excluirConversa(id) {
 
 
 // ============================================================
-// CRIAR BARRA DE SELEÇÃO
+// BARRA DE SELEÇÃO
 // ============================================================
 
 function criarBarraSelecao() {
@@ -1827,12 +2420,17 @@ function criarBarraSelecao() {
             ".historico-titulo"
         );
 
-    if (!sidebar || !historicoTitulo) {
+    if (
+        !sidebar ||
+        !historicoTitulo
+    ) {
         return;
     }
 
     const barra =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     barra.id =
         "barraSelecao";
@@ -1937,17 +2535,20 @@ function criarBarraSelecao() {
 
 
 // ============================================================
-// ENTRAR NO MODO SELEÇÃO
+// MODO SELEÇÃO
 // ============================================================
 
 function entrarModoSelecao() {
 
-    modoSelecao = true;
+    modoSelecao =
+        true;
 
     criarBarraSelecao();
 
     const barra =
-        elemento("barraSelecao");
+        elemento(
+            "barraSelecao"
+        );
 
     if (barra) {
 
@@ -1959,13 +2560,10 @@ function entrarModoSelecao() {
 }
 
 
-// ============================================================
-// SAIR DO MODO SELEÇÃO
-// ============================================================
-
 function sairModoSelecao() {
 
-    modoSelecao = false;
+    modoSelecao =
+        false;
 
     document
         .querySelectorAll(
@@ -1981,7 +2579,9 @@ function sairModoSelecao() {
         );
 
     const barra =
-        elemento("barraSelecao");
+        elemento(
+            "barraSelecao"
+        );
 
     if (barra) {
 
@@ -2015,7 +2615,7 @@ function alternarSelecaoConversa(
 
 
 // ============================================================
-// ATUALIZAR VISUAL DA SELEÇÃO
+// VISUAL SELEÇÃO
 // ============================================================
 
 function atualizarSelecaoVisual() {
@@ -2058,6 +2658,7 @@ function atualizarSelecaoVisual() {
                 item.style.background =
                     "";
             }
+
         }
     );
 
@@ -2106,7 +2707,7 @@ function selecionarTodasConversas() {
 
 
 // ============================================================
-// PEGAR IDS SELECIONADOS
+// IDS SELECIONADOS
 // ============================================================
 
 function obterIdsSelecionados() {
@@ -2125,7 +2726,7 @@ function obterIdsSelecionados() {
 
 
 // ============================================================
-// EXCLUIR VÁRIAS CONVERSAS
+// EXCLUIR VÁRIAS
 // ============================================================
 
 async function excluirSelecionadas() {
@@ -2160,7 +2761,8 @@ async function excluirSelecionadas() {
 
     if (botao) {
 
-        botao.disabled = true;
+        botao.disabled =
+            true;
 
         botao.textContent =
             "⏳ Excluindo...";
@@ -2173,13 +2775,18 @@ async function excluirSelecionadas() {
                 "/delete_conversations",
                 {
                     method: "POST",
-                    credentials: "same-origin",
+
+                    credentials:
+                        "same-origin",
+
                     headers: {
                         "Accept":
                             "application/json",
+
                         "Content-Type":
                             "application/json"
                     },
+
                     body:
                         JSON.stringify({
                             conversation_ids:
@@ -2254,7 +2861,8 @@ async function excluirSelecionadas() {
 
         if (botao) {
 
-            botao.disabled = false;
+            botao.disabled =
+                false;
 
             botao.innerHTML =
                 `🗑️ Excluir selecionadas (<span id="contadorSelecionadas">0</span>)`;
@@ -2264,7 +2872,7 @@ async function excluirSelecionadas() {
 
 
 // ============================================================
-// BOTÃO PARA ATIVAR SELEÇÃO
+// DUPLO CLIQUE PARA SELEÇÃO
 // ============================================================
 
 document.addEventListener(
@@ -2292,12 +2900,395 @@ document.addEventListener(
 
 
 // ============================================================
+// CONFIGURAÇÕES - PAINEL
+// ============================================================
+
+function aplicarConfiguracoes() {
+
+    const config =
+        obterConfiguracoes();
+
+
+    // --------------------------------------------------------
+    // TEMA
+    // --------------------------------------------------------
+
+    if (
+        config.tema ===
+        "claro"
+    ) {
+
+        document.body.classList.add(
+            "tema-claro"
+        );
+
+    } else {
+
+        document.body.classList.remove(
+            "tema-claro"
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // SOM
+    // --------------------------------------------------------
+
+    if (vozChat) {
+
+        vozChat.checked =
+            Boolean(
+                config.som
+            );
+    }
+
+    if (configSom) {
+
+        configSom.checked =
+            Boolean(
+                config.som
+            );
+    }
+
+
+    // --------------------------------------------------------
+    // TEMA SELECT
+    // --------------------------------------------------------
+
+    if (configTema) {
+
+        configTema.value =
+            config.tema;
+    }
+
+
+    // --------------------------------------------------------
+    // ANIMAÇÕES
+    // --------------------------------------------------------
+
+    if (configAnimacoes) {
+
+        configAnimacoes.checked =
+            Boolean(
+                config.animacoes
+            );
+    }
+
+
+    // --------------------------------------------------------
+    // ENTER
+    // --------------------------------------------------------
+
+    if (configEnter) {
+
+        configEnter.checked =
+            Boolean(
+                config.enterEnviar
+            );
+    }
+
+
+    // --------------------------------------------------------
+    // VOZ
+    // --------------------------------------------------------
+
+    sincronizarVozConfiguracao();
+
+
+    // --------------------------------------------------------
+    // CANCELAR FALA SE SOM DESLIGADO
+    // --------------------------------------------------------
+
+    if (
+        config.som === false &&
+        "speechSynthesis" in window
+    ) {
+
+        window.speechSynthesis.cancel();
+    }
+
+}
+
+
+// ============================================================
+// PAINEL ABRIR
+// ============================================================
+
+if (
+    btnAbrirConfiguracoes
+) {
+
+    btnAbrirConfiguracoes.addEventListener(
+        "click",
+        function (event) {
+
+            event.preventDefault();
+
+            event.stopPropagation();
+
+            if (painelConfiguracoes) {
+
+                painelConfiguracoes.classList.toggle(
+                    "aberto"
+                );
+            }
+
+        }
+    );
+}
+
+
+// ============================================================
+// FECHAR CONFIGURAÇÕES
+// ============================================================
+
+if (
+    btnFecharConfiguracoes
+) {
+
+    btnFecharConfiguracoes.addEventListener(
+        "click",
+        function () {
+
+            if (painelConfiguracoes) {
+
+                painelConfiguracoes.classList.remove(
+                    "aberto"
+                );
+            }
+
+        }
+    );
+}
+
+
+// ============================================================
+// CLICAR FORA
+// ============================================================
+
+document.addEventListener(
+    "click",
+    function (event) {
+
+        if (
+            !painelConfiguracoes ||
+            !btnAbrirConfiguracoes
+        ) {
+            return;
+        }
+
+        if (
+            painelConfiguracoes.contains(
+                event.target
+            )
+        ) {
+            return;
+        }
+
+        if (
+            event.target ===
+            btnAbrirConfiguracoes
+        ) {
+            return;
+        }
+
+        painelConfiguracoes.classList.remove(
+            "aberto"
+        );
+    }
+);
+
+
+// ============================================================
+// CONFIG TEMA
+// ============================================================
+
+if (configTema) {
+
+    configTema.addEventListener(
+        "change",
+        function () {
+
+            atualizarConfiguracao(
+                "tema",
+                configTema.value
+            );
+        }
+    );
+}
+
+
+// ============================================================
+// CONFIG SOM
+// ============================================================
+
+if (configSom) {
+
+    configSom.addEventListener(
+        "change",
+        function () {
+
+            atualizarConfiguracao(
+                "som",
+                configSom.checked
+            );
+
+            if (vozChat) {
+
+                vozChat.checked =
+                    configSom.checked;
+            }
+
+            if (
+                !configSom.checked &&
+                "speechSynthesis" in window
+            ) {
+
+                window.speechSynthesis.cancel();
+            }
+
+        }
+    );
+}
+
+
+// ============================================================
+// CONFIG VOZ
+// ============================================================
+
+if (configVoz) {
+
+    configVoz.addEventListener(
+        "change",
+        function () {
+
+            const valor =
+                configVoz.value;
+
+            atualizarConfiguracao(
+                "voz",
+                valor
+            );
+
+            aplicarVozConfigurada();
+
+        }
+    );
+}
+
+
+// ============================================================
+// APLICAR VOZ CONFIGURADA
+// ============================================================
+
+function aplicarVozConfigurada() {
+
+    const config =
+        obterConfiguracoes();
+
+    if (!seletorVoz) {
+        return;
+    }
+
+    if (
+        config.voz ===
+        "padrao"
+    ) {
+
+        seletorVoz.value =
+            "default";
+
+        return;
+    }
+
+    const indice =
+        vozes.findIndex(
+            function (voz) {
+
+                return (
+                    voz.name +
+                    "|" +
+                    voz.lang
+                ) === config.voz;
+
+            }
+        );
+
+    if (indice >= 0) {
+
+        seletorVoz.value =
+            String(indice);
+    }
+}
+
+
+// ============================================================
+// CONFIG ANIMAÇÕES
+// ============================================================
+
+if (configAnimacoes) {
+
+    configAnimacoes.addEventListener(
+        "change",
+        function () {
+
+            atualizarConfiguracao(
+                "animacoes",
+                configAnimacoes.checked
+            );
+
+        }
+    );
+}
+
+
+// ============================================================
+// CONFIG ENTER
+// ============================================================
+
+if (configEnter) {
+
+    configEnter.addEventListener(
+        "change",
+        function () {
+
+            atualizarConfiguracao(
+                "enterEnviar",
+                configEnter.checked
+            );
+
+        }
+    );
+}
+
+
+// ============================================================
+// CONFIGURAÇÕES DA CONTA
+// ============================================================
+
+if (btnConfiguracoesConta) {
+
+    btnConfiguracoesConta.addEventListener(
+        "click",
+        function () {
+
+            window.location.href =
+                "/perfil";
+
+        }
+    );
+}
+
+
+// ============================================================
 // INICIALIZAÇÃO
 // ============================================================
 
 document.addEventListener(
     "DOMContentLoaded",
     function () {
+
+        aplicarConfiguracoes();
 
         criarBarraSelecao();
 
@@ -2307,9 +3298,13 @@ document.addEventListener(
 
         carregarHistoricoConversas();
 
+        carregarVozes();
+
         if (mensagemInput) {
+
             mensagemInput.focus();
         }
+
     }
 );
 
@@ -2329,6 +3324,9 @@ window.atalho =
 
 window.limparArquivo =
     limparArquivo;
+
+window.carregarHistorico =
+    carregarHistorico;
 
 window.carregarHistoricoConversas =
     carregarHistoricoConversas;
@@ -2350,3 +3348,13 @@ window.sairModoSelecao =
 
 window.excluirSelecionadas =
     excluirSelecionadas;
+
+window.falarResposta =
+    falarResposta;
+
+window.obterConfiguracoes =
+    obterConfiguracoes;
+
+window.salvarConfiguracoes =
+    salvarConfiguracoes;
+
