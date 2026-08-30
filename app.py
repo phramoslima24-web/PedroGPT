@@ -1137,10 +1137,6 @@ def api_login():
 
                 senha_correta = False
 
-            # =================================================
-            # MIGRAÇÃO DE SENHAS ANTIGAS
-            # =================================================
-
             if not senha_correta:
 
                 senha_antiga = user["password"]
@@ -1245,10 +1241,6 @@ def chat():
 
     try:
 
-        # ====================================================
-        # RECEBER JSON
-        # ====================================================
-
         data = request.get_json(
             silent=True
         ) or {}
@@ -1259,10 +1251,6 @@ def chat():
 
         imagem_base64 = data.get("image")
         tipo_imagem = data.get("image_type")
-
-        # ====================================================
-        # VALIDAR MENSAGEM
-        # ====================================================
 
         if len(mensagem) > 12000:
 
@@ -1277,10 +1265,6 @@ def chat():
                     False
 
             }), 400
-
-        # ====================================================
-        # VALIDAR IMAGEM
-        # ====================================================
 
         if imagem_base64:
 
@@ -1342,10 +1326,6 @@ def chat():
 
                 }), 400
 
-        # ====================================================
-        # PRECISA TER TEXTO OU IMAGEM
-        # ====================================================
-
         if not mensagem and not imagem_base64:
 
             return jsonify({
@@ -1368,10 +1348,6 @@ def chat():
 
         session["plan"] = plan
 
-        # ====================================================
-        # CONVERSA ATUAL
-        # ====================================================
-
         conversation_id = conversa_atual()
 
         if not conversation_id:
@@ -1387,10 +1363,6 @@ def chat():
                     False
 
             }), 500
-
-        # ====================================================
-        # LIMITE FREE
-        # ====================================================
 
         with get_db() as conn:
 
@@ -1437,10 +1409,6 @@ def chat():
                             plan
 
                     }), 429
-
-            # =================================================
-            # SALVAR MENSAGEM
-            # =================================================
 
             mensagem_salva = mensagem
 
@@ -1490,10 +1458,6 @@ def chat():
 
             conn.commit()
 
-        # ====================================================
-        # TÍTULO
-        # ====================================================
-
         if mensagem:
 
             try:
@@ -1510,10 +1474,6 @@ def chat():
                     repr(erro_titulo)
                 )
 
-        # ====================================================
-        # DATA E HORA
-        # ====================================================
-
         agora = datetime.now()
 
         data_atual = agora.strftime(
@@ -1523,10 +1483,6 @@ def chat():
         hora_atual = agora.strftime(
             "%H:%M"
         )
-
-        # ====================================================
-        # ESTILO
-        # ====================================================
 
         if plan == "free":
 
@@ -1550,10 +1506,6 @@ Quando necessário, explique passo a passo.
 Use exemplos quando eles ajudarem
 o usuário a entender.
 """
-
-        # ====================================================
-        # SYSTEM PROMPT
-        # ====================================================
 
         mensagens_ia = [
 
@@ -1630,10 +1582,6 @@ PLANO:
 
         ]
 
-        # ====================================================
-        # HISTÓRICO
-        # ====================================================
-
         with get_db() as conn:
 
             cursor = conn.cursor(
@@ -1672,10 +1620,6 @@ PLANO:
 
             })
 
-        # ====================================================
-        # CONTEÚDO DA MENSAGEM ATUAL
-        # ====================================================
-
         conteudo_usuario = []
 
         if mensagem:
@@ -1706,19 +1650,11 @@ PLANO:
 
             })
 
-        # ====================================================
-        # VERIFICAR GROQ
-        # ====================================================
-
         if client is None:
 
             raise RuntimeError(
                 "GROQ_API_KEY não configurada."
             )
-
-        # ====================================================
-        # CHAMADA GROQ
-        # ====================================================
 
         mensagens_para_api = list(
             mensagens_ia
@@ -1761,10 +1697,6 @@ PLANO:
                 "Não consegui gerar uma resposta."
             )
 
-        # ====================================================
-        # SALVAR RESPOSTA
-        # ====================================================
-
         with get_db() as conn:
 
             cursor = conn.cursor()
@@ -1788,10 +1720,6 @@ PLANO:
             ))
 
             conn.commit()
-
-        # ====================================================
-        # RESPOSTA
-        # ====================================================
 
         return jsonify({
 
@@ -1829,10 +1757,6 @@ PLANO:
         print(
             "=================================================="
         )
-
-        # ====================================================
-        # REVERTER MENSAGEM
-        # ====================================================
 
         try:
 
@@ -2549,6 +2473,23 @@ def delete_conversation(
 
 
 # ============================================================
+# ALIAS API - EXCLUIR CONVERSA
+# ============================================================
+
+@app.route(
+    "/api/conversation/<int:conversation_id>/delete",
+    methods=["DELETE"]
+)
+def api_delete_conversation(
+    conversation_id
+):
+
+    return delete_conversation(
+        conversation_id
+    )
+
+
+# ============================================================
 # EXCLUIR VÁRIAS CONVERSAS
 # ============================================================
 
@@ -2855,20 +2796,6 @@ def api_status():
 
 # ============================================================
 # TRATAMENTO DE ERRO 404
-# ============================================================
-#
-# IMPORTANTE:
-#
-# O erro:
-#
-# Unexpected token 'P', "Página não..." is not valid JSON
-#
-# acontecia porque o navegador fazia fetch()
-# esperando JSON, mas o Flask devolvia:
-#
-# Página não encontrada.
-#
-# Agora TODA rota desconhecida retorna JSON.
 # ============================================================
 
 @app.errorhandler(404)
