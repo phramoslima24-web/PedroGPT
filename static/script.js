@@ -6,6 +6,8 @@ let enviando = false;
 let arquivoSelecionado = null;
 let vozes = [];
 
+window.conversationId = null;
+
 
 // ============================================================
 // ELEMENTOS
@@ -59,7 +61,7 @@ function atualizarWelcome() {
 
 
 // ============================================================
-// ADICIONAR MENSAGEM DO USUÁRIO
+// ADICIONAR MENSAGEM
 // ============================================================
 
 function adicionarMensagem(texto, tipo = "user") {
@@ -101,18 +103,18 @@ function formatarResposta(texto) {
 
     let html = escaparHTML(texto);
 
-    // Código
     html = html.replace(
         /```([\s\S]*?)```/g,
         function (_, codigo) {
 
             return `
-                <pre class="codigo-pedrogpt"><code>${codigo.trim()}</code></pre>
+                <pre class="codigo-pedrogpt">
+                    <code>${codigo.trim()}</code>
+                </pre>
             `;
         }
     );
 
-    // Títulos
     html = html.replace(
         /^### (.*)$/gm,
         "<h4>$1</h4>"
@@ -128,19 +130,16 @@ function formatarResposta(texto) {
         "<h2>$1</h2>"
     );
 
-    // Negrito
     html = html.replace(
         /\*\*(.*?)\*\*/g,
         "<strong>$1</strong>"
     );
 
-    // Itálico
     html = html.replace(
         /\*(.*?)\*/g,
         "<em>$1</em>"
     );
 
-    // Quebras de linha
     html = html.replace(
         /\n/g,
         "<br>"
@@ -168,7 +167,8 @@ function adicionarResposta(texto, falar = true) {
 
     conteudo.className = "conteudo-mensagem";
 
-    conteudo.innerHTML = formatarResposta(texto);
+    conteudo.innerHTML =
+        formatarResposta(texto);
 
     div.appendChild(conteudo);
 
@@ -200,9 +200,11 @@ function mostrarTyping() {
 
     const div = document.createElement("div");
 
-    div.className = "msg-bot typing-message";
+    div.className =
+        "msg-bot typing-message";
 
-    div.id = "typingMessage";
+    div.id =
+        "typingMessage";
 
     div.innerHTML = `
         <div class="conteudo-mensagem">
@@ -219,7 +221,8 @@ function mostrarTyping() {
 
     atualizarWelcome();
 
-    chat.scrollTop = chat.scrollHeight;
+    chat.scrollTop =
+        chat.scrollHeight;
 
     return div;
 }
@@ -227,10 +230,537 @@ function mostrarTyping() {
 
 function removerTyping() {
 
-    const typing = elemento("typingMessage");
+    const typing =
+        elemento("typingMessage");
 
     if (typing) {
         typing.remove();
+    }
+}
+
+
+// ============================================================
+// CSS DO HISTÓRICO
+// ============================================================
+
+function criarEstiloHistorico() {
+
+    if (document.getElementById("estiloHistorico")) {
+        return;
+    }
+
+    const style =
+        document.createElement("style");
+
+    style.id =
+        "estiloHistorico";
+
+    style.textContent = `
+
+        .historico-titulo {
+            font-size: 13px;
+            font-weight: bold;
+            color: rgba(255,255,255,.55);
+            margin-top: 4px;
+            padding: 0 4px;
+        }
+
+        .historico-conversas {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow-y: auto;
+            min-height: 0;
+            flex: 1;
+            padding-right: 3px;
+        }
+
+        .historico-conversa {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            width: 100%;
+            border-radius: 10px;
+            background: rgba(255,255,255,.035);
+            border: 1px solid transparent;
+            transition: .15s ease;
+        }
+
+        .historico-conversa:hover {
+            background: rgba(255,255,255,.075);
+            border-color: rgba(255,255,255,.08);
+        }
+
+        .historico-conversa.ativa {
+            background: rgba(124,58,237,.18);
+            border-color: rgba(124,58,237,.35);
+        }
+
+        .historico-abrir {
+            flex: 1;
+            min-width: 0;
+            border: none;
+            background: transparent;
+            color: white;
+            text-align: left;
+            padding: 10px;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .historico-nome {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 13px;
+        }
+
+        .historico-acoes {
+            display: flex;
+            gap: 2px;
+            padding-right: 5px;
+        }
+
+        .historico-acao {
+            width: 27px;
+            height: 27px;
+            border: none;
+            border-radius: 7px;
+            background: transparent;
+            color: rgba(255,255,255,.65);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .historico-acao:hover {
+            background: rgba(255,255,255,.1);
+            color: white;
+        }
+
+        .historico-acao.excluir:hover {
+            color: #f87171;
+        }
+
+        .historico-vazio {
+            color: rgba(255,255,255,.4);
+            font-size: 12px;
+            text-align: center;
+            padding: 15px 5px;
+        }
+
+        .historico-conversas::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .historico-conversas::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,.15);
+            border-radius: 10px;
+        }
+
+    `;
+
+    document.head.appendChild(style);
+}
+
+
+// ============================================================
+// CRIAR ÁREA DO HISTÓRICO
+// ============================================================
+
+function criarAreaHistorico() {
+
+    const sidebar =
+        document.querySelector(".sidebar");
+
+    if (!sidebar) {
+        return null;
+    }
+
+    let area =
+        elemento("historicoConversas");
+
+    if (area) {
+        return area;
+    }
+
+    criarEstiloHistorico();
+
+    const titulo =
+        document.createElement("div");
+
+    titulo.className =
+        "historico-titulo";
+
+    titulo.textContent =
+        "🗂️ Conversas";
+
+    area =
+        document.createElement("div");
+
+    area.id =
+        "historicoConversas";
+
+    area.className =
+        "historico-conversas";
+
+    const botaoNova =
+        elemento("btnNovaConversa");
+
+    if (botaoNova) {
+
+        botaoNova.insertAdjacentElement(
+            "afterend",
+            titulo
+        );
+
+        titulo.insertAdjacentElement(
+            "afterend",
+            area
+        );
+
+    } else {
+
+        sidebar.appendChild(titulo);
+        sidebar.appendChild(area);
+
+    }
+
+    return area;
+}
+
+
+// ============================================================
+// CARREGAR LISTA DE CONVERSAS
+// ============================================================
+
+async function carregarConversas() {
+
+    const area =
+        criarAreaHistorico();
+
+    if (!area) {
+        return;
+    }
+
+    try {
+
+        const resposta =
+            await fetch(
+                "/conversations",
+                {
+                    method: "GET",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept":
+                            "application/json"
+                    }
+                }
+            );
+
+        if (resposta.status === 401) {
+
+            window.location.href =
+                "/login";
+
+            return;
+        }
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                "Erro ao carregar conversas."
+            );
+        }
+
+        const conversas =
+            await resposta.json();
+
+        area.innerHTML = "";
+
+        if (
+            !Array.isArray(conversas) ||
+            conversas.length === 0
+        ) {
+
+            area.innerHTML = `
+                <div class="historico-vazio">
+                    Nenhuma conversa ainda.
+                </div>
+            `;
+
+            return;
+        }
+
+        conversas.forEach(
+            function (conversa) {
+
+                const item =
+                    document.createElement("div");
+
+                item.className =
+                    "historico-conversa";
+
+                if (
+                    Number(window.conversationId) ===
+                    Number(conversa.id)
+                ) {
+
+                    item.classList.add("ativa");
+                }
+
+                const abrir =
+                    document.createElement("button");
+
+                abrir.type =
+                    "button";
+
+                abrir.className =
+                    "historico-abrir";
+
+                const nome =
+                    document.createElement("span");
+
+                nome.className =
+                    "historico-nome";
+
+                nome.textContent =
+                    conversa.title ||
+                    "Nova conversa";
+
+                abrir.appendChild(nome);
+
+                abrir.addEventListener(
+                    "click",
+                    function () {
+
+                        abrirConversa(
+                            conversa.id
+                        );
+                    }
+                );
+
+                const acoes =
+                    document.createElement("div");
+
+                acoes.className =
+                    "historico-acoes";
+
+                const renomear =
+                    document.createElement("button");
+
+                renomear.type =
+                    "button";
+
+                renomear.className =
+                    "historico-acao";
+
+                renomear.title =
+                    "Renomear";
+
+                renomear.textContent =
+                    "✏️";
+
+                renomear.addEventListener(
+                    "click",
+                    function (event) {
+
+                        event.stopPropagation();
+
+                        renomearConversa(
+                            conversa.id,
+                            conversa.title
+                        );
+                    }
+                );
+
+                const excluir =
+                    document.createElement("button");
+
+                excluir.type =
+                    "button";
+
+                excluir.className =
+                    "historico-acao excluir";
+
+                excluir.title =
+                    "Excluir";
+
+                excluir.textContent =
+                    "🗑️";
+
+                excluir.addEventListener(
+                    "click",
+                    function (event) {
+
+                        event.stopPropagation();
+
+                        excluirConversa(
+                            conversa.id
+                        );
+                    }
+                );
+
+                acoes.appendChild(
+                    renomear
+                );
+
+                acoes.appendChild(
+                    excluir
+                );
+
+                item.appendChild(
+                    abrir
+                );
+
+                item.appendChild(
+                    acoes
+                );
+
+                area.appendChild(
+                    item
+                );
+            }
+        );
+
+    } catch (erro) {
+
+        console.error(
+            "ERRO AO CARREGAR CONVERSAS:",
+            erro
+        );
+
+        area.innerHTML = `
+            <div class="historico-vazio">
+                Não foi possível carregar o histórico.
+            </div>
+        `;
+    }
+}
+
+
+// ============================================================
+// ABRIR CONVERSA
+// ============================================================
+
+async function abrirConversa(
+    conversationId
+) {
+
+    if (enviando) {
+        return;
+    }
+
+    try {
+
+        const resposta =
+            await fetch(
+                `/conversation/${conversationId}`,
+                {
+                    method: "GET",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept":
+                            "application/json"
+                    }
+                }
+            );
+
+        if (resposta.status === 401) {
+
+            window.location.href =
+                "/login";
+
+            return;
+        }
+
+        const dados =
+            await resposta.json();
+
+        if (
+            !resposta.ok ||
+            !dados.success
+        ) {
+
+            throw new Error(
+                dados.message ||
+                "Não foi possível abrir a conversa."
+            );
+        }
+
+        window.conversationId =
+            dados.conversation_id;
+
+        if (chat) {
+            chat.innerHTML = "";
+        }
+
+        removerTyping();
+
+        if (mensagemInput) {
+            mensagemInput.value = "";
+        }
+
+        limparArquivo();
+
+        const titulo =
+            elemento("tituloConversa");
+
+        if (titulo) {
+
+            titulo.textContent =
+                dados.title ||
+                "Nova conversa";
+        }
+
+        if (
+            Array.isArray(
+                dados.messages
+            )
+        ) {
+
+            dados.messages.forEach(
+                function (item) {
+
+                    if (
+                        item.sender === "user"
+                    ) {
+
+                        adicionarMensagem(
+                            item.message,
+                            "user"
+                        );
+
+                    } else {
+
+                        adicionarResposta(
+                            item.message,
+                            false
+                        );
+                    }
+                }
+            );
+        }
+
+        atualizarWelcome();
+
+        await carregarConversas();
+
+        if (mensagemInput) {
+            mensagemInput.focus();
+        }
+
+    } catch (erro) {
+
+        console.error(
+            "ERRO AO ABRIR CONVERSA:",
+            erro
+        );
+
+        alert(
+            "❌ Não foi possível abrir a conversa.\n\n" +
+            erro.message
+        );
     }
 }
 
@@ -245,7 +775,10 @@ async function novaConversa() {
         return;
     }
 
-    const botao = document.querySelector(".nova-conversa");
+    const botao =
+        document.querySelector(
+            ".nova-conversa"
+        );
 
     const textoOriginal =
         botao
@@ -257,35 +790,54 @@ async function novaConversa() {
         enviando = true;
 
         if (botao) {
+
             botao.disabled = true;
-            botao.innerHTML = "⏳ Criando...";
+
+            botao.innerHTML =
+                "⏳ Criando...";
         }
 
-        const resposta = await fetch("/new_chat", {
-            method: "POST",
-            credentials: "same-origin",
-            headers: {
-                "Accept": "application/json",
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({})
-        });
+        const resposta =
+            await fetch(
+                "/new_chat",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept":
+                            "application/json",
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body:
+                        JSON.stringify({})
+                }
+            );
 
-        if (resposta.redirected) {
-            window.location.href = resposta.url;
+        if (resposta.status === 401) {
+
+            window.location.href =
+                "/login";
+
             return;
         }
 
-        const textoResposta = await resposta.text();
+        const textoResposta =
+            await resposta.text();
 
         let dados;
 
         try {
-            dados = JSON.parse(textoResposta);
+
+            dados =
+                JSON.parse(
+                    textoResposta
+                );
+
         } catch (erro) {
 
             console.error(
-                "Resposta inválida do servidor:",
+                "Resposta /new_chat:",
                 textoResposta
             );
 
@@ -294,7 +846,10 @@ async function novaConversa() {
             );
         }
 
-        if (!resposta.ok || !dados.success) {
+        if (
+            !resposta.ok ||
+            !dados.success
+        ) {
 
             throw new Error(
                 dados.message ||
@@ -302,38 +857,34 @@ async function novaConversa() {
             );
         }
 
-        // Atualiza ID local
-        if (dados.conversation_id) {
+        window.conversationId =
+            dados.conversation_id;
 
-            window.conversationId =
-                dados.conversation_id;
-        }
-
-        // Limpa chat
         if (chat) {
             chat.innerHTML = "";
         }
 
         removerTyping();
 
-        // Limpa mensagem
         if (mensagemInput) {
             mensagemInput.value = "";
         }
 
-        // Limpa arquivo
         limparArquivo();
 
-        // Atualiza título
         const titulo =
             elemento("tituloConversa");
 
         if (titulo) {
+
             titulo.textContent =
-                dados.title || "Nova conversa";
+                dados.title ||
+                "Nova conversa";
         }
 
         atualizarWelcome();
+
+        await carregarConversas();
 
         if (mensagemInput) {
             mensagemInput.focus();
@@ -361,10 +912,190 @@ async function novaConversa() {
         enviando = false;
 
         if (botao) {
+
             botao.disabled = false;
+
             botao.innerHTML =
-                textoOriginal || "🆕 Nova conversa";
+                textoOriginal ||
+                "🆕 Nova conversa";
         }
+    }
+}
+
+
+// ============================================================
+// RENOMEAR CONVERSA
+// ============================================================
+
+async function renomearConversa(
+    conversationId,
+    tituloAtual
+) {
+
+    const novoTitulo =
+        prompt(
+            "Digite o novo nome da conversa:",
+            tituloAtual ||
+            "Nova conversa"
+        );
+
+    if (novoTitulo === null) {
+        return;
+    }
+
+    const titulo =
+        novoTitulo.trim();
+
+    if (!titulo) {
+
+        alert(
+            "❌ O nome da conversa não pode ficar vazio."
+        );
+
+        return;
+    }
+
+    try {
+
+        const resposta =
+            await fetch(
+                `/conversation/${conversationId}/rename`,
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+                        "Accept":
+                            "application/json"
+                    },
+                    body:
+                        JSON.stringify({
+                            title: titulo
+                        })
+                }
+            );
+
+        const dados =
+            await resposta.json();
+
+        if (
+            !resposta.ok ||
+            !dados.success
+        ) {
+
+            throw new Error(
+                dados.message ||
+                "Não foi possível renomear."
+            );
+        }
+
+        if (
+            Number(window.conversationId) ===
+            Number(conversationId)
+        ) {
+
+            const tituloElemento =
+                elemento("tituloConversa");
+
+            if (tituloElemento) {
+
+                tituloElemento.textContent =
+                    dados.title;
+            }
+        }
+
+        await carregarConversas();
+
+    } catch (erro) {
+
+        console.error(
+            "ERRO AO RENOMEAR:",
+            erro
+        );
+
+        alert(
+            "❌ Não foi possível renomear a conversa.\n\n" +
+            erro.message
+        );
+    }
+}
+
+
+// ============================================================
+// EXCLUIR CONVERSA
+// ============================================================
+
+async function excluirConversa(
+    conversationId
+) {
+
+    const confirmar =
+        confirm(
+            "Tem certeza que deseja excluir esta conversa?"
+        );
+
+    if (!confirmar) {
+        return;
+    }
+
+    try {
+
+        const resposta =
+            await fetch(
+                `/conversation/${conversationId}`,
+                {
+                    method: "DELETE",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept":
+                            "application/json"
+                    }
+                }
+            );
+
+        const dados =
+            await resposta.json();
+
+        if (
+            !resposta.ok ||
+            !dados.success
+        ) {
+
+            throw new Error(
+                dados.message ||
+                "Não foi possível excluir a conversa."
+            );
+        }
+
+        if (
+            Number(window.conversationId) ===
+            Number(conversationId)
+        ) {
+
+            window.conversationId =
+                dados.conversation_id;
+
+            await abrirConversa(
+                dados.conversation_id
+            );
+
+        } else {
+
+            await carregarConversas();
+        }
+
+    } catch (erro) {
+
+        console.error(
+            "ERRO AO EXCLUIR:",
+            erro
+        );
+
+        alert(
+            "❌ Não foi possível excluir a conversa.\n\n" +
+            erro.message
+        );
     }
 }
 
@@ -390,27 +1121,31 @@ async function enviar() {
         arquivoSelecionado !== null;
 
     if (!texto && !temArquivo) {
+
         mensagemInput.focus();
+
         return;
     }
 
     enviando = true;
 
     if (btnEnviar) {
+
         btnEnviar.disabled = true;
-        btnEnviar.textContent = "Enviando...";
+
+        btnEnviar.textContent =
+            "Enviando...";
     }
 
-    // ========================================================
-    // MOSTRAR MENSAGEM
-    // ========================================================
-
     if (texto) {
+
         adicionarMensagem(
             texto,
             "user"
         );
+
     } else {
+
         adicionarMensagem(
             "📷 Imagem enviada",
             "user"
@@ -424,17 +1159,9 @@ async function enviar() {
 
     try {
 
-        // ====================================================
-        // PREPARAR DADOS
-        // ====================================================
-
         const dadosEnvio = {
             message: texto
         };
-
-        // ====================================================
-        // IMAGEM
-        // ====================================================
 
         if (arquivoSelecionado) {
 
@@ -442,64 +1169,58 @@ async function enviar() {
                 arquivoSelecionado;
 
             if (
-                arquivo.type &&
-                arquivo.type.startsWith("image/")
+                !arquivo.type ||
+                !arquivo.type.startsWith(
+                    "image/"
+                )
             ) {
-
-                const base64 =
-                    await converterArquivoBase64(
-                        arquivo
-                    );
-
-                dadosEnvio.image =
-                    base64.split(",")[1];
-
-                dadosEnvio.image_type =
-                    arquivo.type;
-
-            } else {
 
                 if (typing) {
                     typing.remove();
                 }
 
                 adicionarResposta(
-                    "❌ No momento, o Orion AI aceita apenas imagens JPG, PNG, WEBP ou GIF."
+                    "❌ No momento, o Orion AI aceita apenas imagens."
                 );
 
                 return;
             }
+
+            const base64 =
+                await converterArquivoBase64(
+                    arquivo
+                );
+
+            dadosEnvio.image =
+                base64.split(",")[1];
+
+            dadosEnvio.image_type =
+                arquivo.type;
         }
 
-        // ====================================================
-        // ENVIAR PARA FLASK
-        // ====================================================
-
         const resposta =
-            await fetch("/chat", {
+            await fetch(
+                "/chat",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept":
+                            "application/json",
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body:
+                        JSON.stringify(
+                            dadosEnvio
+                        )
+                }
+            );
 
-                method: "POST",
-
-                credentials: "same-origin",
-
-                headers: {
-                    "Accept":
-                        "application/json",
-
-                    "Content-Type":
-                        "application/json"
-                },
-
-                body:
-                    JSON.stringify(
-                        dadosEnvio
-                    )
-            });
-
-        if (resposta.redirected) {
+        if (resposta.status === 401) {
 
             window.location.href =
-                resposta.url;
+                "/login";
 
             return;
         }
@@ -519,7 +1240,7 @@ async function enviar() {
         } catch (erro) {
 
             console.error(
-                "Resposta do /chat:",
+                "Resposta /chat:",
                 textoResposta
             );
 
@@ -528,17 +1249,9 @@ async function enviar() {
             );
         }
 
-        // ====================================================
-        // REMOVER TYPING
-        // ====================================================
-
         if (typing) {
             typing.remove();
         }
-
-        // ====================================================
-        // ERRO
-        // ====================================================
 
         if (
             !resposta.ok ||
@@ -554,39 +1267,20 @@ async function enviar() {
             return;
         }
 
-        // ====================================================
-        // ATUALIZAR CONVERSA
-        // ====================================================
-
         if (dados.conversation_id) {
 
             window.conversationId =
                 dados.conversation_id;
         }
 
-        // ====================================================
-        // RESPOSTA
-        // ====================================================
-
         adicionarResposta(
             dados.reply ||
             "Não recebi uma resposta da IA."
         );
 
-        // Atualiza título
-        if (dados.title) {
-
-            const titulo =
-                elemento("tituloConversa");
-
-            if (titulo) {
-                titulo.textContent =
-                    dados.title;
-            }
-        }
-
-        // Limpa arquivo depois do envio
         limparArquivo();
+
+        await carregarConversas();
 
     } catch (erro) {
 
@@ -608,8 +1302,11 @@ async function enviar() {
         enviando = false;
 
         if (btnEnviar) {
+
             btnEnviar.disabled = false;
-            btnEnviar.textContent = "Enviar";
+
+            btnEnviar.textContent =
+                "Enviar";
         }
 
         if (mensagemInput) {
@@ -620,19 +1317,22 @@ async function enviar() {
 
 
 // ============================================================
-// CONVERTER ARQUIVO PARA BASE64
+// CONVERTER ARQUIVO
 // ============================================================
 
-function converterArquivoBase64(arquivo) {
+function converterArquivoBase64(
+    arquivo
+) {
 
     return new Promise(
-        (resolve, reject) => {
+        function (resolve, reject) {
 
             const leitor =
                 new FileReader();
 
             leitor.onload =
                 function () {
+
                     resolve(
                         leitor.result
                     );
@@ -640,6 +1340,7 @@ function converterArquivoBase64(arquivo) {
 
             leitor.onerror =
                 function () {
+
                     reject(
                         new Error(
                             "Não foi possível ler a imagem."
@@ -698,7 +1399,7 @@ if (btnEnviar) {
 
 
 // ============================================================
-// NOVA CONVERSA - GARANTIR EVENTO
+// BOTÃO NOVA CONVERSA
 // ============================================================
 
 document.addEventListener(
@@ -707,7 +1408,7 @@ document.addEventListener(
 
         const botao =
             event.target.closest(
-                ".nova-conversa"
+                "#btnNovaConversa, .nova-conversa"
             );
 
         if (!botao) {
@@ -722,7 +1423,7 @@ document.addEventListener(
 
 
 // ============================================================
-// ATALHOS
+// ATALHO
 // ============================================================
 
 function atalho(texto) {
@@ -744,7 +1445,10 @@ function atalho(texto) {
 // ARQUIVO
 // ============================================================
 
-if (btnArquivo && arquivoInput) {
+if (
+    btnArquivo &&
+    arquivoInput
+) {
 
     btnArquivo.addEventListener(
         "click",
@@ -775,16 +1479,15 @@ if (arquivoInput) {
                 return;
             }
 
-            // Apenas imagens
             if (
-                arquivo.type &&
+                !arquivo.type ||
                 !arquivo.type.startsWith(
                     "image/"
                 )
             ) {
 
                 alert(
-                    "❌ Selecione uma imagem JPG, PNG, WEBP ou GIF."
+                    "❌ Selecione uma imagem."
                 );
 
                 limparArquivo();
@@ -792,7 +1495,6 @@ if (arquivoInput) {
                 return;
             }
 
-            // Limite 20 MB
             if (
                 arquivo.size >
                 20 * 1024 * 1024
@@ -960,7 +1662,7 @@ if (
 
 
 // ============================================================
-// FALAR RESPOSTA
+// FALAR
 // ============================================================
 
 function falarResposta(texto) {
@@ -1023,9 +1725,14 @@ function falarResposta(texto) {
         }
     }
 
-    fala.lang = "pt-BR";
-    fala.rate = 1;
-    fala.pitch = 1;
+    fala.lang =
+        "pt-BR";
+
+    fala.rate =
+        1;
+
+    fala.pitch =
+        1;
 
     window.speechSynthesis.speak(
         fala
@@ -1055,7 +1762,7 @@ if (btnTestarVoz) {
 
 
 // ============================================================
-// CARREGAR HISTÓRICO
+// CARREGAR HISTÓRICO DA CONVERSA ATUAL
 // ============================================================
 
 async function carregarHistorico() {
@@ -1071,8 +1778,7 @@ async function carregarHistorico() {
                 "/history",
                 {
                     method: "GET",
-                    credentials:
-                        "same-origin",
+                    credentials: "same-origin",
                     headers: {
                         "Accept":
                             "application/json"
@@ -1091,11 +1797,6 @@ async function carregarHistorico() {
         }
 
         if (!resposta.ok) {
-
-            console.warn(
-                "Erro ao carregar histórico:",
-                resposta.status
-            );
 
             atualizarWelcome();
 
@@ -1143,7 +1844,7 @@ async function carregarHistorico() {
     } catch (erro) {
 
         console.error(
-            "ERRO AO CARREGAR HISTÓRICO:",
+            "ERRO HISTÓRICO:",
             erro
         );
 
@@ -1158,16 +1859,19 @@ async function carregarHistorico() {
 
 document.addEventListener(
     "DOMContentLoaded",
-    function () {
+    async function () {
+
+        criarAreaHistorico();
 
         atualizarWelcome();
 
-        carregarHistorico();
+        await carregarHistorico();
+
+        await carregarConversas();
 
         if (mensagemInput) {
             mensagemInput.focus();
         }
-
     }
 );
 
@@ -1187,3 +1891,15 @@ window.atalho =
 
 window.limparArquivo =
     limparArquivo;
+
+window.abrirConversa =
+    abrirConversa;
+
+window.carregarConversas =
+    carregarConversas;
+
+window.renomearConversa =
+    renomearConversa;
+
+window.excluirConversa =
+    excluirConversa;
