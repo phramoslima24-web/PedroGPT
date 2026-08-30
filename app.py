@@ -2,7 +2,10 @@
 import os
 import secrets
 import re
-from datetime import datetime
+import smtplib
+
+from datetime import datetime, timedelta
+from email.message import EmailMessage
 
 import psycopg2
 import psycopg2.extras
@@ -44,7 +47,13 @@ app.secret_key = os.getenv(
 )
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
 DATABASE_URL = os.getenv("DATABASE_URL")
+
+
+# ============================================================
+# ADMIN
+# ============================================================
 
 ADMIN_USERNAME = os.getenv(
     "ADMIN_USERNAME",
@@ -56,6 +65,11 @@ ADMIN_PASSWORD = os.getenv(
     ""
 )
 
+
+# ============================================================
+# GOOGLE
+# ============================================================
+
 GOOGLE_CLIENT_ID = os.getenv(
     "GOOGLE_CLIENT_ID",
     ""
@@ -65,6 +79,40 @@ GOOGLE_CLIENT_SECRET = os.getenv(
     "GOOGLE_CLIENT_SECRET",
     ""
 ).strip()
+
+
+# ============================================================
+# SMTP / RECUPERAÇÃO DE CONTA
+# ============================================================
+
+SMTP_HOST = os.getenv(
+    "SMTP_HOST",
+    ""
+).strip()
+
+SMTP_PORT = int(
+    os.getenv(
+        "SMTP_PORT",
+        "587"
+    )
+)
+
+SMTP_USER = os.getenv(
+    "SMTP_USER",
+    ""
+).strip()
+
+SMTP_PASSWORD = os.getenv(
+    "SMTP_PASSWORD",
+    ""
+)
+
+SMTP_FROM = os.getenv(
+    "SMTP_FROM",
+    SMTP_USER
+).strip()
+
+RESET_TOKEN_EXPIRATION_MINUTES = 30
 
 
 # ============================================================
@@ -179,6 +227,12 @@ def init_db():
             WHERE google_id IS NOT NULL
         """)
 
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS
+            users_email_index
+            ON users (LOWER(email))
+        """)
+
         # ----------------------------------------------------
         # MESSAGES
         # ----------------------------------------------------
@@ -224,6 +278,37 @@ def init_db():
             )
         """)
 
+        # ----------------------------------------------------
+        # TOKENS DE RECUPERAÇÃO
+        # ----------------------------------------------------
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                token_hash TEXT UNIQUE NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                used BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (user_id)
+                REFERENCES users(id)
+                ON DELETE CASCADE
+            )
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS
+            password_reset_user_index
+            ON password_reset_tokens (user_id)
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS
+            password_reset_expiration_index
+            ON password_reset_tokens (expires_at)
+        """)
+
         conn.commit()
 
 
@@ -256,7 +341,7 @@ def version():
             True,
 
         "version":
-            "1.3",
+            "1.4",
 
         "apk_url":
             "https://drive.google.com/file/d/1mdpeCrIJNcU2DlHLabjgh17zvM2ha703/view?usp=drive_link"
@@ -493,6 +578,10 @@ def obter_plan_usuario(username):
         ).lower()
 
 
+# ============================================================
+# GOOGLE - GERAR USERNAME
+# ============================================================
+
 def gerar_username_google(
     nome,
     email
@@ -574,6 +663,10 @@ def gerar_username_google(
                 f"{nome_base}_{secrets.token_hex(3)}"
             )
 
+
+# ============================================================
+# GOOGLE - LOGIN
+# ============================================================
 
 def login_com_google(
     google_id,
@@ -786,6 +879,203 @@ def login_com_google(
 
 
 # ============================================================
+# RECUPERAÇÃO DE CONTA
+# ============================================================
+
+def enviar_email_recuperacao(
+    email,
+    link
+):
+
+    if not SMTP_HOST:
+
+        raise RuntimeError(
+            "SMTP_HOST não está configurado."
+        )
+
+    if not SMTP_USER:
+
+        raise RuntimeError(
+            "SMTP_USER não está configurado."
+        )
+
+    if not SMTP_PASSWORD:
+
+        raise RuntimeError(
+            "SMTP_PASSWORD não está configurado."
+        )
+
+    if not SMTP_FROM:
+
+        raise RuntimeError(
+            "SMTP_FROM não está configurado."
+        )
+
+    mensagem = EmailMessage()
+
+    mensagem["Subject"] = (
+        "Recuperação da sua conta - Orion AI"
+    )
+
+    mensagem["From"] = SMTP_FROM
+
+    mensagem["To"] = email
+
+    mensagem.set_content(
+        f"""Olá!
+
+Recebemos uma solicitação para redefinir a senha da sua conta no Orion AI.
+
+Para criar uma nova senha, acesse o link abaixo:
+
+{link}
+
+Este link ficará disponível por {RESET_TOKEN_EXPIRATION_MINUTES} minutos.
+
+Se você não solicitou essa alteração, ignore este e-mail.
+
+Atenciosamente,
+Orion AI
+"""
+    )
+
+    with smtplib.SMTP(
+        SMTP_HOST,
+        SMTP_PORT,
+        timeout=20
+    ) as servidor:
+
+        servidor.starttls()
+
+        servidor.login(
+            SMTP_USER,
+            SMTP_PASSWORD
+        )
+
+        servidor.send_message(
+            mensagem
+        )
+
+
+def criar_token_recuperacao(
+    user_id
+):
+
+    token = secrets.token_urlsafe(
+        48
+    )
+
+    # O token real nunca é salvo no banco.
+    token_hash = generate_password_hash(
+        token
+    )
+
+    expiracao = (
+        datetime.utcnow()
+        + timedelta(
+            minutes=RESET_TOKEN_EXPIRATION_MINUTES
+        )
+    )
+
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        # Invalida tokens antigos
+        cursor.execute("""
+            UPDATE password_reset_tokens
+            SET used = TRUE
+            WHERE user_id = %s
+            AND used = FALSE
+        """, (
+            user_id,
+        ))
+
+        cursor.execute("""
+            INSERT INTO password_reset_tokens
+            (
+                user_id,
+                token_hash,
+                expires_at,
+                used
+            )
+            VALUES
+            (%s, %s, %s, FALSE)
+        """, (
+            user_id,
+            token_hash,
+            expiracao
+        ))
+
+        conn.commit()
+
+    return token
+
+
+def validar_token_recuperacao(
+    token
+):
+
+    if not token:
+
+        return None
+
+    agora = datetime.utcnow()
+
+    try:
+
+        with get_db() as conn:
+
+            cursor = conn.cursor(
+                cursor_factory=
+                psycopg2.extras.RealDictCursor
+            )
+
+            cursor.execute("""
+                SELECT
+                    id,
+                    user_id,
+                    token_hash,
+                    expires_at,
+                    used
+                FROM password_reset_tokens
+                WHERE used = FALSE
+                AND expires_at > %s
+                ORDER BY id DESC
+            """, (
+                agora,
+            ))
+
+            tokens = cursor.fetchall()
+
+            for item in tokens:
+
+                try:
+
+                    valido = check_password_hash(
+                        item["token_hash"],
+                        token
+                    )
+
+                except Exception:
+
+                    valido = False
+
+                if valido:
+
+                    return item
+
+    except Exception as e:
+
+        print(
+            "ERRO AO VALIDAR TOKEN:",
+            repr(e)
+        )
+
+    return None
+
+
+# ============================================================
 # VERIFICAR ADMIN
 # ============================================================
 
@@ -799,7 +1089,7 @@ def verificar_admin():
 
 
 # ============================================================
-# LOGIN GOOGLE
+# GOOGLE LOGIN
 # ============================================================
 
 @app.route("/google/login")
@@ -834,7 +1124,7 @@ def google_login():
 
 
 # ============================================================
-# CALLBACK GOOGLE
+# GOOGLE CALLBACK
 # ============================================================
 
 @app.route("/google/callback")
@@ -1012,6 +1302,60 @@ def logout():
 
     return redirect(
         url_for("login")
+    )
+
+
+# ============================================================
+# RECUPERAR CONTA - PÁGINA
+# ============================================================
+
+@app.route("/recuperar-conta")
+def recuperar_conta():
+
+    if "user" in session:
+
+        return redirect(
+            url_for("home")
+        )
+
+    return render_template(
+        "recuperar.html"
+    )
+
+
+# ============================================================
+# REDEFINIR SENHA - PÁGINA
+# ============================================================
+
+@app.route(
+    "/redefinir-senha/<token>"
+)
+def reset_password_page(
+    token
+):
+
+    if "user" in session:
+
+        return redirect(
+            url_for("home")
+        )
+
+    item = validar_token_recuperacao(
+        token
+    )
+
+    if not item:
+
+        return render_template(
+            "reset_password.html",
+            token="",
+            token_invalido=True
+        )
+
+    return render_template(
+        "reset_password.html",
+        token=token,
+        token_invalido=False
     )
 
 
@@ -1478,6 +1822,7 @@ def change_username():
             conn.commit()
 
         session["user"] = novo_username
+
         session.modified = True
 
         print(
@@ -1805,6 +2150,351 @@ def change_password():
 
             "message":
                 "Erro interno ao alterar a senha."
+
+        }), 500
+
+
+# ============================================================
+# API - SOLICITAR RECUPERAÇÃO
+# ============================================================
+
+@app.route(
+    "/api/forgot-password",
+    methods=["POST"]
+)
+def forgot_password():
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    email = str(
+        data.get("email") or ""
+    ).strip().lower()
+
+    resposta_padrao = {
+
+        "success":
+            True,
+
+        "message":
+            "Se existir uma conta com esse e-mail, "
+            "você receberá um link para redefinir sua senha."
+
+    }
+
+    if not email:
+
+        return jsonify(
+            resposta_padrao
+        )
+
+    if (
+        len(email) > 320
+        or "@" not in email
+        or "." not in email.split("@")[-1]
+    ):
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Digite um e-mail válido."
+
+        }), 400
+
+    try:
+
+        with get_db() as conn:
+
+            cursor = conn.cursor(
+                cursor_factory=
+                psycopg2.extras.RealDictCursor
+            )
+
+            cursor.execute("""
+                SELECT
+                    id,
+                    username,
+                    email
+                FROM users
+                WHERE LOWER(email) = %s
+                LIMIT 1
+            """, (
+                email,
+            ))
+
+            usuario = cursor.fetchone()
+
+        if not usuario:
+
+            return jsonify(
+                resposta_padrao
+            )
+
+        token = criar_token_recuperacao(
+            usuario["id"]
+        )
+
+        link = url_for(
+            "reset_password_page",
+            token=token,
+            _external=True
+        )
+
+        enviar_email_recuperacao(
+            email,
+            link
+        )
+
+        print(
+            "RECUPERAÇÃO DE CONTA ENVIADA:",
+            usuario["username"],
+            email
+        )
+
+        return jsonify(
+            resposta_padrao
+        )
+
+    except Exception as e:
+
+        print(
+            "=================================================="
+        )
+
+        print(
+            "ERRO RECUPERAÇÃO DE CONTA:"
+        )
+
+        print(
+            repr(e)
+        )
+
+        print(
+            "=================================================="
+        )
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Não foi possível enviar o e-mail de recuperação agora."
+
+        }), 500
+
+
+# ============================================================
+# API - REDEFINIR SENHA
+# ============================================================
+
+@app.route(
+    "/api/reset-password",
+    methods=["POST"]
+)
+def reset_password():
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    token = str(
+        data.get("token") or ""
+    ).strip()
+
+    nova_senha = str(
+        data.get("new_password") or ""
+    )
+
+    confirmacao = str(
+        data.get("confirm_password") or ""
+    )
+
+    if (
+        not token
+        or not nova_senha
+        or not confirmacao
+    ):
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Preencha todos os campos."
+
+        }), 400
+
+    if len(nova_senha) < 6:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "A senha precisa ter pelo menos 6 caracteres."
+
+        }), 400
+
+    if len(nova_senha) > 200:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "A senha é muito longa."
+
+        }), 400
+
+    if not any(
+        caractere.isdigit()
+        for caractere in nova_senha
+    ):
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "A senha precisa ter pelo menos 1 número."
+
+        }), 400
+
+    if nova_senha != confirmacao:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "As senhas não são iguais."
+
+        }), 400
+
+    item = validar_token_recuperacao(
+        token
+    )
+
+    if not item:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Este link de recuperação é inválido ou expirou."
+
+        }), 400
+
+    nova_hash = (
+        generate_password_hash(
+            nova_senha
+        )
+    )
+
+    try:
+
+        with get_db() as conn:
+
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                UPDATE users
+                SET password = %s
+                WHERE id = %s
+            """, (
+                nova_hash,
+                item["user_id"]
+            ))
+
+            if cursor.rowcount == 0:
+
+                conn.rollback()
+
+                return jsonify({
+
+                    "success":
+                        False,
+
+                    "message":
+                        "Usuário não encontrado."
+
+                }), 404
+
+            # Token usado não pode ser reutilizado
+            cursor.execute("""
+                UPDATE password_reset_tokens
+                SET used = TRUE
+                WHERE id = %s
+            """, (
+                item["id"],
+            ))
+
+            # Invalidar todos os outros tokens
+            cursor.execute("""
+                UPDATE password_reset_tokens
+                SET used = TRUE
+                WHERE user_id = %s
+                AND id != %s
+                AND used = FALSE
+            """, (
+                item["user_id"],
+                item["id"]
+            ))
+
+            conn.commit()
+
+        print(
+            "SENHA RECUPERADA COM SUCESSO:",
+            item["user_id"]
+        )
+
+        return jsonify({
+
+            "success":
+                True,
+
+            "message":
+                "Senha redefinida com sucesso."
+
+        })
+
+    except Exception as e:
+
+        print(
+            "=================================================="
+        )
+
+        print(
+            "ERRO AO REDEFINIR SENHA:"
+        )
+
+        print(
+            repr(e)
+        )
+
+        print(
+            "=================================================="
+        )
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Erro interno ao redefinir a senha."
 
         }), 500
 
@@ -2172,8 +2862,8 @@ def admin_change_plan(user_id):
                 }), 404
 
             if (
-                usuario["username"] ==
-                ADMIN_USERNAME
+                usuario["username"]
+                == ADMIN_USERNAME
             ):
 
                 return jsonify({
@@ -2326,6 +3016,13 @@ def admin_delete_user(user_id):
             ))
 
             cursor.execute("""
+                DELETE FROM password_reset_tokens
+                WHERE user_id = %s
+            """, (
+                user_id,
+            ))
+
+            cursor.execute("""
                 DELETE FROM users
                 WHERE id = %s
             """, (
@@ -2384,7 +3081,11 @@ def api_register():
         data.get("password") or ""
     )
 
-    if not username or not password:
+    email = str(
+        data.get("email") or ""
+    ).strip().lower()
+
+    if not username or not password or not email:
 
         return jsonify({
 
@@ -2417,6 +3118,21 @@ def api_register():
 
             "message":
                 "O usuário pode ter no máximo 30 caracteres."
+
+        }), 400
+
+    if not re.fullmatch(
+        r"[A-Za-z0-9_]+",
+        username
+    ):
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Use apenas letras, números e _ no nome de usuário."
 
         }), 400
 
@@ -2459,7 +3175,26 @@ def api_register():
 
         }), 400
 
-    if username == ADMIN_USERNAME:
+    if (
+        len(email) > 320
+        or "@" not in email
+        or "." not in email.split("@")[-1]
+    ):
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Digite um e-mail válido."
+
+        }), 400
+
+    if (
+        username.lower()
+        == ADMIN_USERNAME.lower()
+    ):
 
         return jsonify({
 
@@ -2483,14 +3218,45 @@ def api_register():
 
             cursor = conn.cursor()
 
+            # ------------------------------------------------
+            # VERIFICAR E-MAIL
+            # ------------------------------------------------
+
+            cursor.execute("""
+                SELECT id
+                FROM users
+                WHERE LOWER(email) = %s
+            """, (
+                email,
+            ))
+
+            if cursor.fetchone():
+
+                return jsonify({
+
+                    "success":
+                        False,
+
+                    "message":
+                        "Esse e-mail já está cadastrado."
+
+                }), 409
+
             cursor.execute("""
                 INSERT INTO users
-                (username, password, plan)
-                VALUES (%s, %s, %s)
+                (
+                    username,
+                    password,
+                    plan,
+                    email
+                )
+                VALUES
+                (%s, %s, %s, %s)
             """, (
                 username,
                 password_hash,
-                "free"
+                "free",
+                email
             ))
 
             conn.commit()
@@ -2513,7 +3279,7 @@ def api_register():
                 False,
 
             "message":
-                "Usuário já existe."
+                "Usuário ou e-mail já existe."
 
         }), 409
 
@@ -2569,7 +3335,10 @@ def api_login():
 
         }), 400
 
-    if username == ADMIN_USERNAME:
+    if (
+        username.lower()
+        == ADMIN_USERNAME.lower()
+    ):
 
         return jsonify({
 
@@ -4034,7 +4803,7 @@ def api_rename_conversation(
 
 
 # ============================================================
-# FUNÇÃO INTERNA - EXCLUIR UMA CONVERSA
+# FUNÇÃO INTERNA - EXCLUIR CONVERSA
 # ============================================================
 
 def executar_exclusao_conversa(
@@ -4263,7 +5032,7 @@ def executar_exclusao_conversa(
 
 
 # ============================================================
-# EXCLUIR UMA CONVERSA - ROTA PRINCIPAL
+# EXCLUIR UMA CONVERSA
 # ============================================================
 
 @app.route(
@@ -4280,7 +5049,7 @@ def delete_conversation(
 
 
 # ============================================================
-# EXCLUIR UMA CONVERSA - ROTA DO SCRIPT.JS
+# DELETE LEGACY
 # ============================================================
 
 @app.route(
@@ -4316,7 +5085,7 @@ def delete_conversation_legacy():
 
 
 # ============================================================
-# ALIAS API - EXCLUSÃO INDIVIDUAL
+# ALIAS API DELETE
 # ============================================================
 
 @app.route(
@@ -4333,7 +5102,7 @@ def api_delete_conversation(
 
 
 # ============================================================
-# ALIAS COM /delete
+# ALIAS /delete
 # ============================================================
 
 @app.route(
@@ -4350,7 +5119,7 @@ def delete_conversation_with_delete(
 
 
 # ============================================================
-# ALIAS API COM /delete
+# ALIAS API /delete
 # ============================================================
 
 @app.route(
@@ -4367,7 +5136,7 @@ def api_delete_conversation_with_delete(
 
 
 # ============================================================
-# FUNÇÃO INTERNA - EXCLUIR VÁRIAS CONVERSAS
+# FUNÇÃO INTERNA - EXCLUIR VÁRIAS
 # ============================================================
 
 def executar_exclusao_varias_conversas(
@@ -4378,7 +5147,8 @@ def executar_exclusao_varias_conversas(
 
         return jsonify({
 
-            "success": False,
+            "success":
+                False,
 
             "message":
                 "Faça login primeiro."
@@ -4394,7 +5164,8 @@ def executar_exclusao_varias_conversas(
 
             return jsonify({
 
-                "success": False,
+                "success":
+                    False,
 
                 "message":
                     "Lista de conversas inválida."
@@ -4405,7 +5176,8 @@ def executar_exclusao_varias_conversas(
 
             return jsonify({
 
-                "success": False,
+                "success":
+                    False,
 
                 "message":
                     "Nenhuma conversa foi selecionada."
@@ -4445,7 +5217,8 @@ def executar_exclusao_varias_conversas(
 
             return jsonify({
 
-                "success": False,
+                "success":
+                    False,
 
                 "message":
                     "Nenhuma conversa válida foi selecionada."
@@ -4492,7 +5265,8 @@ def executar_exclusao_varias_conversas(
 
                 return jsonify({
 
-                    "success": False,
+                    "success":
+                        False,
 
                     "message":
                         "Nenhuma das conversas selecionadas pertence ao usuário."
@@ -4665,7 +5439,7 @@ def executar_exclusao_varias_conversas(
 
 
 # ============================================================
-# EXCLUIR VÁRIAS CONVERSAS - ROTA PRINCIPAL
+# EXCLUIR VÁRIAS - PRINCIPAL
 # ============================================================
 
 @app.route(
@@ -4696,7 +5470,7 @@ def delete_multiple_conversations():
 
 
 # ============================================================
-# ROTA QUE O SCRIPT.JS USA
+# EXCLUIR VÁRIAS - LEGACY
 # ============================================================
 
 @app.route(
@@ -4729,7 +5503,7 @@ def delete_conversations_legacy():
 
 
 # ============================================================
-# ALIAS API - EXCLUIR VÁRIAS
+# API VÁRIAS
 # ============================================================
 
 @app.route(
@@ -4885,7 +5659,7 @@ def api_status():
 
 
 # ============================================================
-# TRATAMENTO DE ERRO 404
+# TRATAMENTO 404
 # ============================================================
 
 @app.errorhandler(404)
@@ -4915,7 +5689,7 @@ def erro_404(error):
 
 
 # ============================================================
-# TRATAMENTO DE ERRO 500
+# TRATAMENTO 500
 # ============================================================
 
 @app.errorhandler(500)
