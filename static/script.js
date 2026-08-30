@@ -1,10 +1,10 @@
-````javascript
 // ============================================================
 // ORION AI - SCRIPT.JS
 // ============================================================
 
 let enviando = false;
 let arquivoSelecionado = null;
+let vozes = [];
 
 
 // ============================================================
@@ -14,6 +14,16 @@ let arquivoSelecionado = null;
 function elemento(id) {
     return document.getElementById(id);
 }
+
+const chat = elemento("chat");
+const welcome = elemento("welcome");
+const mensagemInput = elemento("mensagem");
+const btnEnviar = elemento("btnEnviar");
+const btnArquivo = elemento("btnArquivo");
+const arquivoInput = elemento("arquivo");
+const arquivoBox = elemento("arquivoSelecionado");
+const nomeArquivo = elemento("nomeArquivo");
+const removerArquivo = elemento("removerArquivo");
 
 
 // ============================================================
@@ -31,22 +41,7 @@ function escaparHTML(texto) {
 
 
 // ============================================================
-// ELEMENTOS DO CHAT
-// ============================================================
-
-const chat = elemento("chat");
-const welcome = elemento("welcome");
-const mensagemInput = elemento("mensagem");
-const btnEnviar = elemento("btnEnviar");
-const btnArquivo = elemento("btnArquivo");
-const arquivoInput = elemento("arquivo");
-const arquivoBox = elemento("arquivoSelecionado");
-const nomeArquivo = elemento("nomeArquivo");
-const removerArquivo = elemento("removerArquivo");
-
-
-// ============================================================
-// MOSTRAR / ESCONDER WELCOME
+// WELCOME
 // ============================================================
 
 function atualizarWelcome() {
@@ -55,9 +50,7 @@ function atualizarWelcome() {
         return;
     }
 
-    const quantidade = chat.children.length;
-
-    if (quantidade === 0) {
+    if (chat.children.length === 0) {
         welcome.classList.remove("hidden");
     } else {
         welcome.classList.add("hidden");
@@ -66,10 +59,10 @@ function atualizarWelcome() {
 
 
 // ============================================================
-// ADICIONAR MENSAGEM
+// ADICIONAR MENSAGEM DO USUÁRIO
 // ============================================================
 
-function adicionarMensagem(texto, tipo) {
+function adicionarMensagem(texto, tipo = "user") {
 
     if (!chat) {
         return null;
@@ -101,64 +94,17 @@ function adicionarMensagem(texto, tipo) {
 
 
 // ============================================================
-// TYPING
-// ============================================================
-
-function mostrarTyping() {
-
-    if (!chat) {
-        return null;
-    }
-
-    const div = document.createElement("div");
-
-    div.className = "msg-bot typing-message";
-
-    div.id = "typingMessage";
-
-    div.innerHTML = `
-        <div class="conteudo-mensagem">
-            Orion AI está digitando
-            <span class="typing-dots">
-                <span></span>
-                <span></span>
-                <span></span>
-            </span>
-        </div>
-    `;
-
-    chat.appendChild(div);
-
-    atualizarWelcome();
-
-    chat.scrollTop = chat.scrollHeight;
-
-    return div;
-}
-
-
-function removerTyping() {
-
-    const typing = elemento("typingMessage");
-
-    if (typing) {
-        typing.remove();
-    }
-}
-
-
-// ============================================================
-// MARKDOWN SIMPLES
+// MARKDOWN
 // ============================================================
 
 function formatarResposta(texto) {
 
     let html = escaparHTML(texto);
 
-    // Blocos de código
+    // Código
     html = html.replace(
         /```([\s\S]*?)```/g,
-        function(_, codigo) {
+        function (_, codigo) {
 
             return `
                 <pre class="codigo-pedrogpt"><code>${codigo.trim()}</code></pre>
@@ -208,7 +154,7 @@ function formatarResposta(texto) {
 // ADICIONAR RESPOSTA DA IA
 // ============================================================
 
-function adicionarResposta(texto) {
+function adicionarResposta(texto, falar = true) {
 
     if (!chat) {
         return null;
@@ -232,9 +178,60 @@ function adicionarResposta(texto) {
 
     chat.scrollTop = chat.scrollHeight;
 
-    falarResposta(texto);
+    if (falar) {
+        falarResposta(texto);
+    }
 
     return div;
+}
+
+
+// ============================================================
+// TYPING
+// ============================================================
+
+function mostrarTyping() {
+
+    if (!chat) {
+        return null;
+    }
+
+    removerTyping();
+
+    const div = document.createElement("div");
+
+    div.className = "msg-bot typing-message";
+
+    div.id = "typingMessage";
+
+    div.innerHTML = `
+        <div class="conteudo-mensagem">
+            Orion AI está digitando
+            <span class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+        </div>
+    `;
+
+    chat.appendChild(div);
+
+    atualizarWelcome();
+
+    chat.scrollTop = chat.scrollHeight;
+
+    return div;
+}
+
+
+function removerTyping() {
+
+    const typing = elemento("typingMessage");
+
+    if (typing) {
+        typing.remove();
+    }
 }
 
 
@@ -244,7 +241,6 @@ function adicionarResposta(texto) {
 
 async function novaConversa() {
 
-    // Não deixa criar várias conversas ao mesmo tempo
     if (enviando) {
         return;
     }
@@ -253,8 +249,8 @@ async function novaConversa() {
 
     const textoOriginal =
         botao
-            ? botao.textContent
-            : "";
+            ? botao.innerHTML
+            : "🆕 Nova conversa";
 
     try {
 
@@ -262,35 +258,39 @@ async function novaConversa() {
 
         if (botao) {
             botao.disabled = true;
-            botao.textContent = "⏳ Criando...";
+            botao.innerHTML = "⏳ Criando...";
         }
 
         const resposta = await fetch("/new_chat", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
             credentials: "same-origin",
+            headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify({})
         });
 
-        // Se o servidor redirecionou para login
         if (resposta.redirected) {
-
             window.location.href = resposta.url;
-
             return;
         }
+
+        const textoResposta = await resposta.text();
 
         let dados;
 
         try {
-            dados = await resposta.json();
+            dados = JSON.parse(textoResposta);
         } catch (erro) {
 
+            console.error(
+                "Resposta inválida do servidor:",
+                textoResposta
+            );
+
             throw new Error(
-                "O servidor não retornou JSON válido."
+                "O servidor retornou uma resposta inválida."
             );
         }
 
@@ -302,24 +302,31 @@ async function novaConversa() {
             );
         }
 
-        // Limpa as mensagens antigas
+        // Atualiza ID local
+        if (dados.conversation_id) {
+
+            window.conversationId =
+                dados.conversation_id;
+        }
+
+        // Limpa chat
         if (chat) {
             chat.innerHTML = "";
         }
 
         removerTyping();
 
-        // Limpa o campo de texto
+        // Limpa mensagem
         if (mensagemInput) {
             mensagemInput.value = "";
-            mensagemInput.focus();
         }
 
-        // Remove arquivo selecionado
+        // Limpa arquivo
         limparArquivo();
 
         // Atualiza título
-        const titulo = elemento("tituloConversa");
+        const titulo =
+            elemento("tituloConversa");
 
         if (titulo) {
             titulo.textContent =
@@ -327,6 +334,10 @@ async function novaConversa() {
         }
 
         atualizarWelcome();
+
+        if (mensagemInput) {
+            mensagemInput.focus();
+        }
 
         console.log(
             "Nova conversa criada:",
@@ -351,7 +362,8 @@ async function novaConversa() {
 
         if (botao) {
             botao.disabled = false;
-            botao.textContent = textoOriginal || "🆕 Nova conversa";
+            botao.innerHTML =
+                textoOriginal || "🆕 Nova conversa";
         }
     }
 }
@@ -371,9 +383,13 @@ async function enviar() {
         return;
     }
 
-    const texto = mensagemInput.value.trim();
+    const texto =
+        mensagemInput.value.trim();
 
-    if (!texto) {
+    const temArquivo =
+        arquivoSelecionado !== null;
+
+    if (!texto && !temArquivo) {
         mensagemInput.focus();
         return;
     }
@@ -385,49 +401,149 @@ async function enviar() {
         btnEnviar.textContent = "Enviando...";
     }
 
-    adicionarMensagem(texto, "user");
+    // ========================================================
+    // MOSTRAR MENSAGEM
+    // ========================================================
+
+    if (texto) {
+        adicionarMensagem(
+            texto,
+            "user"
+        );
+    } else {
+        adicionarMensagem(
+            "📷 Imagem enviada",
+            "user"
+        );
+    }
 
     mensagemInput.value = "";
 
-    const typing = mostrarTyping();
+    const typing =
+        mostrarTyping();
 
     try {
 
-        const resposta = await fetch("/chat", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            credentials: "same-origin",
-            body: JSON.stringify({
-                message: texto
-            })
-        });
+        // ====================================================
+        // PREPARAR DADOS
+        // ====================================================
+
+        const dadosEnvio = {
+            message: texto
+        };
+
+        // ====================================================
+        // IMAGEM
+        // ====================================================
+
+        if (arquivoSelecionado) {
+
+            const arquivo =
+                arquivoSelecionado;
+
+            if (
+                arquivo.type &&
+                arquivo.type.startsWith("image/")
+            ) {
+
+                const base64 =
+                    await converterArquivoBase64(
+                        arquivo
+                    );
+
+                dadosEnvio.image =
+                    base64.split(",")[1];
+
+                dadosEnvio.image_type =
+                    arquivo.type;
+
+            } else {
+
+                if (typing) {
+                    typing.remove();
+                }
+
+                adicionarResposta(
+                    "❌ No momento, o Orion AI aceita apenas imagens JPG, PNG, WEBP ou GIF."
+                );
+
+                return;
+            }
+        }
+
+        // ====================================================
+        // ENVIAR PARA FLASK
+        // ====================================================
+
+        const resposta =
+            await fetch("/chat", {
+
+                method: "POST",
+
+                credentials: "same-origin",
+
+                headers: {
+                    "Accept":
+                        "application/json",
+
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body:
+                    JSON.stringify(
+                        dadosEnvio
+                    )
+            });
 
         if (resposta.redirected) {
 
-            window.location.href = resposta.url;
+            window.location.href =
+                resposta.url;
 
             return;
         }
 
+        const textoResposta =
+            await resposta.text();
+
         let dados;
 
         try {
-            dados = await resposta.json();
+
+            dados =
+                JSON.parse(
+                    textoResposta
+                );
+
         } catch (erro) {
 
+            console.error(
+                "Resposta do /chat:",
+                textoResposta
+            );
+
             throw new Error(
-                "O servidor não retornou uma resposta válida."
+                "O servidor retornou uma resposta inválida."
             );
         }
+
+        // ====================================================
+        // REMOVER TYPING
+        // ====================================================
 
         if (typing) {
             typing.remove();
         }
 
-        if (!resposta.ok || !dados.success) {
+        // ====================================================
+        // ERRO
+        // ====================================================
+
+        if (
+            !resposta.ok ||
+            dados.success === false
+        ) {
 
             adicionarResposta(
                 dados.reply ||
@@ -438,9 +554,39 @@ async function enviar() {
             return;
         }
 
+        // ====================================================
+        // ATUALIZAR CONVERSA
+        // ====================================================
+
+        if (dados.conversation_id) {
+
+            window.conversationId =
+                dados.conversation_id;
+        }
+
+        // ====================================================
+        // RESPOSTA
+        // ====================================================
+
         adicionarResposta(
-            dados.reply || "Não recebi uma resposta."
+            dados.reply ||
+            "Não recebi uma resposta da IA."
         );
+
+        // Atualiza título
+        if (dados.title) {
+
+            const titulo =
+                elemento("tituloConversa");
+
+            if (titulo) {
+                titulo.textContent =
+                    dados.title;
+            }
+        }
+
+        // Limpa arquivo depois do envio
+        limparArquivo();
 
     } catch (erro) {
 
@@ -466,22 +612,63 @@ async function enviar() {
             btnEnviar.textContent = "Enviar";
         }
 
-        mensagemInput.focus();
+        if (mensagemInput) {
+            mensagemInput.focus();
+        }
     }
 }
 
 
 // ============================================================
-// ENTER PARA ENVIAR
+// CONVERTER ARQUIVO PARA BASE64
+// ============================================================
+
+function converterArquivoBase64(arquivo) {
+
+    return new Promise(
+        (resolve, reject) => {
+
+            const leitor =
+                new FileReader();
+
+            leitor.onload =
+                function () {
+                    resolve(
+                        leitor.result
+                    );
+                };
+
+            leitor.onerror =
+                function () {
+                    reject(
+                        new Error(
+                            "Não foi possível ler a imagem."
+                        )
+                    );
+                };
+
+            leitor.readAsDataURL(
+                arquivo
+            );
+        }
+    );
+}
+
+
+// ============================================================
+// ENTER
 // ============================================================
 
 if (mensagemInput) {
 
     mensagemInput.addEventListener(
         "keydown",
-        function(event) {
+        function (event) {
 
-            if (event.key === "Enter") {
+            if (
+                event.key === "Enter" &&
+                !event.shiftKey
+            ) {
 
                 event.preventDefault();
 
@@ -490,6 +677,48 @@ if (mensagemInput) {
         }
     );
 }
+
+
+// ============================================================
+// BOTÃO ENVIAR
+// ============================================================
+
+if (btnEnviar) {
+
+    btnEnviar.addEventListener(
+        "click",
+        function (event) {
+
+            event.preventDefault();
+
+            enviar();
+        }
+    );
+}
+
+
+// ============================================================
+// NOVA CONVERSA - GARANTIR EVENTO
+// ============================================================
+
+document.addEventListener(
+    "click",
+    function (event) {
+
+        const botao =
+            event.target.closest(
+                ".nova-conversa"
+            );
+
+        if (!botao) {
+            return;
+        }
+
+        event.preventDefault();
+
+        novaConversa();
+    }
+);
 
 
 // ============================================================
@@ -502,7 +731,8 @@ function atalho(texto) {
         return;
     }
 
-    mensagemInput.value = texto;
+    mensagemInput.value =
+        texto;
 
     mensagemInput.focus();
 
@@ -518,7 +748,9 @@ if (btnArquivo && arquivoInput) {
 
     btnArquivo.addEventListener(
         "click",
-        function() {
+        function (event) {
+
+            event.preventDefault();
 
             arquivoInput.click();
         }
@@ -530,45 +762,93 @@ if (arquivoInput) {
 
     arquivoInput.addEventListener(
         "change",
-        function() {
+        function () {
 
             const arquivo =
                 arquivoInput.files &&
                 arquivoInput.files[0];
 
             if (!arquivo) {
+
                 limparArquivo();
+
                 return;
             }
 
-            arquivoSelecionado = arquivo;
+            // Apenas imagens
+            if (
+                arquivo.type &&
+                !arquivo.type.startsWith(
+                    "image/"
+                )
+            ) {
+
+                alert(
+                    "❌ Selecione uma imagem JPG, PNG, WEBP ou GIF."
+                );
+
+                limparArquivo();
+
+                return;
+            }
+
+            // Limite 20 MB
+            if (
+                arquivo.size >
+                20 * 1024 * 1024
+            ) {
+
+                alert(
+                    "❌ A imagem não pode ter mais de 20 MB."
+                );
+
+                limparArquivo();
+
+                return;
+            }
+
+            arquivoSelecionado =
+                arquivo;
 
             if (nomeArquivo) {
+
                 nomeArquivo.textContent =
                     arquivo.name;
             }
 
             if (arquivoBox) {
-                arquivoBox.classList.add("ativo");
+
+                arquivoBox.classList.add(
+                    "ativo"
+                );
             }
         }
     );
 }
 
 
+// ============================================================
+// LIMPAR ARQUIVO
+// ============================================================
+
 function limparArquivo() {
 
-    arquivoSelecionado = null;
+    arquivoSelecionado =
+        null;
 
     if (arquivoInput) {
         arquivoInput.value = "";
     }
 
     if (arquivoBox) {
-        arquivoBox.classList.remove("ativo");
+
+        arquivoBox.classList.remove(
+            "ativo"
+        );
     }
 
     if (nomeArquivo) {
+
         nomeArquivo.textContent =
             "Nenhum arquivo selecionado";
     }
@@ -579,7 +859,9 @@ if (removerArquivo) {
 
     removerArquivo.addEventListener(
         "click",
-        function() {
+        function (event) {
+
+            event.preventDefault();
 
             limparArquivo();
         }
@@ -591,16 +873,17 @@ if (removerArquivo) {
 // VOZ
 // ============================================================
 
-let vozes = [];
-
-
 function carregarVozes() {
 
-    if (!("speechSynthesis" in window)) {
+    const seletor =
+        elemento("seletorVoz");
 
-        const seletor = elemento("seletorVoz");
+    if (
+        !("speechSynthesis" in window)
+    ) {
 
         if (seletor) {
+
             seletor.innerHTML =
                 `<option value="">Voz não disponível</option>`;
         }
@@ -609,10 +892,8 @@ function carregarVozes() {
     }
 
     vozes =
-        window.speechSynthesis.getVoices();
-
-    const seletor =
-        elemento("seletorVoz");
+        window.speechSynthesis
+            .getVoices();
 
     if (!seletor) {
         return;
@@ -620,18 +901,21 @@ function carregarVozes() {
 
     seletor.innerHTML = "";
 
-    const vozesPT = vozes.filter(
-        voz =>
-            voz.lang &&
-            voz.lang.toLowerCase().startsWith("pt")
-    );
+    const vozesPT =
+        vozes.filter(
+            voz =>
+                voz.lang &&
+                voz.lang
+                    .toLowerCase()
+                    .startsWith("pt")
+        );
 
     const lista =
-        vozesPT.length > 0
+        vozesPT.length
             ? vozesPT
             : vozes;
 
-    if (lista.length === 0) {
+    if (!lista.length) {
 
         seletor.innerHTML =
             `<option value="">Nenhuma voz disponível</option>`;
@@ -640,49 +924,73 @@ function carregarVozes() {
     }
 
     lista.forEach(
-        (voz, indice) => {
+        function (voz) {
 
             const option =
-                document.createElement("option");
+                document.createElement(
+                    "option"
+                );
 
             option.value =
-                String(vozes.indexOf(voz));
+                String(
+                    vozes.indexOf(voz)
+                );
 
             option.textContent =
                 `${voz.name} (${voz.lang})`;
 
-            seletor.appendChild(option);
+            seletor.appendChild(
+                option
+            );
         }
     );
 }
 
 
-if ("speechSynthesis" in window) {
+if (
+    "speechSynthesis" in window
+) {
 
     carregarVozes();
 
-    window.speechSynthesis.onvoiceschanged =
+    window.speechSynthesis
+        .onvoiceschanged =
         carregarVozes;
 }
 
+
+// ============================================================
+// FALAR RESPOSTA
+// ============================================================
 
 function falarResposta(texto) {
 
     const checkbox =
         elemento("voz");
 
-    if (!checkbox || !checkbox.checked) {
+    if (
+        !checkbox ||
+        !checkbox.checked
+    ) {
         return;
     }
 
-    if (!("speechSynthesis" in window)) {
+    if (
+        !("speechSynthesis" in window)
+    ) {
         return;
     }
 
     const textoLimpo =
         String(texto)
-            .replace(/```[\s\S]*?```/g, "")
-            .replace(/[#*_>`]/g, "");
+            .replace(
+                /```[\s\S]*?```/g,
+                ""
+            )
+            .replace(
+                /[#*_>`]/g,
+                ""
+            );
 
     if (!textoLimpo.trim()) {
         return;
@@ -698,13 +1006,20 @@ function falarResposta(texto) {
     const seletor =
         elemento("seletorVoz");
 
-    if (seletor && seletor.value !== "") {
+    if (
+        seletor &&
+        seletor.value !== ""
+    ) {
 
         const indice =
-            Number(seletor.value);
+            Number(
+                seletor.value
+            );
 
         if (vozes[indice]) {
-            fala.voice = vozes[indice];
+
+            fala.voice =
+                vozes[indice];
         }
     }
 
@@ -712,7 +1027,9 @@ function falarResposta(texto) {
     fala.rate = 1;
     fala.pitch = 1;
 
-    window.speechSynthesis.speak(fala);
+    window.speechSynthesis.speak(
+        fala
+    );
 }
 
 
@@ -723,12 +1040,11 @@ function falarResposta(texto) {
 const btnTestarVoz =
     elemento("btnTestarVoz");
 
-
 if (btnTestarVoz) {
 
     btnTestarVoz.addEventListener(
         "click",
-        function() {
+        function () {
 
             falarResposta(
                 "Olá! Eu sou o Orion AI. Esta é a minha voz."
@@ -751,18 +1067,25 @@ async function carregarHistorico() {
     try {
 
         const resposta =
-            await fetch("/history", {
-                method: "GET",
-                headers: {
-                    "Accept": "application/json"
-                },
-                credentials: "same-origin"
-            });
+            await fetch(
+                "/history",
+                {
+                    method: "GET",
+                    credentials:
+                        "same-origin",
+                    headers: {
+                        "Accept":
+                            "application/json"
+                    }
+                }
+            );
 
-        if (resposta.redirected) {
+        if (
+            resposta.status === 401
+        ) {
 
             window.location.href =
-                resposta.url;
+                "/login";
 
             return;
         }
@@ -784,31 +1107,43 @@ async function carregarHistorico() {
 
         chat.innerHTML = "";
 
-        historico.forEach(
-            item => {
+        if (
+            Array.isArray(historico)
+        ) {
 
-                if (item.sender === "user") {
+            historico.forEach(
+                function (item) {
 
-                    adicionarMensagem(
-                        item.message,
+                    if (
+                        item.sender ===
                         "user"
-                    );
+                    ) {
 
-                } else {
+                        adicionarMensagem(
+                            item.message,
+                            "user"
+                        );
 
-                    adicionarResposta(
-                        item.message
-                    );
+                    } else {
+
+                        adicionarResposta(
+                            item.message,
+                            false
+                        );
+                    }
                 }
-            }
-        );
+            );
+        }
 
         atualizarWelcome();
+
+        chat.scrollTop =
+            chat.scrollHeight;
 
     } catch (erro) {
 
         console.error(
-            "Erro ao carregar histórico:",
+            "ERRO AO CARREGAR HISTÓRICO:",
             erro
         );
 
@@ -823,7 +1158,7 @@ async function carregarHistorico() {
 
 document.addEventListener(
     "DOMContentLoaded",
-    function() {
+    function () {
 
         atualizarWelcome();
 
@@ -835,4 +1170,20 @@ document.addEventListener(
 
     }
 );
-````
+
+
+// ============================================================
+// EXPOR FUNÇÕES
+// ============================================================
+
+window.enviar =
+    enviar;
+
+window.novaConversa =
+    novaConversa;
+
+window.atalho =
+    atalho;
+
+window.limparArquivo =
+    limparArquivo;
