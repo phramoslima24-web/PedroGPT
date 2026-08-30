@@ -644,14 +644,12 @@ body {
 
     border-radius: 11px;
 
-    text-decoration: none;
-
-    background:
-        rgba(255,255,255,.06);
-
     border:
         1px solid
         rgba(255,255,255,.08);
+
+    background:
+        rgba(255,255,255,.06);
 
     color: white;
 
@@ -687,7 +685,8 @@ body {
 
     width: 330px;
 
-    max-width: calc(100vw - 24px);
+    max-width:
+        calc(100vw - 24px);
 
     padding: 16px;
 
@@ -1859,6 +1858,12 @@ body.tema-claro .logout {
         rgba(15,23,42,.05);
 }
 
+body.tema-claro .conversa-titulo {
+
+    color:
+        #111827;
+}
+
 body.tema-claro .welcome {
 
     background:
@@ -1945,9 +1950,6 @@ body.tema-claro .painel-configuracoes {
 
     border-color:
         rgba(15,23,42,.10);
-}
-
-body.tema-claro .painel-configuracoes {
 
     color:
         #111827;
@@ -2349,6 +2351,7 @@ body.tema-claro .config-fechar:hover {
             <input
                 type="checkbox"
                 id="configSom"
+                checked
             >
 
             <span class="config-slider"></span>
@@ -2467,7 +2470,7 @@ body.tema-claro .config-fechar:hover {
     </div>
 
 
-    <!-- CONTA -->
+    <!-- CONFIGURAÇÕES DE CONTA -->
 
     <button
         type="button"
@@ -2500,6 +2503,8 @@ body.tema-claro .config-fechar:hover {
 
     </button>
 
+
+    <!-- FECHAR -->
 
     <button
         type="button"
@@ -2739,699 +2744,13 @@ body.tema-claro .config-fechar:hover {
 </main>
 
 
-<script>
-
-
-/* ============================================================
-   CONFIGURAÇÕES
-============================================================ */
-
-const CHAVE_CONFIG =
-    "orion_ai_config";
-
-
-const configuracaoPadrao = {
-
-    tema:
-        "escuro",
-
-    som:
-        true,
-
-    voz:
-        "padrao",
-
-    animacoes:
-        true,
-
-    enterEnviar:
-        true
-
-};
-
-
-/* ============================================================
-   ELEMENTOS
-============================================================ */
-
-const btnAbrirConfiguracoes =
-    document.getElementById(
-        "btnAbrirConfiguracoes"
-    );
-
-
-const painelConfiguracoes =
-    document.getElementById(
-        "painelConfiguracoes"
-    );
-
-
-const btnFecharConfiguracoes =
-    document.getElementById(
-        "btnFecharConfiguracoes"
-    );
-
-
-const btnConfiguracoesConta =
-    document.getElementById(
-        "btnConfiguracoesConta"
-    );
-
-
-const configTema =
-    document.getElementById(
-        "configTema"
-    );
-
-
-const configSom =
-    document.getElementById(
-        "configSom"
-    );
-
-
-const configVoz =
-    document.getElementById(
-        "configVoz"
-    );
-
-
-const configAnimacoes =
-    document.getElementById(
-        "configAnimacoes"
-    );
-
-
-const configEnter =
-    document.getElementById(
-        "configEnter"
-    );
-
-
-const vozChat =
-    document.getElementById(
-        "voz"
-    );
-
-
-const seletorVoz =
-    document.getElementById(
-        "seletorVoz"
-    );
-
-
-const mensagemInput =
-    document.getElementById(
-        "mensagem"
-    );
-
-
-/* ============================================================
-   LER CONFIGURAÇÕES
-============================================================ */
-
-function obterConfiguracoes() {
-
-    let config = {};
-
-    try {
-
-        config =
-            JSON.parse(
-                localStorage.getItem(
-                    CHAVE_CONFIG
-                )
-            ) || {};
-
-    } catch (erro) {
-
-        config = {};
-
-    }
-
-    return {
-
-        ...configuracaoPadrao,
-
-        ...config
-
-    };
-
-}
-
-
-/* ============================================================
-   SALVAR CONFIGURAÇÕES
-============================================================ */
-
-function salvarConfiguracoes(
-    config
-) {
-
-    localStorage.setItem(
-
-        CHAVE_CONFIG,
-
-        JSON.stringify(config)
-
-    );
-
-}
-
-
-/* ============================================================
-   APLICAR TEMA
-============================================================ */
-
-function aplicarTema(
-    tema
-) {
-
-    if (
-        tema === "claro"
-    ) {
-
-        document.body.classList.add(
-            "tema-claro"
-        );
-
-    } else {
-
-        document.body.classList.remove(
-            "tema-claro"
-        );
-
-    }
-
-}
-
-
-/* ============================================================
-   PREENCHER VOZES
-============================================================ */
-
-let vozesDisponiveis = [];
-
-
-function carregarVozesConfiguracao() {
-
-    if (
-        !("speechSynthesis" in window)
-    ) {
-
-        return;
-
-    }
-
-
-    vozesDisponiveis =
-        window.speechSynthesis
-            .getVoices();
-
-
-    const listaPT =
-        vozesDisponiveis.filter(
-            voz =>
-                voz.lang &&
-                voz.lang
-                    .toLowerCase()
-                    .startsWith("pt")
-        );
-
-
-    const lista =
-        listaPT.length
-            ? listaPT
-            : vozesDisponiveis;
-
-
-    configVoz.innerHTML =
-        `
-        <option value="padrao">
-            🔊 Voz padrão
-        </option>
-        `;
-
-
-    seletorVoz.innerHTML =
-        `
-        <option value="default">
-            Voz padrão do navegador
-        </option>
-        `;
-
-
-    lista.forEach(
-        vozItem => {
-
-            const valor =
-                vozItem.name +
-                "|" +
-                vozItem.lang;
-
-
-            const optionConfig =
-                document.createElement(
-                    "option"
-                );
-
-            optionConfig.value =
-                valor;
-
-            optionConfig.textContent =
-                `${vozItem.name} (${vozItem.lang})`;
-
-            configVoz.appendChild(
-                optionConfig
-            );
-
-
-            const optionChat =
-                document.createElement(
-                    "option"
-                );
-
-            optionChat.value =
-                String(
-                    vozesDisponiveis.indexOf(
-                        vozItem
-                    )
-                );
-
-            optionChat.textContent =
-                `${vozItem.name} (${vozItem.lang})`;
-
-            seletorVoz.appendChild(
-                optionChat
-            );
-
-        }
-    );
-
-
-    aplicarVozSalva();
-
-}
-
-
-/* ============================================================
-   APLICAR VOZ SALVA
-============================================================ */
-
-function aplicarVozSalva() {
-
-    const config =
-        obterConfiguracoes();
-
-
-    configVoz.value =
-        config.voz;
-
-
-    if (
-        config.voz !== "padrao"
-    ) {
-
-        const indice =
-            vozesDisponiveis.findIndex(
-                vozItem =>
-                    (
-                        vozItem.name +
-                        "|" +
-                        vozItem.lang
-                    ) === config.voz
-            );
-
-
-        if (indice >= 0) {
-
-            seletorVoz.value =
-                String(indice);
-
-        }
-
-    }
-
-}
-
-
-/* ============================================================
-   CARREGAR CONFIGURAÇÕES
-============================================================ */
-
-function carregarConfiguracoes() {
-
-    const config =
-        obterConfiguracoes();
-
-
-    configTema.value =
-        config.tema;
-
-
-    configSom.checked =
-        config.som;
-
-
-    configAnimacoes.checked =
-        config.animacoes;
-
-
-    configEnter.checked =
-        config.enterEnviar;
-
-
-    aplicarTema(
-        config.tema
-    );
-
-
-    if (vozChat) {
-
-        vozChat.checked =
-            config.som;
-
-    }
-
-
-    if (config.voz === "padrao") {
-
-        if (seletorVoz) {
-
-            seletorVoz.value =
-                "default";
-
-        }
-
-    }
-
-}
-
-
-/* ============================================================
-   ATUALIZAR CONFIGURAÇÕES
-============================================================ */
-
-function atualizarConfig(
-    chave,
-    valor
-) {
-
-    const config =
-        obterConfiguracoes();
-
-
-    config[chave] =
-        valor;
-
-
-    salvarConfiguracoes(
-        config
-    );
-
-
-    aplicarTema(
-        config.tema
-    );
-
-
-    if (
-        chave === "som"
-        && vozChat
-    ) {
-
-        vozChat.checked =
-            valor;
-
-    }
-
-}
-
-
-/* ============================================================
-   ABRIR PAINEL
-============================================================ */
-
-function abrirPainelConfiguracoes() {
-
-    painelConfiguracoes.classList.add(
-        "aberto"
-    );
-
-}
-
-
-/* ============================================================
-   FECHAR PAINEL
-============================================================ */
-
-function fecharPainelConfiguracoes() {
-
-    painelConfiguracoes.classList.remove(
-        "aberto"
-    );
-
-}
-
-
-/* ============================================================
-   EVENTOS CONFIGURAÇÕES
-============================================================ */
-
-if (btnAbrirConfiguracoes) {
-
-    btnAbrirConfiguracoes.addEventListener(
-        "click",
-        function (event) {
-
-            event.stopPropagation();
-
-            painelConfiguracoes.classList.toggle(
-                "aberto"
-            );
-
-        }
-    );
-
-}
-
-
-if (btnFecharConfiguracoes) {
-
-    btnFecharConfiguracoes.addEventListener(
-        "click",
-        fecharPainelConfiguracoes
-    );
-
-}
-
-
-if (btnConfiguracoesConta) {
-
-    btnConfiguracoesConta.addEventListener(
-        "click",
-        function () {
-
-            window.location.href =
-                "/perfil";
-
-        }
-    );
-
-}
-
-
-/* ============================================================
-   FECHAR AO CLICAR FORA
-============================================================ */
-
-document.addEventListener(
-    "click",
-    function (event) {
-
-        if (
-            !painelConfiguracoes.contains(
-                event.target
-            )
-            &&
-            event.target !==
-                btnAbrirConfiguracoes
-        ) {
-
-            fecharPainelConfiguracoes();
-
-        }
-
-    }
-);
-
-
-/* ============================================================
-   TEMA
-============================================================ */
-
-if (configTema) {
-
-    configTema.addEventListener(
-        "change",
-        function () {
-
-            atualizarConfig(
-                "tema",
-                configTema.value
-            );
-
-        }
-    );
-
-}
-
-
-/* ============================================================
-   SOM
-============================================================ */
-
-if (configSom) {
-
-    configSom.addEventListener(
-        "change",
-        function () {
-
-            atualizarConfig(
-                "som",
-                configSom.checked
-            );
-
-        }
-    );
-
-}
-
-
-/* ============================================================
-   VOZ
-============================================================ */
-
-if (configVoz) {
-
-    configVoz.addEventListener(
-        "change",
-        function () {
-
-            atualizarConfig(
-                "voz",
-                configVoz.value
-            );
-
-            aplicarVozSalva();
-
-        }
-    );
-
-}
-
-
-/* ============================================================
-   ANIMAÇÕES
-============================================================ */
-
-if (configAnimacoes) {
-
-    configAnimacoes.addEventListener(
-        "change",
-        function () {
-
-            atualizarConfig(
-                "animacoes",
-                configAnimacoes.checked
-            );
-
-        }
-    );
-
-}
-
-
-/* ============================================================
-   ENTER
-============================================================ */
-
-if (configEnter) {
-
-    configEnter.addEventListener(
-        "change",
-        function () {
-
-            atualizarConfig(
-                "enterEnviar",
-                configEnter.checked
-            );
-
-        }
-    );
-
-}
-
-
-/* ============================================================
-   VOZ DO CHAT
-============================================================ */
-
-if (vozChat) {
-
-    vozChat.addEventListener(
-        "change",
-        function () {
-
-            atualizarConfig(
-                "som",
-                vozChat.checked
-            );
-
-            if (configSom) {
-
-                configSom.checked =
-                    vozChat.checked;
-
-            }
-
-        }
-    );
-
-}
-
-
-/* ============================================================
-   INICIALIZAÇÃO
-============================================================ */
-
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
-
-        carregarConfiguracoes();
-
-        carregarVozesConfiguracao();
-
-    }
-);
-
-
-if (
-    "speechSynthesis" in window
-) {
-
-    window.speechSynthesis.onvoiceschanged =
-        carregarVozesConfiguracao;
-
-}
-
-
-</script>
-
+<!-- ============================================================
+     SCRIPT PRINCIPAL
+============================================================ -->
 
 <script src="{{ url_for('static', filename='script.js') }}"></script>
 
 </body>
 
 </html>
+
