@@ -1,4 +1,3 @@
-
 import os
 from datetime import datetime
 
@@ -93,20 +92,13 @@ def init_db():
                 id SERIAL PRIMARY KEY,
                 username TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
-                plan TEXT DEFAULT 'free',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                plan TEXT DEFAULT 'free'
             )
         """)
 
         cursor.execute("""
             ALTER TABLE users
             ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'free'
-        """)
-
-        cursor.execute("""
-            ALTER TABLE users
-            ADD COLUMN IF NOT EXISTS created_at
-            TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         """)
 
         cursor.execute("""
@@ -403,6 +395,202 @@ def obter_plan_usuario(username):
 
 
 # ============================================================
+# PERFIL - OBTER USUÁRIO
+# ============================================================
+
+def obter_usuario_perfil(username):
+
+    with get_db() as conn:
+
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
+
+        cursor.execute("""
+            SELECT
+                id,
+                username,
+                plan
+            FROM users
+            WHERE username = %s
+        """, (
+            username,
+        ))
+
+        return cursor.fetchone()
+
+
+# ============================================================
+# PERFIL - ATUALIZAR USUÁRIO
+# ============================================================
+
+def atualizar_usuario_perfil(
+    username_atual,
+    novo_username=None,
+    nova_senha=None
+):
+
+    novo_username = (
+        str(novo_username or "")
+        .strip()
+    )
+
+    with get_db() as conn:
+
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
+
+        cursor.execute("""
+            SELECT
+                id,
+                username,
+                plan
+            FROM users
+            WHERE username = %s
+        """, (
+            username_atual,
+        ))
+
+        usuario = cursor.fetchone()
+
+        if not usuario:
+
+            return {
+                "success": False,
+                "message":
+                    "Usuário não encontrado."
+            }
+
+        username_final = (
+            novo_username
+            if novo_username
+            else usuario["username"]
+        )
+
+        if username_final != usuario["username"]:
+
+            if len(username_final) < 3:
+
+                return {
+                    "success": False,
+                    "message":
+                        "O usuário precisa ter pelo menos 3 caracteres."
+                }
+
+            if len(username_final) > 30:
+
+                return {
+                    "success": False,
+                    "message":
+                        "O usuário pode ter no máximo 30 caracteres."
+                }
+
+            if username_final == ADMIN_USERNAME:
+
+                return {
+                    "success": False,
+                    "message":
+                        "Esse nome de usuário não está disponível."
+                }
+
+            cursor.execute("""
+                SELECT id
+                FROM users
+                WHERE username = %s
+                AND id <> %s
+            """, (
+                username_final,
+                usuario["id"]
+            ))
+
+            existe = cursor.fetchone()
+
+            if existe:
+
+                return {
+                    "success": False,
+                    "message":
+                        "Esse usuário já existe."
+                }
+
+        senha_hash = None
+
+        if nova_senha is not None:
+
+            nova_senha = str(
+                nova_senha
+            )
+
+            if nova_senha:
+
+                if len(nova_senha) < 6:
+
+                    return {
+                        "success": False,
+                        "message":
+                            "A nova senha precisa ter pelo menos 6 caracteres."
+                    }
+
+                if len(nova_senha) > 200:
+
+                    return {
+                        "success": False,
+                        "message":
+                            "A nova senha é muito longa."
+                    }
+
+                if not any(
+                    caractere.isdigit()
+                    for caractere in nova_senha
+                ):
+
+                    return {
+                        "success": False,
+                        "message":
+                            "A nova senha precisa ter pelo menos 1 número."
+                    }
+
+                senha_hash = generate_password_hash(
+                    nova_senha
+                )
+
+        if senha_hash:
+
+            cursor.execute("""
+                UPDATE users
+                SET
+                    username = %s,
+                    password = %s
+                WHERE id = %s
+            """, (
+                username_final,
+                senha_hash,
+                usuario["id"]
+            ))
+
+        else:
+
+            cursor.execute("""
+                UPDATE users
+                SET username = %s
+                WHERE id = %s
+            """, (
+                username_final,
+                usuario["id"]
+            ))
+
+        conn.commit()
+
+        return {
+            "success": True,
+            "username": username_final,
+            "plan":
+                usuario["plan"] or "free"
+        }
+
+
+# ============================================================
 # VERIFICAR ADMIN
 # ============================================================
 
@@ -497,7 +685,7 @@ def logout():
 
 
 # ============================================================
-# PERFIL
+# PERFIL - PÁGINA
 # ============================================================
 
 @app.route("/perfil")
@@ -511,95 +699,239 @@ def perfil():
 
     try:
 
-        username = session["user"]
+        usuario = obter_usuario_perfil(
+            session["user"]
+        )
 
-        with get_db() as conn:
+        if not usuario:
 
-            cursor = conn.cursor(
-                cursor_factory=psycopg2.extras.RealDictCursor
+            session.clear()
+
+            return redirect(
+                url_for("login")
             )
 
-            # =================================================
-            # DADOS DO USUÁRIO
-            # =================================================
-
-            cursor.execute("""
-                SELECT
-                    id,
-                    username,
-                    plan,
-                    created_at
-                FROM users
-                WHERE username = %s
-            """, (
-                username,
-            ))
-
-            usuario = cursor.fetchone()
-
-            if not usuario:
-
-                session.clear()
-
-                return redirect(
-                    url_for("login")
-                )
-
-            # =================================================
-            # TOTAL DE CONVERSAS
-            # =================================================
-
-            cursor.execute("""
-                SELECT COUNT(*)
-                FROM conversations
-                WHERE username = %s
-            """, (
-                username,
-            ))
-
-            total_conversas = cursor.fetchone()[0]
-
-            # =================================================
-            # TOTAL DE MENSAGENS
-            # =================================================
-
-            cursor.execute("""
-                SELECT COUNT(*)
-                FROM chat_messages cm
-                INNER JOIN conversations c
-                ON cm.conversation_id = c.id
-                WHERE c.username = %s
-            """, (
-                username,
-            ))
-
-            total_mensagens = cursor.fetchone()[0]
+        session["plan"] = (
+            usuario["plan"]
+            or "free"
+        )
 
         return render_template(
             "perfil.html",
             username=usuario["username"],
-            plan=usuario["plan"] or "free",
-            user_id=usuario["id"],
-            created_at=usuario["created_at"],
-            total_conversas=total_conversas,
-            total_mensagens=total_mensagens
+            plan=usuario["plan"] or "free"
         )
 
     except Exception as e:
 
         print(
-            "ERRO PERFIL:",
+            "ERRO AO CARREGAR PERFIL:",
             repr(e)
         )
 
         return jsonify({
-
-            "success":
-                False,
-
+            "success": False,
             "message":
                 "Erro ao carregar o perfil."
+        }), 500
 
+
+# ============================================================
+# ALIAS PERFIL
+# ============================================================
+
+@app.route("/profile")
+def profile():
+
+    return redirect(
+        url_for("perfil")
+    )
+
+
+# ============================================================
+# API PERFIL - CONSULTAR
+# ============================================================
+
+@app.route(
+    "/api/profile",
+    methods=["GET"]
+)
+def api_profile_get():
+
+    if "user" not in session:
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Faça login primeiro."
+        }), 401
+
+    try:
+
+        usuario = obter_usuario_perfil(
+            session["user"]
+        )
+
+        if not usuario:
+
+            return jsonify({
+                "success": False,
+                "message":
+                    "Usuário não encontrado."
+            }), 404
+
+        return jsonify({
+
+            "success":
+                True,
+
+            "user": {
+
+                "id":
+                    usuario["id"],
+
+                "username":
+                    usuario["username"],
+
+                "plan":
+                    usuario["plan"] or "free"
+
+            }
+
+        })
+
+    except Exception as e:
+
+        print(
+            "ERRO API PROFILE GET:",
+            repr(e)
+        )
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Erro ao carregar o perfil."
+        }), 500
+
+
+# ============================================================
+# API PERFIL - ATUALIZAR
+# ============================================================
+
+@app.route(
+    "/api/profile",
+    methods=["POST"]
+)
+def api_profile_update():
+
+    if "user" not in session:
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Faça login primeiro."
+        }), 401
+
+    try:
+
+        data = request.get_json(
+            silent=True
+        ) or {}
+
+        novo_username = data.get(
+            "username"
+        )
+
+        nova_senha = data.get(
+            "password"
+        )
+
+        confirmar_senha = data.get(
+            "confirm_password"
+        )
+
+        if nova_senha:
+
+            if str(nova_senha) != str(
+                confirmar_senha or ""
+            ):
+
+                return jsonify({
+                    "success": False,
+                    "message":
+                        "As senhas não coincidem."
+                }), 400
+
+        resultado = atualizar_usuario_perfil(
+            session["user"],
+            novo_username,
+            nova_senha
+        )
+
+        if not resultado.get(
+            "success"
+        ):
+
+            return jsonify(
+                resultado
+            ), 400
+
+        novo_usuario = resultado[
+            "username"
+        ]
+
+        session["user"] = novo_usuario
+        session["plan"] = resultado.get(
+            "plan",
+            "free"
+        )
+
+        session.modified = True
+
+        return jsonify({
+
+            "success":
+                True,
+
+            "message":
+                "Perfil atualizado com sucesso.",
+
+            "user": {
+
+                "username":
+                    novo_usuario,
+
+                "plan":
+                    resultado.get(
+                        "plan",
+                        "free"
+                    )
+
+            }
+
+        })
+
+    except psycopg2.IntegrityError:
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Esse usuário já existe."
+        }), 409
+
+    except Exception as e:
+
+        print(
+            "ERRO API PROFILE UPDATE:",
+            repr(e)
+        )
+
+        return jsonify({
+            "success": False,
+            "message":
+                "Erro ao atualizar o perfil.",
+            "error":
+                str(e)
         }), 500
 
 
@@ -2078,7 +2410,8 @@ def api_conversations():
 # ============================================================
 
 @app.route(
-    "/conversation/<int:conversation_id>"
+    "/conversation/<int:conversation_id>",
+    methods=["GET"]
 )
 def open_conversation(
     conversation_id
@@ -2754,7 +3087,7 @@ def delete_conversation(
 
 
 # ============================================================
-# EXCLUIR UMA CONVERSA - ROTA QUE O SCRIPT.JS USA
+# EXCLUIR UMA CONVERSA - ROTA DO SCRIPT.JS
 # ============================================================
 
 @app.route(
@@ -2849,9 +3182,7 @@ def executar_exclusao_varias_conversas(
     if "user" not in session:
 
         return jsonify({
-            "success":
-                False,
-
+            "success": False,
             "message":
                 "Faça login primeiro."
         }), 401
@@ -2864,9 +3195,7 @@ def executar_exclusao_varias_conversas(
         ):
 
             return jsonify({
-                "success":
-                    False,
-
+                "success": False,
                 "message":
                     "Lista de conversas inválida."
             }), 400
@@ -2874,9 +3203,7 @@ def executar_exclusao_varias_conversas(
         if not ids:
 
             return jsonify({
-                "success":
-                    False,
-
+                "success": False,
                 "message":
                     "Nenhuma conversa foi selecionada."
             }), 400
@@ -2911,9 +3238,7 @@ def executar_exclusao_varias_conversas(
         if not conversation_ids:
 
             return jsonify({
-                "success":
-                    False,
-
+                "success": False,
                 "message":
                     "Nenhuma conversa válida foi selecionada."
             }), 400
@@ -3108,7 +3433,7 @@ def executar_exclusao_varias_conversas(
 
 
 # ============================================================
-# EXCLUIR VÁRIAS CONVERSAS - ROTA PRINCIPAL
+# EXCLUIR VÁRIAS CONVERSAS
 # ============================================================
 
 @app.route(
@@ -3133,7 +3458,7 @@ def delete_multiple_conversations():
 
 
 # ============================================================
-# ROTA QUE O SCRIPT.JS ATUAL USA
+# ROTA DO SCRIPT.JS
 # ============================================================
 
 @app.route(
@@ -3300,7 +3625,7 @@ def api_status():
 
 
 # ============================================================
-# TRATAMENTO DE ERRO 404
+# ERRO 404
 # ============================================================
 
 @app.errorhandler(404)
@@ -3330,7 +3655,7 @@ def erro_404(error):
 
 
 # ============================================================
-# TRATAMENTO DE ERRO 500
+# ERRO 500
 # ============================================================
 
 @app.errorhandler(500)
@@ -3373,4 +3698,3 @@ if __name__ == "__main__":
         port=port,
         debug=False
     )
-
