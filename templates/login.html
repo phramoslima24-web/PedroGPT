@@ -74,6 +74,11 @@ body {
 
 }
 
+
+/* ============================================================
+   LOGO
+============================================================ */
+
 .logo {
 
     text-align: center;
@@ -147,7 +152,8 @@ body {
 
 .input-group input:focus {
 
-    border-color: #7c3aed;
+    border-color:
+        #7c3aed;
 
     box-shadow:
         0 0 0 3px rgba(124,58,237,.08);
@@ -179,7 +185,8 @@ body {
 
     top: 50%;
 
-    transform: translateY(-50%);
+    transform:
+        translateY(-50%);
 
     background: none;
 
@@ -190,6 +197,39 @@ body {
     cursor: pointer;
 
     font-size: 18px;
+
+}
+
+
+/* ============================================================
+   RECUPERAÇÃO DE SENHA
+============================================================ */
+
+.esqueci-senha {
+
+    display: block;
+
+    text-align: right;
+
+    margin-top: -7px;
+
+    margin-bottom: 14px;
+
+    color: #a78bfa;
+
+    text-decoration: none;
+
+    font-size: 13px;
+
+    transition: .2s;
+
+}
+
+.esqueci-senha:hover {
+
+    color: #c4b5fd;
+
+    text-decoration: underline;
 
 }
 
@@ -229,9 +269,11 @@ body {
 
 .login-btn:hover {
 
-    transform: translateY(-2px);
+    transform:
+        translateY(-2px);
 
-    filter: brightness(1.08);
+    filter:
+        brightness(1.08);
 
 }
 
@@ -295,7 +337,8 @@ body {
     border-radius: 12px;
 
     border:
-        1px solid rgba(255,255,255,.1);
+        1px solid
+        rgba(255,255,255,.1);
 
     background:
         rgba(255,255,255,.07);
@@ -327,7 +370,8 @@ body {
     background:
         rgba(255,255,255,.11);
 
-    transform: translateY(-1px);
+    transform:
+        translateY(-1px);
 
 }
 
@@ -414,7 +458,8 @@ body {
 
     .card {
 
-        padding: 25px 20px;
+        padding:
+            25px 20px;
 
     }
 
@@ -507,6 +552,18 @@ body {
 
 
 <!-- ========================================================
+     ESQUECI A SENHA
+========================================================= -->
+
+<a
+    href="/recuperar-conta"
+    class="esqueci-senha"
+>
+    Esqueci minha senha
+</a>
+
+
+<!-- ========================================================
      LOGIN NORMAL
 ========================================================= -->
 
@@ -537,6 +594,7 @@ body {
     href="/google/login"
     class="google-btn"
 >
+
     <span class="google-icon">
         G
     </span>
@@ -575,6 +633,7 @@ body {
 
 
 <script>
+
 
 /* ============================================================
    MENSAGEM
@@ -626,12 +685,22 @@ function toggleSenha() {
         eye.textContent =
             "🙈";
 
+        eye.setAttribute(
+            "aria-label",
+            "Esconder senha"
+        );
+
     } else {
 
         senha.type = "password";
 
         eye.textContent =
             "👁️";
+
+        eye.setAttribute(
+            "aria-label",
+            "Mostrar senha"
+        );
 
     }
 
@@ -719,16 +788,21 @@ async function login() {
 
                     body:
                         JSON.stringify({
+
                             username:
                                 username,
 
                             password:
                                 password
+
                         })
+
                 }
             );
 
+
         let data = {};
+
 
         try {
 
@@ -742,6 +816,7 @@ async function login() {
             data = {};
 
         }
+
 
         if (
             res.ok &&
@@ -767,10 +842,14 @@ async function login() {
 
         }
 
+
         mostrarMensagem(
+
             data.message ||
             "Usuário ou senha incorretos."
+
         );
+
 
     } catch (e) {
 
@@ -824,6 +903,8 @@ document.addEventListener(
                         e.key === "Enter"
                     ) {
 
+                        e.preventDefault();
+
                         login();
 
                     }
@@ -832,6 +913,7 @@ document.addEventListener(
             );
 
         }
+
 
         if (username) {
 
@@ -842,6 +924,8 @@ document.addEventListener(
                     if (
                         e.key === "Enter"
                     ) {
+
+                        e.preventDefault();
 
                         login();
 
