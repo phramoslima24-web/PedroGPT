@@ -95,7 +95,7 @@ RESEND_API_KEY = os.getenv(
 
 RESEND_FROM = os.getenv(
     "RESEND_FROM",
-    "onboarding@resend.dev"
+    ""
 ).strip()
 
 RESET_TOKEN_EXPIRATION_MINUTES = 30
@@ -860,13 +860,13 @@ def enviar_email_recuperacao(
     if not RESEND_API_KEY:
 
         raise RuntimeError(
-            "RESEND_API_KEY não está configurada no servidor."
+            "RESEND_API_KEY não está configurada no Render."
         )
 
     if not RESEND_FROM:
 
         raise RuntimeError(
-            "RESEND_FROM não está configurado no servidor."
+            "RESEND_FROM não está configurada no Render."
         )
 
     assunto = (
@@ -909,17 +909,25 @@ def enviar_email_recuperacao(
         🤖 Orion AI
     </h1>
 
+    <h2 style="
+        color:#111827;
+    ">
+        Recuperação de conta
+    </h2>
+
     <p style="
         color:#374151;
         font-size:16px;
+        line-height:1.6;
     ">
         Recebemos uma solicitação para redefinir
-        a senha da sua conta.
+        a senha da sua conta no Orion AI.
     </p>
 
     <p style="
         color:#374151;
         font-size:16px;
+        line-height:1.6;
     ">
         Clique no botão abaixo para criar uma nova senha:
     </p>
@@ -989,8 +997,9 @@ def enviar_email_recuperacao(
         "from":
             RESEND_FROM,
 
-        "to":
-            [email],
+        "to": [
+            email
+        ],
 
         "subject":
             assunto,
@@ -1000,25 +1009,47 @@ def enviar_email_recuperacao(
 
     }
 
-    resposta = requests.post(
+    try:
 
-        "https://api.resend.com/emails",
+        resposta = requests.post(
 
-        headers={
+            "https://api.resend.com/emails",
 
-            "Authorization":
-                f"Bearer {RESEND_API_KEY}",
+            headers={
 
-            "Content-Type":
-                "application/json"
+                "Authorization":
+                    f"Bearer {RESEND_API_KEY}",
 
-        },
+                "Content-Type":
+                    "application/json",
 
-        json=payload,
+                "Accept":
+                    "application/json"
 
-        timeout=20
+            },
 
-    )
+            json=payload,
+
+            timeout=20
+
+        )
+
+    except requests.exceptions.Timeout:
+
+        raise RuntimeError(
+            "O Resend demorou demais para responder."
+        )
+
+    except requests.exceptions.RequestException as e:
+
+        print(
+            "ERRO DE CONEXÃO COM RESEND:",
+            repr(e)
+        )
+
+        raise RuntimeError(
+            "Não foi possível conectar ao serviço de e-mail."
+        )
 
     if not resposta.ok:
 
@@ -1031,9 +1062,25 @@ def enviar_email_recuperacao(
             erro = {}
 
         print(
-            "ERRO RESEND:",
-            resposta.status_code,
+            "=================================================="
+        )
+
+        print(
+            "ERRO RESEND:"
+        )
+
+        print(
+            "STATUS:",
+            resposta.status_code
+        )
+
+        print(
+            "RESPOSTA:",
             erro
+        )
+
+        print(
+            "=================================================="
         )
 
         mensagem_erro = (
@@ -1055,8 +1102,25 @@ def enviar_email_recuperacao(
         resultado = {}
 
     print(
-        "E-MAIL DE RECUPERAÇÃO ENVIADO PELO RESEND:",
+        "=================================================="
+    )
+
+    print(
+        "E-MAIL DE RECUPERAÇÃO ENVIADO PELO RESEND"
+    )
+
+    print(
+        "DESTINATÁRIO:",
+        email
+    )
+
+    print(
+        "RESULTADO:",
         resultado
+    )
+
+    print(
+        "=================================================="
     )
 
     return resultado
@@ -5261,8 +5325,7 @@ def executar_exclusao_varias_conversas(
 
         return jsonify({
 
-            "success":
-                False,
+            "success": False,
 
             "message":
                 "Faça login primeiro."
@@ -5278,8 +5341,7 @@ def executar_exclusao_varias_conversas(
 
             return jsonify({
 
-                "success":
-                    False,
+                "success": False,
 
                 "message":
                     "Lista de conversas inválida."
@@ -5290,8 +5352,7 @@ def executar_exclusao_varias_conversas(
 
             return jsonify({
 
-                "success":
-                    False,
+                "success": False,
 
                 "message":
                     "Nenhuma conversa foi selecionada."
@@ -5331,8 +5392,7 @@ def executar_exclusao_varias_conversas(
 
             return jsonify({
 
-                "success":
-                    False,
+                "success": False,
 
                 "message":
                     "Nenhuma conversa válida foi selecionada."
@@ -5379,8 +5439,7 @@ def executar_exclusao_varias_conversas(
 
                 return jsonify({
 
-                    "success":
-                        False,
+                    "success": False,
 
                     "message":
                         "Nenhuma das conversas selecionadas pertence ao usuário."
