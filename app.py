@@ -1,3 +1,4 @@
+
 import os
 from datetime import datetime
 
@@ -92,13 +93,20 @@ def init_db():
                 id SERIAL PRIMARY KEY,
                 username TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
-                plan TEXT DEFAULT 'free'
+                plan TEXT DEFAULT 'free',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
         cursor.execute("""
             ALTER TABLE users
             ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'free'
+        """)
+
+        cursor.execute("""
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS created_at
+            TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         """)
 
         cursor.execute("""
@@ -486,6 +494,113 @@ def logout():
     return redirect(
         url_for("login")
     )
+
+
+# ============================================================
+# PERFIL
+# ============================================================
+
+@app.route("/perfil")
+def perfil():
+
+    if "user" not in session:
+
+        return redirect(
+            url_for("login")
+        )
+
+    try:
+
+        username = session["user"]
+
+        with get_db() as conn:
+
+            cursor = conn.cursor(
+                cursor_factory=psycopg2.extras.RealDictCursor
+            )
+
+            # =================================================
+            # DADOS DO USUÁRIO
+            # =================================================
+
+            cursor.execute("""
+                SELECT
+                    id,
+                    username,
+                    plan,
+                    created_at
+                FROM users
+                WHERE username = %s
+            """, (
+                username,
+            ))
+
+            usuario = cursor.fetchone()
+
+            if not usuario:
+
+                session.clear()
+
+                return redirect(
+                    url_for("login")
+                )
+
+            # =================================================
+            # TOTAL DE CONVERSAS
+            # =================================================
+
+            cursor.execute("""
+                SELECT COUNT(*)
+                FROM conversations
+                WHERE username = %s
+            """, (
+                username,
+            ))
+
+            total_conversas = cursor.fetchone()[0]
+
+            # =================================================
+            # TOTAL DE MENSAGENS
+            # =================================================
+
+            cursor.execute("""
+                SELECT COUNT(*)
+                FROM chat_messages cm
+                INNER JOIN conversations c
+                ON cm.conversation_id = c.id
+                WHERE c.username = %s
+            """, (
+                username,
+            ))
+
+            total_mensagens = cursor.fetchone()[0]
+
+        return render_template(
+            "perfil.html",
+            username=usuario["username"],
+            plan=usuario["plan"] or "free",
+            user_id=usuario["id"],
+            created_at=usuario["created_at"],
+            total_conversas=total_conversas,
+            total_mensagens=total_mensagens
+        )
+
+    except Exception as e:
+
+        print(
+            "ERRO PERFIL:",
+            repr(e)
+        )
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Erro ao carregar o perfil."
+
+        }), 500
 
 
 # ============================================================
@@ -2466,7 +2581,6 @@ def executar_exclusao_conversa(
 
             cursor = conn.cursor()
 
-            # Excluir mensagens primeiro
             cursor.execute("""
                 DELETE FROM chat_messages
                 WHERE conversation_id = %s
@@ -2474,7 +2588,6 @@ def executar_exclusao_conversa(
                 conversation_id,
             ))
 
-            # Excluir conversa
             cursor.execute("""
                 DELETE FROM conversations
                 WHERE id = %s
@@ -2815,11 +2928,6 @@ def executar_exclusao_varias_conversas(
 
             cursor = conn.cursor()
 
-            # ------------------------------------------------
-            # Descobrir quais conversas realmente pertencem
-            # ao usuário.
-            # ------------------------------------------------
-
             cursor.execute("""
                 SELECT id
                 FROM conversations
@@ -2849,20 +2957,12 @@ def executar_exclusao_varias_conversas(
                         "Nenhuma das conversas selecionadas pertence ao usuário."
                 }), 404
 
-            # ------------------------------------------------
-            # Excluir mensagens
-            # ------------------------------------------------
-
             cursor.execute("""
                 DELETE FROM chat_messages
                 WHERE conversation_id = ANY(%s)
             """, (
                 ids_validos,
             ))
-
-            # ------------------------------------------------
-            # Excluir conversas
-            # ------------------------------------------------
 
             cursor.execute("""
                 DELETE FROM conversations
@@ -2882,10 +2982,6 @@ def executar_exclusao_varias_conversas(
             int(item[0])
             for item in excluidas
         ]
-
-        # ====================================================
-        # VERIFICAR SE A CONVERSA ATUAL FOI EXCLUÍDA
-        # ====================================================
 
         conversa_atual_excluida = (
             conversa_atual_id is not None
@@ -3025,9 +3121,6 @@ def delete_multiple_conversations():
         silent=True
     ) or {}
 
-    # Aceita "ids" e "conversation_ids"
-    # para compatibilidade com diferentes versões
-    # do script.js.
     ids = (
         data.get("ids")
         if data.get("ids") is not None
@@ -3280,3 +3373,4 @@ if __name__ == "__main__":
         port=port,
         debug=False
     )
+
