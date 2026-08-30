@@ -862,9 +862,7 @@ def google_callback():
 
         if not userinfo:
 
-            userinfo = (
-                google.userinfo()
-            )
+            userinfo = google.userinfo()
 
         google_id = (
             userinfo.get("sub")
@@ -1305,10 +1303,6 @@ def change_username():
 
         }), 401
 
-    # --------------------------------------------------------
-    # ADMIN NÃO PODE TROCAR O PRÓPRIO USUÁRIO
-    # --------------------------------------------------------
-
     if verificar_admin():
 
         return jsonify({
@@ -1343,10 +1337,6 @@ def change_username():
 
         }), 400
 
-    # --------------------------------------------------------
-    # VALIDAR TAMANHO
-    # --------------------------------------------------------
-
     if len(novo_username) < 3:
 
         return jsonify({
@@ -1371,10 +1361,6 @@ def change_username():
 
         }), 400
 
-    # --------------------------------------------------------
-    # VALIDAR CARACTERES
-    # --------------------------------------------------------
-
     if not re.fullmatch(
         r"[A-Za-z0-9_]+",
         novo_username
@@ -1389,10 +1375,6 @@ def change_username():
                 "Use apenas letras, números e _ no nome de usuário."
 
         }), 400
-
-    # --------------------------------------------------------
-    # PROTEGER NOME DO ADMINISTRADOR
-    # --------------------------------------------------------
 
     if (
         novo_username.lower()
@@ -1410,10 +1392,6 @@ def change_username():
         }), 409
 
     username_atual = session["user"]
-
-    # --------------------------------------------------------
-    # NÃO ALTERAR PARA O MESMO NOME
-    # --------------------------------------------------------
 
     if (
         novo_username
@@ -1436,10 +1414,6 @@ def change_username():
 
             cursor = conn.cursor()
 
-            # ------------------------------------------------
-            # VERIFICAR SE JÁ EXISTE
-            # ------------------------------------------------
-
             cursor.execute("""
                 SELECT id
                 FROM users
@@ -1459,10 +1433,6 @@ def change_username():
                         "Esse nome de usuário já está em uso."
 
                 }), 409
-
-            # ------------------------------------------------
-            # ATUALIZAR USUÁRIO
-            # ------------------------------------------------
 
             cursor.execute("""
                 UPDATE users
@@ -1487,10 +1457,6 @@ def change_username():
 
                 }), 404
 
-            # ------------------------------------------------
-            # ATUALIZAR CONVERSAS
-            # ------------------------------------------------
-
             cursor.execute("""
                 UPDATE conversations
                 SET username = %s
@@ -1499,10 +1465,6 @@ def change_username():
                 novo_username,
                 username_atual
             ))
-
-            # ------------------------------------------------
-            # ATUALIZAR TABELA ANTIGA DE MENSAGENS
-            # ------------------------------------------------
 
             cursor.execute("""
                 UPDATE messages
@@ -1515,16 +1477,7 @@ def change_username():
 
             conn.commit()
 
-        # ----------------------------------------------------
-        # ATUALIZAR SESSÃO
-        # ----------------------------------------------------
-
         session["user"] = novo_username
-
-        # plan permanece na sessão.
-        # conversation_id continua válido porque o ID
-        # da conversa não mudou.
-
         session.modified = True
 
         print(
@@ -1854,6 +1807,24 @@ def change_password():
                 "Erro interno ao alterar a senha."
 
         }), 500
+
+
+# ============================================================
+# CONFIGURAÇÕES
+# ============================================================
+
+@app.route("/configuracoes")
+def configuracoes():
+
+    if "user" not in session:
+
+        return redirect(
+            url_for("login")
+        )
+
+    return render_template(
+        "configuracoes.html"
+    )
 
 
 # ============================================================
@@ -4213,9 +4184,9 @@ def executar_exclusao_conversa(
                         )
                     )
 
-                    session[
-                        "conversation_id"
-                    ] = nova_conversa
+                    session["conversation_id"] = (
+                        nova_conversa
+                    )
 
                     session.modified = True
 
@@ -4407,8 +4378,7 @@ def executar_exclusao_varias_conversas(
 
         return jsonify({
 
-            "success":
-                False,
+            "success": False,
 
             "message":
                 "Faça login primeiro."
@@ -4424,8 +4394,7 @@ def executar_exclusao_varias_conversas(
 
             return jsonify({
 
-                "success":
-                    False,
+                "success": False,
 
                 "message":
                     "Lista de conversas inválida."
@@ -4436,8 +4405,7 @@ def executar_exclusao_varias_conversas(
 
             return jsonify({
 
-                "success":
-                    False,
+                "success": False,
 
                 "message":
                     "Nenhuma conversa foi selecionada."
@@ -4477,8 +4445,7 @@ def executar_exclusao_varias_conversas(
 
             return jsonify({
 
-                "success":
-                    False,
+                "success": False,
 
                 "message":
                     "Nenhuma conversa válida foi selecionada."
@@ -4525,8 +4492,7 @@ def executar_exclusao_varias_conversas(
 
                 return jsonify({
 
-                    "success":
-                        False,
+                    "success": False,
 
                     "message":
                         "Nenhuma das conversas selecionadas pertence ao usuário."
