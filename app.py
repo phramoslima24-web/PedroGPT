@@ -1290,12 +1290,10 @@ def chat():
                 tipo_imagem = "image/jpeg"
 
             tipos_permitidos = [
-
                 "image/jpeg",
                 "image/png",
                 "image/webp",
                 "image/gif"
-
             ]
 
             if tipo_imagem not in tipos_permitidos:
@@ -1579,7 +1577,6 @@ PLANO:
 {estilo}
 """
             }
-
         ]
 
         with get_db() as conn:
@@ -2382,12 +2379,22 @@ def api_rename_conversation(
 # ============================================================
 # EXCLUIR CONVERSA
 # ============================================================
+#
+# IMPORTANTE:
+#
+# Foram adicionadas várias rotas compatíveis para impedir
+# erro "Rota não encontrada" caso o frontend esteja usando
+# uma das formas abaixo:
+#
+# DELETE /conversation/123
+# DELETE /api/conversation/123
+# DELETE /conversation/123/delete
+# DELETE /api/conversation/123/delete
+#
+# As rotas /delete também aceitam POST.
+# ============================================================
 
-@app.route(
-    "/conversation/<int:conversation_id>",
-    methods=["DELETE"]
-)
-def delete_conversation(
+def executar_exclusao_conversa(
     conversation_id
 ):
 
@@ -2403,8 +2410,14 @@ def delete_conversation(
 
     try:
 
+        username = session["user"]
+
+        # ====================================================
+        # VERIFICAR SE A CONVERSA EXISTE E PERTENCE AO USUÁRIO
+        # ====================================================
+
         if not verificar_conversa(
-            session["user"],
+            username,
             conversation_id
         ):
 
@@ -2416,9 +2429,28 @@ def delete_conversation(
                     "Conversa não encontrada."
             }), 404
 
+        # ====================================================
+        # EXCLUIR CONVERSA
+        # ====================================================
+        #
+        # chat_messages é excluído automaticamente pelo
+        # ON DELETE CASCADE.
+        #
+        # Também fazemos DELETE manual como segurança para
+        # bancos onde a constraint antiga possa não estar
+        # configurada.
+        # ====================================================
+
         with get_db() as conn:
 
             cursor = conn.cursor()
+
+            cursor.execute("""
+                DELETE FROM chat_messages
+                WHERE conversation_id = %s
+            """, (
+                conversation_id,
+            ))
 
             cursor.execute("""
                 DELETE FROM conversations
@@ -2426,17 +2458,41 @@ def delete_conversation(
                 AND username = %s
             """, (
                 conversation_id,
-                session["user"]
+                username
             ))
+
+            excluida = cursor.rowcount
+
+            if excluida == 0:
+
+                conn.rollback()
+
+                return jsonify({
+                    "success":
+                        False,
+
+                    "message":
+                        "Conversa não encontrada."
+                }), 404
 
             conn.commit()
 
-        if session.get(
+        # ====================================================
+        # SE ERA A CONVERSA ATUAL
+        # ====================================================
+
+        conversa_atual_id = session.get(
             "conversation_id"
-        ) == conversation_id:
+        )
+
+        if (
+            conversa_atual_id is not None
+            and int(conversa_atual_id)
+            == int(conversation_id)
+        ):
 
             nova_conversa = criar_conversa(
-                session["user"],
+                username,
                 "Nova conversa"
             )
 
@@ -2446,10 +2502,62 @@ def delete_conversation(
 
             session.modified = True
 
+        else:
+
+            # Se a conversa excluída não era a atual,
+            # verificamos se a conversa atual ainda existe.
+            atual = session.get(
+                "conversation_id"
+            )
+
+            if atual:
+
+                if not verificar_conversa(
+                    username,
+                    atual
+                ):
+
+                    nova_conversa = criar_conversa(
+                        username,
+                        "Nova conversa"
+                    )
+
+                    session["conversation_id"] = (
+                        nova_conversa
+                    )
+
+                    session.modified = True
+
+            else:
+
+                nova_conversa = criar_conversa(
+                    username,
+                    "Nova conversa"
+                )
+
+                session["conversation_id"] = (
+                    nova_conversa
+                )
+
+                session.modified = True
+
+        print(
+            "CONVERSA EXCLUÍDA:",
+            conversation_id,
+            "USUÁRIO:",
+            username
+        )
+
         return jsonify({
 
             "success":
                 True,
+
+            "message":
+                "Conversa excluída com sucesso.",
+
+            "deleted_id":
+                int(conversation_id),
 
             "conversation_id":
                 session.get(
@@ -2461,30 +2569,99 @@ def delete_conversation(
     except Exception as e:
 
         print(
-            "ERRO DELETE CONVERSATION:",
+            "=================================================="
+        )
+
+        print(
+            "ERRO DELETE CONVERSATION:"
+        )
+
+        print(
             repr(e)
         )
 
+        print(
+            "=================================================="
+        )
+
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
-                "Erro ao excluir conversa."
+                "Erro interno ao excluir conversa.",
+
+            "error":
+                str(e)
+
         }), 500
 
 
 # ============================================================
-# ALIAS API - EXCLUIR CONVERSA
+# ROTA PRINCIPAL DE EXCLUSÃO
 # ============================================================
 
 @app.route(
-    "/api/conversation/<int:conversation_id>/delete",
+    "/conversation/<int:conversation_id>",
+    methods=["DELETE"]
+)
+def delete_conversation(
+    conversation_id
+):
+
+    return executar_exclusao_conversa(
+        conversation_id
+    )
+
+
+# ============================================================
+# ALIAS API - EXCLUSÃO
+# ============================================================
+
+@app.route(
+    "/api/conversation/<int:conversation_id>",
     methods=["DELETE"]
 )
 def api_delete_conversation(
     conversation_id
 ):
 
-    return delete_conversation(
+    return executar_exclusao_conversa(
+        conversation_id
+    )
+
+
+# ============================================================
+# ALIAS COM /delete
+# ============================================================
+
+@app.route(
+    "/conversation/<int:conversation_id>/delete",
+    methods=["DELETE", "POST"]
+)
+def delete_conversation_with_delete(
+    conversation_id
+):
+
+    return executar_exclusao_conversa(
+        conversation_id
+    )
+
+
+# ============================================================
+# ALIAS API COM /delete
+# ============================================================
+
+@app.route(
+    "/api/conversation/<int:conversation_id>/delete",
+    methods=["DELETE", "POST"]
+)
+def api_delete_conversation_with_delete(
+    conversation_id
+):
+
+    return executar_exclusao_conversa(
         conversation_id
     )
 
@@ -2575,6 +2752,19 @@ def delete_multiple_conversations():
         with get_db() as conn:
 
             cursor = conn.cursor()
+
+            cursor.execute("""
+                DELETE FROM chat_messages
+                WHERE conversation_id IN (
+                    SELECT id
+                    FROM conversations
+                    WHERE username = %s
+                    AND id = ANY(%s)
+                )
+            """, (
+                username,
+                conversation_ids
+            ))
 
             cursor.execute("""
                 DELETE FROM conversations
