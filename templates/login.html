@@ -1,30 +1,461 @@
+
 <!DOCTYPE html>
 
 <html lang="pt-BR">
 
 <head>
 
-<meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
 
 <title>Login - Orion AI</title>
 
-<style> *{ margin:0; padding:0; box-sizing:border-box; font-family:Arial,sans-serif; } body{ height:100vh; display:flex; justify-content:center; align-items:center; background:linear-gradient(135deg,#0f172a,#1e1b4b,#111827); color:#fff; } .card{ width:380px; padding:35px; border-radius:22px; background:rgba(255,255,255,.06); backdrop-filter:blur(15px); border:1px solid rgba(255,255,255,.1); box-shadow:0 20px 50px rgba(0,0,0,.45); } .logo{ text-align:center; margin-bottom:25px; } .logo h1{ font-size:30px; } .logo p{ color:#cbd5e1; margin-top:6px; font-size:14px; } .input-group{ margin-bottom:16px; } .input-group label{ display:block; margin-bottom:6px; font-size:14px; color:#ddd; } .input-group input{ width:100%; padding:13px; border:none; border-radius:12px; outline:none; background:rgba(255,255,255,.1); color:white; border:1px solid transparent; } .input-group input:focus{ border-color:#7c3aed; } .password-box{ position:relative; } .password-box input{ padding-right:48px; } .password-box button{ position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:#ddd; cursor:pointer; font-size:18px; } .login-btn{ width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(90deg,#7c3aed,#4f46e5); color:white; font-size:15px; font-weight:bold; cursor:pointer; transition:.2s; } .login-btn:hover{ transform:translateY(-2px); } .login-btn:disabled{ opacity:.6; cursor:not-allowed; } .msg{ margin-top:15px; text-align:center; font-size:14px; min-height:20px; } .error{ color:#f87171; } .success{ color:#4ade80; } .footer{ text-align:center; margin-top:18px; font-size:14px; } .footer a{ color:#a78bfa; text-decoration:none; } .footer a:hover{ text-decoration:underline; } </style>
+<style>
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+
+    height: 100vh;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    background:
+        radial-gradient(
+            circle at top,
+            rgba(124,58,237,.18),
+            transparent 30%
+        ),
+        linear-gradient(
+            135deg,
+            #0f172a,
+            #1e1b4b,
+            #111827
+        );
+
+    color: white;
+
+    padding: 20px;
+}
+
+.card {
+
+    width: 100%;
+    max-width: 380px;
+
+    padding: 35px;
+
+    border-radius: 22px;
+
+    background:
+        rgba(255,255,255,.06);
+
+    backdrop-filter:
+        blur(15px);
+
+    border:
+        1px solid rgba(255,255,255,.1);
+
+    box-shadow:
+        0 20px 50px rgba(0,0,0,.45);
+
+}
+
+.logo {
+
+    text-align: center;
+
+    margin-bottom: 25px;
+
+}
+
+.logo h1 {
+
+    font-size: 30px;
+
+}
+
+.logo p {
+
+    color: #cbd5e1;
+
+    margin-top: 6px;
+
+    font-size: 14px;
+
+}
+
+
+/* ============================================================
+   CAMPOS
+============================================================ */
+
+.input-group {
+
+    margin-bottom: 16px;
+
+}
+
+.input-group label {
+
+    display: block;
+
+    margin-bottom: 6px;
+
+    font-size: 14px;
+
+    color: #ddd;
+
+}
+
+.input-group input {
+
+    width: 100%;
+
+    padding: 13px;
+
+    border: none;
+
+    border-radius: 12px;
+
+    outline: none;
+
+    background:
+        rgba(255,255,255,.1);
+
+    color: white;
+
+    border:
+        1px solid transparent;
+
+    transition: .2s;
+
+}
+
+.input-group input:focus {
+
+    border-color: #7c3aed;
+
+    box-shadow:
+        0 0 0 3px rgba(124,58,237,.08);
+
+}
+
+
+/* ============================================================
+   SENHA
+============================================================ */
+
+.password-box {
+
+    position: relative;
+
+}
+
+.password-box input {
+
+    padding-right: 48px;
+
+}
+
+.password-box button {
+
+    position: absolute;
+
+    right: 12px;
+
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    background: none;
+
+    border: none;
+
+    color: #ddd;
+
+    cursor: pointer;
+
+    font-size: 18px;
+
+}
+
+
+/* ============================================================
+   BOTÃO LOGIN
+============================================================ */
+
+.login-btn {
+
+    width: 100%;
+
+    padding: 14px;
+
+    border: none;
+
+    border-radius: 12px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #7c3aed,
+            #4f46e5
+        );
+
+    color: white;
+
+    font-size: 15px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition: .2s;
+
+}
+
+.login-btn:hover {
+
+    transform: translateY(-2px);
+
+    filter: brightness(1.08);
+
+}
+
+.login-btn:disabled {
+
+    opacity: .6;
+
+    cursor: not-allowed;
+
+    transform: none;
+
+}
+
+
+/* ============================================================
+   SEPARADOR
+============================================================ */
+
+.divisor {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    margin: 18px 0;
+
+    color:
+        rgba(255,255,255,.4);
+
+    font-size: 12px;
+
+}
+
+.divisor::before,
+.divisor::after {
+
+    content: "";
+
+    flex: 1;
+
+    height: 1px;
+
+    background:
+        rgba(255,255,255,.1);
+
+}
+
+
+/* ============================================================
+   GOOGLE
+============================================================ */
+
+.google-btn {
+
+    width: 100%;
+
+    padding: 13px;
+
+    border-radius: 12px;
+
+    border:
+        1px solid rgba(255,255,255,.1);
+
+    background:
+        rgba(255,255,255,.07);
+
+    color: white;
+
+    text-decoration: none;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 10px;
+
+    font-size: 14px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition: .2s;
+
+}
+
+.google-btn:hover {
+
+    background:
+        rgba(255,255,255,.11);
+
+    transform: translateY(-1px);
+
+}
+
+.google-icon {
+
+    width: 20px;
+
+    height: 20px;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 18px;
+
+}
+
+
+/* ============================================================
+   MENSAGEM
+============================================================ */
+
+.msg {
+
+    margin-top: 15px;
+
+    text-align: center;
+
+    font-size: 14px;
+
+    min-height: 20px;
+
+}
+
+.error {
+
+    color: #f87171;
+
+}
+
+.success {
+
+    color: #4ade80;
+
+}
+
+
+/* ============================================================
+   RODAPÉ
+============================================================ */
+
+.footer {
+
+    text-align: center;
+
+    margin-top: 18px;
+
+    font-size: 14px;
+
+}
+
+.footer a {
+
+    color: #a78bfa;
+
+    text-decoration: none;
+
+}
+
+.footer a:hover {
+
+    text-decoration: underline;
+
+}
+
+
+/* ============================================================
+   MOBILE
+============================================================ */
+
+@media(max-width:450px) {
+
+    .card {
+
+        padding: 25px 20px;
+
+    }
+
+    .logo h1 {
+
+        font-size: 27px;
+
+    }
+
+}
+
+</style>
 
 </head>
 
 <body>
 
+
 <div class="card">
+
+
+<!-- ========================================================
+     LOGO
+========================================================= -->
 
 <div class="logo">
 
-    <h1>🤖 Orion AI</h1>
+    <h1>
+        🤖 Orion AI
+    </h1>
 
     <p>
         Entre na sua conta
     </p>
 
 </div>
+
+
+<!-- ========================================================
+     USUÁRIO
+========================================================= -->
 
 <div class="input-group">
 
@@ -40,6 +471,11 @@
     >
 
 </div>
+
+
+<!-- ========================================================
+     SENHA
+========================================================= -->
 
 <div class="input-group">
 
@@ -69,6 +505,11 @@
 
 </div>
 
+
+<!-- ========================================================
+     LOGIN NORMAL
+========================================================= -->
+
 <button
     class="login-btn"
     onclick="login()"
@@ -78,10 +519,46 @@
     Entrar
 </button>
 
+
+<!-- ========================================================
+     DIVISOR
+========================================================= -->
+
+<div class="divisor">
+    ou
+</div>
+
+
+<!-- ========================================================
+     LOGIN GOOGLE
+========================================================= -->
+
+<a
+    href="/google/login"
+    class="google-btn"
+>
+    <span class="google-icon">
+        G
+    </span>
+
+    Continuar com Google
+
+</a>
+
+
+<!-- ========================================================
+     MENSAGEM
+========================================================= -->
+
 <div
     id="msg"
     class="msg"
 ></div>
+
+
+<!-- ========================================================
+     CADASTRO
+========================================================= -->
 
 <div class="footer">
 
@@ -93,10 +570,295 @@
 
 </div>
 
+
 </div>
 
-<script> function mostrarMensagem(texto, tipo = "error") { const msg = document.getElementById("msg"); if (!msg) { return; } msg.className = `msg ${tipo}`; msg.textContent = texto; } function toggleSenha() { const senha = document.getElementById("password"); const eye = document.getElementById("eye"); if (!senha || !eye) { return; } if (senha.type === "password") { senha.type = "text"; eye.textContent = "🙈"; } else { senha.type = "password"; eye.textContent = "👁️"; } } async function login() { const usernameElement = document.getElementById("username"); const passwordElement = document.getElementById("password"); const btn = document.getElementById("btnLogin"); if (!usernameElement || !passwordElement || !btn) { return; } const username = usernameElement.value.trim(); const password = passwordElement.value.trim(); if (!username || !password) { mostrarMensagem( "Preencha usuário e senha." ); return; } btn.disabled = true; btn.textContent = "Entrando..."; mostrarMensagem(""); try { const res = await fetch( "/api/login", { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, credentials: "same-origin", body: JSON.stringify({ username: username, password: password }) } ); let data = {}; try { data = await res.json(); } catch (jsonError) { data = {}; } if (res.ok && data.success) { mostrarMensagem( "Login realizado com sucesso!", "success" ); setTimeout( function () { window.location.href = "/"; }, 600 ); return; } mostrarMensagem( data.message || "Usuário ou senha incorretos." ); } catch (e) { console.error( "Erro no login:", e ); mostrarMensagem( "Erro ao conectar ao servidor." ); } finally { btn.disabled = false; btn.textContent = "Entrar"; } } document.addEventListener( "DOMContentLoaded", function () { const password = document.getElementById("password"); const username = document.getElementById("username"); if (password) { password.addEventListener( "keydown", function (e) { if (e.key === "Enter") { login(); } } ); } if (username) { username.addEventListener( "keydown", function (e) { if (e.key === "Enter") { login(); } } ); } } ); </script>
+
+<script>
+
+/* ============================================================
+   MENSAGEM
+============================================================ */
+
+function mostrarMensagem(
+    texto,
+    tipo = "error"
+) {
+
+    const msg =
+        document.getElementById("msg");
+
+    if (!msg) {
+        return;
+    }
+
+    msg.className =
+        `msg ${tipo}`;
+
+    msg.textContent =
+        texto;
+
+}
+
+
+/* ============================================================
+   MOSTRAR / ESCONDER SENHA
+============================================================ */
+
+function toggleSenha() {
+
+    const senha =
+        document.getElementById("password");
+
+    const eye =
+        document.getElementById("eye");
+
+    if (!senha || !eye) {
+        return;
+    }
+
+    if (
+        senha.type === "password"
+    ) {
+
+        senha.type = "text";
+
+        eye.textContent =
+            "🙈";
+
+    } else {
+
+        senha.type = "password";
+
+        eye.textContent =
+            "👁️";
+
+    }
+
+}
+
+
+/* ============================================================
+   LOGIN NORMAL
+============================================================ */
+
+async function login() {
+
+    const usernameElement =
+        document.getElementById(
+            "username"
+        );
+
+    const passwordElement =
+        document.getElementById(
+            "password"
+        );
+
+    const btn =
+        document.getElementById(
+            "btnLogin"
+        );
+
+    if (
+        !usernameElement ||
+        !passwordElement ||
+        !btn
+    ) {
+
+        return;
+
+    }
+
+    const username =
+        usernameElement.value.trim();
+
+    const password =
+        passwordElement.value.trim();
+
+    if (
+        !username ||
+        !password
+    ) {
+
+        mostrarMensagem(
+            "Preencha usuário e senha."
+        );
+
+        return;
+
+    }
+
+    btn.disabled =
+        true;
+
+    btn.textContent =
+        "Entrando...";
+
+    mostrarMensagem(
+        ""
+    );
+
+    try {
+
+        const res =
+            await fetch(
+                "/api/login",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+
+                        "Accept":
+                            "application/json"
+                    },
+
+                    credentials:
+                        "same-origin",
+
+                    body:
+                        JSON.stringify({
+                            username:
+                                username,
+
+                            password:
+                                password
+                        })
+                }
+            );
+
+        let data = {};
+
+        try {
+
+            data =
+                await res.json();
+
+        } catch (
+            jsonError
+        ) {
+
+            data = {};
+
+        }
+
+        if (
+            res.ok &&
+            data.success
+        ) {
+
+            mostrarMensagem(
+                "Login realizado com sucesso!",
+                "success"
+            );
+
+            setTimeout(
+                function () {
+
+                    window.location.href =
+                        "/";
+
+                },
+                600
+            );
+
+            return;
+
+        }
+
+        mostrarMensagem(
+            data.message ||
+            "Usuário ou senha incorretos."
+        );
+
+    } catch (e) {
+
+        console.error(
+            "Erro no login:",
+            e
+        );
+
+        mostrarMensagem(
+            "Erro ao conectar ao servidor."
+        );
+
+    } finally {
+
+        btn.disabled =
+            false;
+
+        btn.textContent =
+            "Entrar";
+
+    }
+
+}
+
+
+/* ============================================================
+   ENTER
+============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const password =
+            document.getElementById(
+                "password"
+            );
+
+        const username =
+            document.getElementById(
+                "username"
+            );
+
+        if (password) {
+
+            password.addEventListener(
+                "keydown",
+                function (e) {
+
+                    if (
+                        e.key === "Enter"
+                    ) {
+
+                        login();
+
+                    }
+
+                }
+            );
+
+        }
+
+        if (username) {
+
+            username.addEventListener(
+                "keydown",
+                function (e) {
+
+                    if (
+                        e.key === "Enter"
+                    ) {
+
+                        login();
+
+                    }
+
+                }
+            );
+
+        }
+
+    }
+);
+
+</script>
+
 
 </body>
 
 </html>
+
