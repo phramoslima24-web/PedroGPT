@@ -1,5 +1,7 @@
 
 import os
+import secrets
+import re
 from datetime import datetime
 
 import psycopg2
@@ -21,6 +23,8 @@ from werkzeug.security import (
 )
 
 from groq import Groq
+
+from authlib.integrations.flask_client import OAuth
 
 
 # ============================================================
@@ -52,11 +56,63 @@ ADMIN_PASSWORD = os.getenv(
     ""
 )
 
+GOOGLE_CLIENT_ID = os.getenv(
+    "GOOGLE_CLIENT_ID",
+    ""
+).strip()
+
+GOOGLE_CLIENT_SECRET = os.getenv(
+    "GOOGLE_CLIENT_SECRET",
+    ""
+).strip()
+
+
+# ============================================================
+# GROQ
+# ============================================================
+
 client = None
 
 if GROQ_API_KEY:
+
     client = Groq(
         api_key=GROQ_API_KEY
+    )
+
+
+# ============================================================
+# GOOGLE OAUTH
+# ============================================================
+
+oauth = OAuth(app)
+
+google = None
+
+if (
+    GOOGLE_CLIENT_ID
+    and GOOGLE_CLIENT_SECRET
+):
+
+    google = oauth.register(
+
+        name="google",
+
+        client_id=GOOGLE_CLIENT_ID,
+
+        client_secret=GOOGLE_CLIENT_SECRET,
+
+        server_metadata_url=(
+            "https://accounts.google.com/"
+            ".well-known/openid-configuration"
+        ),
+
+        client_kwargs={
+
+            "scope":
+                "openid email profile",
+
+        }
+
     )
 
 
@@ -88,6 +144,10 @@ def init_db():
 
         cursor = conn.cursor()
 
+        # ----------------------------------------------------
+        # USERS
+        # ----------------------------------------------------
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -103,6 +163,27 @@ def init_db():
         """)
 
         cursor.execute("""
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS google_id TEXT
+        """)
+
+        cursor.execute("""
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS email TEXT
+        """)
+
+        cursor.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            users_google_id_unique
+            ON users (google_id)
+            WHERE google_id IS NOT NULL
+        """)
+
+        # ----------------------------------------------------
+        # MESSAGES
+        # ----------------------------------------------------
+
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS messages (
                 id SERIAL PRIMARY KEY,
                 username TEXT,
@@ -110,6 +191,10 @@ def init_db():
                 message TEXT
             )
         """)
+
+        # ----------------------------------------------------
+        # CONVERSATIONS
+        # ----------------------------------------------------
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS conversations (
@@ -120,6 +205,10 @@ def init_db():
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
+        # ----------------------------------------------------
+        # CHAT MESSAGES
+        # ----------------------------------------------------
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS chat_messages (
@@ -248,7 +337,10 @@ def verificar_conversa(
             username
         ))
 
-        return cursor.fetchone() is not None
+        return (
+            cursor.fetchone()
+            is not None
+        )
 
 
 def conversa_atual():
@@ -327,7 +419,8 @@ def atualizar_titulo_se_necessario(
     with get_db() as conn:
 
         cursor = conn.cursor(
-            cursor_factory=psycopg2.extras.RealDictCursor
+            cursor_factory=
+            psycopg2.extras.RealDictCursor
         )
 
         cursor.execute("""
@@ -372,7 +465,8 @@ def obter_plan_usuario(username):
     with get_db() as conn:
 
         cursor = conn.cursor(
-            cursor_factory=psycopg2.extras.RealDictCursor
+            cursor_factory=
+            psycopg2.extras.RealDictCursor
         )
 
         cursor.execute("""
@@ -395,6 +489,296 @@ def obter_plan_usuario(username):
         ).lower()
 
 
+def gerar_username_google(
+    nome,
+    email
+):
+
+    nome_base = (
+        str(nome or "")
+        .strip()
+        .lower()
+    )
+
+    if not nome_base:
+
+        nome_base = (
+            str(email or "")
+            .split("@")[0]
+            .strip()
+            .lower()
+        )
+
+    nome_base = re.sub(
+        r"[^a-z0-9_]+",
+        "_",
+        nome_base
+    )
+
+    nome_base = (
+        nome_base
+        .strip("_")
+    )
+
+    if len(nome_base) < 3:
+
+        nome_base = "google_user"
+
+    if len(nome_base) > 24:
+
+        nome_base = (
+            nome_base[:24]
+            .rstrip("_")
+        )
+
+    candidato = nome_base
+
+    numero = 1
+
+    while True:
+
+        with get_db() as conn:
+
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT id
+                FROM users
+                WHERE username = %s
+            """, (
+                candidato,
+            ))
+
+            existe = (
+                cursor.fetchone()
+                is not None
+            )
+
+        if not existe:
+
+            return candidato
+
+        candidato = (
+            f"{nome_base}_{numero}"
+        )
+
+        numero += 1
+
+        if numero > 9999:
+
+            candidato = (
+                f"{nome_base}_{secrets.token_hex(3)}"
+            )
+
+
+def login_com_google(
+    google_id,
+    nome,
+    email
+):
+
+    if not google_id:
+
+        raise RuntimeError(
+            "O Google não retornou um identificador válido."
+        )
+
+    email = (
+        str(email or "")
+        .strip()
+        .lower()
+    )
+
+    nome = (
+        str(nome or "")
+        .strip()
+    )
+
+    with get_db() as conn:
+
+        cursor = conn.cursor(
+            cursor_factory=
+            psycopg2.extras.RealDictCursor
+        )
+
+        # ----------------------------------------------------
+        # PROCURAR PELO GOOGLE ID
+        # ----------------------------------------------------
+
+        cursor.execute("""
+            SELECT
+                id,
+                username,
+                plan
+            FROM users
+            WHERE google_id = %s
+        """, (
+            google_id,
+        ))
+
+        usuario = cursor.fetchone()
+
+        if usuario:
+
+            session.clear()
+
+            session["user"] = (
+                usuario["username"]
+            )
+
+            session["admin"] = False
+
+            session["plan"] = (
+                usuario["plan"]
+                or "free"
+            )
+
+            conversation_id = criar_conversa(
+                usuario["username"],
+                "Nova conversa"
+            )
+
+            session["conversation_id"] = (
+                conversation_id
+            )
+
+            session.modified = True
+
+            return usuario["username"]
+
+        # ----------------------------------------------------
+        # TENTAR LOCALIZAR PELO EMAIL
+        # ----------------------------------------------------
+
+        usuario = None
+
+        if email:
+
+            cursor.execute("""
+                SELECT
+                    id,
+                    username,
+                    plan
+                FROM users
+                WHERE LOWER(email) = %s
+            """, (
+                email,
+            ))
+
+            usuario = cursor.fetchone()
+
+        # ----------------------------------------------------
+        # VINCULAR GOOGLE A UMA CONTA EXISTENTE
+        # ----------------------------------------------------
+
+        if usuario:
+
+            cursor.execute("""
+                UPDATE users
+                SET google_id = %s
+                WHERE id = %s
+            """, (
+                google_id,
+                usuario["id"]
+            ))
+
+            conn.commit()
+
+            session.clear()
+
+            session["user"] = (
+                usuario["username"]
+            )
+
+            session["admin"] = False
+
+            session["plan"] = (
+                usuario["plan"]
+                or "free"
+            )
+
+            conversation_id = criar_conversa(
+                usuario["username"],
+                "Nova conversa"
+            )
+
+            session["conversation_id"] = (
+                conversation_id
+            )
+
+            session.modified = True
+
+            return usuario["username"]
+
+        # ----------------------------------------------------
+        # CRIAR NOVA CONTA GOOGLE
+        # ----------------------------------------------------
+
+        username = gerar_username_google(
+            nome,
+            email
+        )
+
+        senha_temporaria = secrets.token_urlsafe(
+            32
+        )
+
+        password_hash = generate_password_hash(
+            senha_temporaria
+        )
+
+        cursor.execute("""
+            INSERT INTO users
+            (
+                username,
+                password,
+                plan,
+                google_id,
+                email
+            )
+            VALUES
+            (%s, %s, %s, %s, %s)
+            RETURNING id
+        """, (
+            username,
+            password_hash,
+            "free",
+            google_id,
+            email or None
+        ))
+
+        resultado = cursor.fetchone()
+
+        if not resultado:
+
+            raise RuntimeError(
+                "Não foi possível criar a conta Google."
+            )
+
+        conn.commit()
+
+    session.clear()
+
+    session["user"] = username
+
+    session["admin"] = False
+
+    session["plan"] = "free"
+
+    conversation_id = criar_conversa(
+        username,
+        "Nova conversa"
+    )
+
+    session["conversation_id"] = (
+        conversation_id
+    )
+
+    session.modified = True
+
+    return username
+
+
 # ============================================================
 # VERIFICAR ADMIN
 # ============================================================
@@ -403,8 +787,142 @@ def verificar_admin():
 
     return (
         session.get("admin") is True
-        and session.get("user") == ADMIN_USERNAME
+        and session.get("user") ==
+        ADMIN_USERNAME
     )
+
+
+# ============================================================
+# LOGIN GOOGLE
+# ============================================================
+
+@app.route("/google/login")
+def google_login():
+
+    if "user" in session:
+
+        return redirect(
+            url_for("home")
+        )
+
+    if google is None:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Login com Google não está configurado no servidor."
+
+        }), 500
+
+    redirect_uri = url_for(
+        "google_callback",
+        _external=True
+    )
+
+    return google.authorize_redirect(
+        redirect_uri
+    )
+
+
+# ============================================================
+# CALLBACK GOOGLE
+# ============================================================
+
+@app.route("/google/callback")
+def google_callback():
+
+    if google is None:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Login com Google não está configurado no servidor."
+
+        }), 500
+
+    try:
+
+        token = google.authorize_access_token()
+
+        userinfo = token.get(
+            "userinfo"
+        )
+
+        if not userinfo:
+
+            userinfo = (
+                google.userinfo()
+            )
+
+        google_id = (
+            userinfo.get("sub")
+        )
+
+        nome = (
+            userinfo.get("name")
+            or userinfo.get(
+                "given_name"
+            )
+            or "Google User"
+        )
+
+        email = (
+            userinfo.get("email")
+            or ""
+        )
+
+        if not google_id:
+
+            raise RuntimeError(
+                "O Google não retornou o identificador da conta."
+            )
+
+        login_com_google(
+            google_id,
+            nome,
+            email
+        )
+
+        return redirect(
+            url_for("home")
+        )
+
+    except Exception as e:
+
+        print(
+            "=================================================="
+        )
+
+        print(
+            "ERRO LOGIN GOOGLE:"
+        )
+
+        print(
+            repr(e)
+        )
+
+        print(
+            "=================================================="
+        )
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Não foi possível realizar o login com Google.",
+
+            "error":
+                str(e)
+
+        }), 500
 
 
 # ============================================================
@@ -424,8 +942,10 @@ def home():
 
         conversa_atual()
 
-        session["plan"] = obter_plan_usuario(
-            session["user"]
+        session["plan"] = (
+            obter_plan_usuario(
+                session["user"]
+            )
         )
 
     except Exception as e:
@@ -436,9 +956,13 @@ def home():
         )
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Erro ao carregar o banco de dados."
+
         }), 500
 
     return render_template(
@@ -509,12 +1033,9 @@ def perfil():
         with get_db() as conn:
 
             cursor = conn.cursor(
-                cursor_factory=psycopg2.extras.RealDictCursor
+                cursor_factory=
+                psycopg2.extras.RealDictCursor
             )
-
-            # ------------------------------------------------
-            # USUÁRIO
-            # ------------------------------------------------
 
             cursor.execute("""
                 SELECT
@@ -537,10 +1058,6 @@ def perfil():
                     url_for("login")
                 )
 
-            # ------------------------------------------------
-            # TOTAL DE CONVERSAS
-            # ------------------------------------------------
-
             cursor.execute("""
                 SELECT COUNT(*) AS total
                 FROM conversations
@@ -549,17 +1066,15 @@ def perfil():
                 username,
             ))
 
-            resultado_conversas = cursor.fetchone()
+            resultado_conversas = (
+                cursor.fetchone()
+            )
 
             total_conversas = (
                 resultado_conversas["total"]
                 if resultado_conversas
                 else 0
             )
-
-            # ------------------------------------------------
-            # TOTAL DE MENSAGENS
-            # ------------------------------------------------
 
             cursor.execute("""
                 SELECT COUNT(*) AS total
@@ -571,7 +1086,9 @@ def perfil():
                 username,
             ))
 
-            resultado_mensagens = cursor.fetchone()
+            resultado_mensagens = (
+                cursor.fetchone()
+            )
 
             total_mensagens = (
                 resultado_mensagens["total"]
@@ -634,14 +1151,17 @@ def api_profile():
         with get_db() as conn:
 
             cursor = conn.cursor(
-                cursor_factory=psycopg2.extras.RealDictCursor
+                cursor_factory=
+                psycopg2.extras.RealDictCursor
             )
 
             cursor.execute("""
                 SELECT
                     id,
                     username,
-                    plan
+                    plan,
+                    email,
+                    google_id
                 FROM users
                 WHERE username = %s
             """, (
@@ -670,7 +1190,9 @@ def api_profile():
                 username,
             ))
 
-            resultado_conversas = cursor.fetchone()
+            resultado_conversas = (
+                cursor.fetchone()
+            )
 
             total_conversas = (
                 resultado_conversas["total"]
@@ -688,7 +1210,9 @@ def api_profile():
                 username,
             ))
 
-            resultado_mensagens = cursor.fetchone()
+            resultado_mensagens = (
+                cursor.fetchone()
+            )
 
             total_mensagens = (
                 resultado_mensagens["total"]
@@ -708,7 +1232,17 @@ def api_profile():
                 usuario["username"],
 
             "plan":
-                usuario["plan"] or "free",
+                usuario["plan"]
+                or "free",
+
+            "email":
+                usuario["email"]
+                or "",
+
+            "google":
+                bool(
+                    usuario["google_id"]
+                ),
 
             "total_conversas":
                 total_conversas,
@@ -766,20 +1300,25 @@ def change_password():
     ) or {}
 
     current_password = str(
-        data.get("current_password") or ""
+        data.get(
+            "current_password"
+        )
+        or ""
     )
 
     new_password = str(
-        data.get("new_password") or ""
+        data.get(
+            "new_password"
+        )
+        or ""
     )
 
     confirm_password = str(
-        data.get("confirm_password") or ""
+        data.get(
+            "confirm_password"
+        )
+        or ""
     )
-
-    # ========================================================
-    # VALIDAR CAMPOS
-    # ========================================================
 
     if (
         not current_password
@@ -796,10 +1335,6 @@ def change_password():
                 "Preencha todos os campos."
 
         }), 400
-
-    # ========================================================
-    # VALIDAR TAMANHO
-    # ========================================================
 
     if len(new_password) < 6:
 
@@ -825,10 +1360,6 @@ def change_password():
 
         }), 400
 
-    # ========================================================
-    # VALIDAR NÚMERO
-    # ========================================================
-
     if not any(
         caractere.isdigit()
         for caractere in new_password
@@ -844,10 +1375,6 @@ def change_password():
 
         }), 400
 
-    # ========================================================
-    # CONFIRMAÇÃO
-    # ========================================================
-
     if new_password != confirm_password:
 
         return jsonify({
@@ -859,10 +1386,6 @@ def change_password():
                 "A confirmação da senha não confere."
 
         }), 400
-
-    # ========================================================
-    # NÃO PERMITIR MESMA SENHA
-    # ========================================================
 
     if current_password == new_password:
 
@@ -883,7 +1406,8 @@ def change_password():
         with get_db() as conn:
 
             cursor = conn.cursor(
-                cursor_factory=psycopg2.extras.RealDictCursor
+                cursor_factory=
+                psycopg2.extras.RealDictCursor
             )
 
             cursor.execute("""
@@ -915,28 +1439,24 @@ def change_password():
 
             senha_correta = False
 
-            # =================================================
-            # VERIFICAR HASH NORMAL
-            # =================================================
-
             try:
 
-                senha_correta = check_password_hash(
-                    usuario["password"],
-                    current_password
+                senha_correta = (
+                    check_password_hash(
+                        usuario["password"],
+                        current_password
+                    )
                 )
 
             except Exception:
 
                 senha_correta = False
 
-            # =================================================
-            # COMPATIBILIDADE COM SENHAS ANTIGAS
-            # =================================================
-
             if not senha_correta:
 
-                senha_antiga = usuario["password"]
+                senha_antiga = (
+                    usuario["password"]
+                )
 
                 if (
                     senha_antiga ==
@@ -944,10 +1464,6 @@ def change_password():
                 ):
 
                     senha_correta = True
-
-            # =================================================
-            # SENHA INCORRETA
-            # =================================================
 
             if not senha_correta:
 
@@ -961,12 +1477,10 @@ def change_password():
 
                 }), 401
 
-            # =================================================
-            # GERAR NOVA HASH
-            # =================================================
-
-            nova_hash = generate_password_hash(
-                new_password
+            nova_hash = (
+                generate_password_hash(
+                    new_password
+                )
             )
 
             cursor.execute("""
@@ -1121,7 +1635,11 @@ def admin_login():
     session.clear()
 
     session["admin"] = True
-    session["user"] = ADMIN_USERNAME
+
+    session["user"] = (
+        ADMIN_USERNAME
+    )
+
     session["plan"] = "premium"
 
     return jsonify({
@@ -1182,9 +1700,13 @@ def admin_users():
     if not verificar_admin():
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Acesso negado."
+
         }), 403
 
     try:
@@ -1192,7 +1714,8 @@ def admin_users():
         with get_db() as conn:
 
             cursor = conn.cursor(
-                cursor_factory=psycopg2.extras.RealDictCursor
+                cursor_factory=
+                psycopg2.extras.RealDictCursor
             )
 
             cursor.execute("""
@@ -1214,20 +1737,28 @@ def admin_users():
         )
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Erro ao consultar usuários."
+
         }), 500
 
     total = len(usuarios)
 
     premium = sum(
+
         1
+
         for usuario in usuarios
+
         if (
             usuario["plan"]
             or "free"
         ).lower() == "premium"
+
     )
 
     free = total - premium
@@ -1253,6 +1784,7 @@ def admin_users():
         "users": [
 
             {
+
                 "id":
                     usuario["id"],
 
@@ -1260,7 +1792,8 @@ def admin_users():
                     usuario["username"],
 
                 "plan":
-                    usuario["plan"] or "free"
+                    usuario["plan"]
+                    or "free"
 
             }
 
@@ -1284,9 +1817,13 @@ def admin_change_plan(user_id):
     if not verificar_admin():
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Acesso negado."
+
         }), 403
 
     data = request.get_json(
@@ -1303,9 +1840,13 @@ def admin_change_plan(user_id):
     ]:
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Plano inválido."
+
         }), 400
 
     try:
@@ -1313,7 +1854,8 @@ def admin_change_plan(user_id):
         with get_db() as conn:
 
             cursor = conn.cursor(
-                cursor_factory=psycopg2.extras.RealDictCursor
+                cursor_factory=
+                psycopg2.extras.RealDictCursor
             )
 
             cursor.execute("""
@@ -1331,17 +1873,28 @@ def admin_change_plan(user_id):
             if not usuario:
 
                 return jsonify({
-                    "success": False,
+
+                    "success":
+                        False,
+
                     "message":
                         "Usuário não encontrado."
+
                 }), 404
 
-            if usuario["username"] == ADMIN_USERNAME:
+            if (
+                usuario["username"] ==
+                ADMIN_USERNAME
+            ):
 
                 return jsonify({
-                    "success": False,
+
+                    "success":
+                        False,
+
                     "message":
                         "O administrador não pode ter o plano alterado."
+
                 }), 400
 
             cursor.execute("""
@@ -1363,17 +1916,26 @@ def admin_change_plan(user_id):
         )
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Erro interno ao alterar o plano."
+
         }), 500
 
     return jsonify({
-        "success": True,
+
+        "success":
+            True,
+
         "message":
             "Plano atualizado com sucesso.",
+
         "plan":
             plan
+
     })
 
 
@@ -1390,9 +1952,13 @@ def admin_delete_user(user_id):
     if not verificar_admin():
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Acesso negado."
+
         }), 403
 
     try:
@@ -1400,7 +1966,8 @@ def admin_delete_user(user_id):
         with get_db() as conn:
 
             cursor = conn.cursor(
-                cursor_factory=psycopg2.extras.RealDictCursor
+                cursor_factory=
+                psycopg2.extras.RealDictCursor
             )
 
             cursor.execute("""
@@ -1416,20 +1983,33 @@ def admin_delete_user(user_id):
             if not usuario:
 
                 return jsonify({
-                    "success": False,
+
+                    "success":
+                        False,
+
                     "message":
                         "Usuário não encontrado."
+
                 }), 404
 
-            if usuario["username"] == ADMIN_USERNAME:
+            if (
+                usuario["username"] ==
+                ADMIN_USERNAME
+            ):
 
                 return jsonify({
-                    "success": False,
+
+                    "success":
+                        False,
+
                     "message":
                         "Você não pode excluir o administrador."
+
                 }), 400
 
-            username = usuario["username"]
+            username = (
+                usuario["username"]
+            )
 
             cursor.execute("""
                 DELETE FROM chat_messages
@@ -1473,15 +2053,23 @@ def admin_delete_user(user_id):
         )
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Erro interno ao excluir usuário."
+
         }), 500
 
     return jsonify({
-        "success": True,
+
+        "success":
+            True,
+
         "message":
             "Usuário excluído com sucesso."
+
     })
 
 
@@ -1510,33 +2098,49 @@ def api_register():
     if not username or not password:
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Preencha todos os campos."
+
         }), 400
 
     if len(username) < 3:
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "O usuário precisa ter pelo menos 3 caracteres."
+
         }), 400
 
     if len(username) > 30:
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "O usuário pode ter no máximo 30 caracteres."
+
         }), 400
 
     if len(password) < 6:
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "A senha precisa ter pelo menos 6 caracteres."
+
         }), 400
 
     if not any(
@@ -1545,29 +2149,43 @@ def api_register():
     ):
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "A senha precisa ter pelo menos 1 número."
+
         }), 400
 
     if len(password) > 200:
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "A senha é muito longa."
+
         }), 400
 
     if username == ADMIN_USERNAME:
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Esse nome de usuário não está disponível."
+
         }), 409
 
-    password_hash = generate_password_hash(
-        password
+    password_hash = (
+        generate_password_hash(
+            password
+        )
     )
 
     try:
@@ -1589,17 +2207,25 @@ def api_register():
             conn.commit()
 
         return jsonify({
-            "success": True,
+
+            "success":
+                True,
+
             "message":
                 "Conta criada com sucesso."
+
         })
 
     except psycopg2.IntegrityError:
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Usuário já existe."
+
         }), 409
 
     except Exception as e:
@@ -1610,9 +2236,13 @@ def api_register():
         )
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Erro interno ao criar conta."
+
         }), 500
 
 
@@ -1641,17 +2271,25 @@ def api_login():
     if not username or not password:
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Preencha usuário e senha."
+
         }), 400
 
     if username == ADMIN_USERNAME:
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Use o acesso administrativo."
+
         }), 403
 
     try:
@@ -1659,7 +2297,8 @@ def api_login():
         with get_db() as conn:
 
             cursor = conn.cursor(
-                cursor_factory=psycopg2.extras.RealDictCursor
+                cursor_factory=
+                psycopg2.extras.RealDictCursor
             )
 
             cursor.execute("""
@@ -1679,18 +2318,24 @@ def api_login():
             if not user:
 
                 return jsonify({
-                    "success": False,
+
+                    "success":
+                        False,
+
                     "message":
                         "Usuário ou senha incorretos."
+
                 }), 401
 
             senha_correta = False
 
             try:
 
-                senha_correta = check_password_hash(
-                    user["password"],
-                    password
+                senha_correta = (
+                    check_password_hash(
+                        user["password"],
+                        password
+                    )
                 )
 
             except Exception:
@@ -1699,14 +2344,21 @@ def api_login():
 
             if not senha_correta:
 
-                senha_antiga = user["password"]
+                senha_antiga = (
+                    user["password"]
+                )
 
-                if senha_antiga == password:
+                if (
+                    senha_antiga ==
+                    password
+                ):
 
                     senha_correta = True
 
-                    nova_hash = generate_password_hash(
-                        password
+                    nova_hash = (
+                        generate_password_hash(
+                            password
+                        )
                     )
 
                     cursor.execute("""
@@ -1723,23 +2375,33 @@ def api_login():
             if not senha_correta:
 
                 return jsonify({
-                    "success": False,
+
+                    "success":
+                        False,
+
                     "message":
                         "Usuário ou senha incorretos."
+
                 }), 401
 
             session.clear()
 
-            session["user"] = user["username"]
+            session["user"] = (
+                user["username"]
+            )
+
             session["admin"] = False
+
             session["plan"] = (
                 user["plan"]
                 or "free"
             )
 
-            conversation_id = criar_conversa(
-                user["username"],
-                "Nova conversa"
+            conversation_id = (
+                criar_conversa(
+                    user["username"],
+                    "Nova conversa"
+                )
             )
 
             session["conversation_id"] = (
@@ -1769,9 +2431,13 @@ def api_login():
         )
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Erro interno no servidor."
+
         }), 500
 
 
@@ -1788,6 +2454,7 @@ def chat():
     if "user" not in session:
 
         return jsonify({
+
             "reply":
                 "Faça login primeiro.",
 
@@ -1809,8 +2476,13 @@ def chat():
             data.get("message") or ""
         ).strip()
 
-        imagem_base64 = data.get("image")
-        tipo_imagem = data.get("image_type")
+        imagem_base64 = data.get(
+            "image"
+        )
+
+        tipo_imagem = data.get(
+            "image_type"
+        )
 
         if len(mensagem) > 12000:
 
@@ -1858,16 +2530,23 @@ def chat():
 
             if not tipo_imagem:
 
-                tipo_imagem = "image/jpeg"
+                tipo_imagem = (
+                    "image/jpeg"
+                )
 
             tipos_permitidos = [
+
                 "image/jpeg",
                 "image/png",
                 "image/webp",
                 "image/gif"
+
             ]
 
-            if tipo_imagem not in tipos_permitidos:
+            if (
+                tipo_imagem
+                not in tipos_permitidos
+            ):
 
                 mensagem_erro = (
                     "❌ Formato de imagem não suportado. "
@@ -1887,7 +2566,10 @@ def chat():
 
                 }), 400
 
-            if len(imagem_base64) > 27_000_000:
+            if (
+                len(imagem_base64)
+                > 27_000_000
+            ):
 
                 mensagem_erro = (
                     "❌ A imagem é muito grande. "
@@ -1907,7 +2589,10 @@ def chat():
 
                 }), 400
 
-        if not mensagem and not imagem_base64:
+        if (
+            not mensagem
+            and not imagem_base64
+        ):
 
             mensagem_erro = (
                 "Digite uma mensagem ou envie uma imagem."
@@ -1934,7 +2619,9 @@ def chat():
 
         session["plan"] = plan
 
-        conversation_id = conversa_atual()
+        conversation_id = (
+            conversa_atual()
+        )
 
         if not conversation_id:
 
@@ -1968,7 +2655,8 @@ def chat():
                     ON cm.conversation_id = c.id
                     WHERE c.username = %s
                     AND cm.sender = 'user'
-                    AND DATE(cm.created_at) = CURRENT_DATE
+                    AND DATE(cm.created_at) =
+                        CURRENT_DATE
                 """, (
                     username,
                 ))
@@ -2001,7 +2689,9 @@ def chat():
 
                     }), 429
 
-            mensagem_salva = mensagem
+            mensagem_salva = (
+                mensagem
+            )
 
             if imagem_base64:
 
@@ -2101,6 +2791,7 @@ o usuário a entender.
         mensagens_ia = [
 
             {
+
                 "role":
                     "system",
 
@@ -2169,13 +2860,16 @@ PLANO:
 
 {estilo}
 """
+
             }
+
         ]
 
         with get_db() as conn:
 
             cursor = conn.cursor(
-                cursor_factory=psycopg2.extras.RealDictCursor
+                cursor_factory=
+                psycopg2.extras.RealDictCursor
             )
 
             cursor.execute("""
@@ -2192,7 +2886,9 @@ PLANO:
 
             historico = cursor.fetchall()
 
-        for item in reversed(historico):
+        for item in reversed(
+            historico
+        ):
 
             role = (
                 "assistant"
@@ -2234,7 +2930,10 @@ PLANO:
                 "image_url": {
 
                     "url":
-                        f"data:{tipo_imagem};base64,{imagem_base64}"
+                        (
+                            f"data:{tipo_imagem};"
+                            f"base64,{imagem_base64}"
+                        )
 
                 }
 
@@ -2260,18 +2959,25 @@ PLANO:
 
         })
 
-        resposta = client.chat.completions.create(
+        resposta = (
+            client.chat.completions.create(
 
-            model="qwen/qwen3.6-27b",
+                model=
+                    "qwen/qwen3.6-27b",
 
-            messages=mensagens_para_api,
+                messages=
+                    mensagens_para_api,
 
-            temperature=0.7,
+                temperature=
+                    0.7,
 
-            max_completion_tokens=2048,
+                max_completion_tokens=
+                    2048,
 
-            reasoning_effort="none"
+                reasoning_effort=
+                    "none"
 
+            )
         )
 
         texto = (
@@ -2387,9 +3093,13 @@ PLANO:
                 "❌ A GROQ_API_KEY não está configurada corretamente no Render."
             )
 
-        elif "model" in texto_erro and (
-            "not found" in texto_erro
-            or "model_not_found" in texto_erro
+        elif (
+            "model" in texto_erro
+            and (
+                "not found" in texto_erro
+                or "model_not_found"
+                in texto_erro
+            )
         ):
 
             mensagem_erro = (
@@ -2439,11 +3149,16 @@ def conversations():
     if "user" not in session:
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Faça login primeiro.",
+
             "conversations":
                 []
+
         }), 401
 
     try:
@@ -2451,7 +3166,8 @@ def conversations():
         with get_db() as conn:
 
             cursor = conn.cursor(
-                cursor_factory=psycopg2.extras.RealDictCursor
+                cursor_factory=
+                psycopg2.extras.RealDictCursor
             )
 
             cursor.execute("""
@@ -2472,21 +3188,28 @@ def conversations():
         return jsonify([
 
             {
+
                 "id":
                     item["id"],
 
                 "title":
-                    item["title"] or "Nova conversa",
+                    item["title"]
+                    or "Nova conversa",
 
                 "created_at":
-                    item["created_at"].isoformat()
-                    if item["created_at"]
-                    else None,
+                    (
+                        item["created_at"].isoformat()
+                        if item["created_at"]
+                        else None
+                    ),
 
                 "updated_at":
-                    item["updated_at"].isoformat()
-                    if item["updated_at"]
-                    else None
+                    (
+                        item["updated_at"].isoformat()
+                        if item["updated_at"]
+                        else None
+                    )
+
             }
 
             for item in lista
@@ -2501,11 +3224,16 @@ def conversations():
         )
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Erro ao carregar conversas.",
+
             "conversations":
                 []
+
         }), 500
 
 
@@ -2533,11 +3261,13 @@ def open_conversation(
     if "user" not in session:
 
         return jsonify({
+
             "success":
                 False,
 
             "message":
                 "Faça login primeiro."
+
         }), 401
 
     try:
@@ -2548,11 +3278,13 @@ def open_conversation(
         ):
 
             return jsonify({
+
                 "success":
                     False,
 
                 "message":
                     "Conversa não encontrada."
+
             }), 404
 
         session["conversation_id"] = (
@@ -2564,7 +3296,8 @@ def open_conversation(
         with get_db() as conn:
 
             cursor = conn.cursor(
-                cursor_factory=psycopg2.extras.RealDictCursor
+                cursor_factory=
+                psycopg2.extras.RealDictCursor
             )
 
             cursor.execute("""
@@ -2604,27 +3337,37 @@ def open_conversation(
             "conversation_id":
                 conversation_id,
 
-            "title": (
-                conversa["title"]
-                if conversa
-                else "Nova conversa"
-            ),
+            "title":
+                (
+                    conversa["title"]
+                    if conversa
+                    else "Nova conversa"
+                ),
 
-            "created_at": (
-                conversa["created_at"].isoformat()
-                if conversa and conversa["created_at"]
-                else None
-            ),
+            "created_at":
+                (
+                    conversa["created_at"].isoformat()
+                    if (
+                        conversa
+                        and conversa["created_at"]
+                    )
+                    else None
+                ),
 
-            "updated_at": (
-                conversa["updated_at"].isoformat()
-                if conversa and conversa["updated_at"]
-                else None
-            ),
+            "updated_at":
+                (
+                    conversa["updated_at"].isoformat()
+                    if (
+                        conversa
+                        and conversa["updated_at"]
+                    )
+                    else None
+                ),
 
             "messages": [
 
                 {
+
                     "sender":
                         item["sender"],
 
@@ -2632,9 +3375,12 @@ def open_conversation(
                         item["message"],
 
                     "created_at":
-                        item["created_at"].isoformat()
-                        if item["created_at"]
-                        else None
+                        (
+                            item["created_at"].isoformat()
+                            if item["created_at"]
+                            else None
+                        )
+
                 }
 
                 for item in mensagens
@@ -2651,9 +3397,13 @@ def open_conversation(
         )
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Erro ao abrir a conversa."
+
         }), 500
 
 
@@ -2683,6 +3433,7 @@ def history():
     if "user" not in session:
 
         return jsonify({
+
             "success":
                 False,
 
@@ -2696,7 +3447,9 @@ def history():
 
     try:
 
-        conversation_id = conversa_atual()
+        conversation_id = (
+            conversa_atual()
+        )
 
         if not conversation_id:
 
@@ -2705,7 +3458,8 @@ def history():
         with get_db() as conn:
 
             cursor = conn.cursor(
-                cursor_factory=psycopg2.extras.RealDictCursor
+                cursor_factory=
+                psycopg2.extras.RealDictCursor
             )
 
             cursor.execute("""
@@ -2725,6 +3479,7 @@ def history():
         return jsonify([
 
             {
+
                 "sender":
                     item["sender"],
 
@@ -2732,9 +3487,12 @@ def history():
                     item["message"],
 
                 "created_at":
-                    item["created_at"].isoformat()
-                    if item["created_at"]
-                    else None
+                    (
+                        item["created_at"].isoformat()
+                        if item["created_at"]
+                        else None
+                    )
+
             }
 
             for item in mensagens
@@ -2749,11 +3507,16 @@ def history():
         )
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Erro ao carregar histórico.",
+
             "history":
                 []
+
         }), 500
 
 
@@ -2780,11 +3543,13 @@ def new_chat():
     if "user" not in session:
 
         return jsonify({
+
             "success":
                 False,
 
             "message":
                 "Faça login primeiro."
+
         }), 401
 
     try:
@@ -2866,11 +3631,13 @@ def rename_conversation(
     if "user" not in session:
 
         return jsonify({
+
             "success":
                 False,
 
             "message":
                 "Faça login primeiro."
+
         }), 401
 
     try:
@@ -2881,11 +3648,13 @@ def rename_conversation(
         ):
 
             return jsonify({
+
                 "success":
                     False,
 
                 "message":
                     "Conversa não encontrada."
+
             }), 404
 
         data = request.get_json(
@@ -2899,11 +3668,13 @@ def rename_conversation(
         if not title:
 
             return jsonify({
+
                 "success":
                     False,
 
                 "message":
                     "Digite um nome para a conversa."
+
             }), 400
 
         if len(title) > 100:
@@ -2946,9 +3717,13 @@ def rename_conversation(
         )
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Erro ao renomear conversa."
+
         }), 500
 
 
@@ -2980,11 +3755,13 @@ def executar_exclusao_conversa(
     if "user" not in session:
 
         return jsonify({
+
             "success":
                 False,
 
             "message":
                 "Faça login primeiro."
+
         }), 401
 
     try:
@@ -3003,11 +3780,13 @@ def executar_exclusao_conversa(
         ):
 
             return jsonify({
+
                 "success":
                     False,
 
                 "message":
                     "ID da conversa inválido."
+
             }), 400
 
         if not verificar_conversa(
@@ -3016,11 +3795,13 @@ def executar_exclusao_conversa(
         ):
 
             return jsonify({
+
                 "success":
                     False,
 
                 "message":
                     "Conversa não encontrada."
+
             }), 404
 
         with get_db() as conn:
@@ -3050,17 +3831,21 @@ def executar_exclusao_conversa(
                 conn.rollback()
 
                 return jsonify({
+
                     "success":
                         False,
 
                     "message":
                         "Conversa não encontrada."
+
                 }), 404
 
             conn.commit()
 
-        conversa_atual_id = session.get(
-            "conversation_id"
+        conversa_atual_id = (
+            session.get(
+                "conversation_id"
+            )
         )
 
         if (
@@ -3090,9 +3875,11 @@ def executar_exclusao_conversa(
 
                 try:
 
-                    atual_existe = verificar_conversa(
-                        username,
-                        atual
+                    atual_existe = (
+                        verificar_conversa(
+                            username,
+                            atual
+                        )
                     )
 
                 except Exception:
@@ -3101,22 +3888,26 @@ def executar_exclusao_conversa(
 
                 if not atual_existe:
 
-                    nova_conversa = criar_conversa(
-                        username,
-                        "Nova conversa"
+                    nova_conversa = (
+                        criar_conversa(
+                            username,
+                            "Nova conversa"
+                        )
                     )
 
-                    session["conversation_id"] = (
-                        nova_conversa
-                    )
+                    session[
+                        "conversation_id"
+                    ] = nova_conversa
 
                     session.modified = True
 
             else:
 
-                nova_conversa = criar_conversa(
-                    username,
-                    "Nova conversa"
+                nova_conversa = (
+                    criar_conversa(
+                        username,
+                        "Nova conversa"
+                    )
                 )
 
                 session["conversation_id"] = (
@@ -3221,11 +4012,13 @@ def delete_conversation_legacy():
     if not conversation_id:
 
         return jsonify({
+
             "success":
                 False,
 
             "message":
                 "ID da conversa não informado."
+
         }), 400
 
     return executar_exclusao_conversa(
@@ -3295,9 +4088,13 @@ def executar_exclusao_varias_conversas(
     if "user" not in session:
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Faça login primeiro."
+
         }), 401
 
     try:
@@ -3308,17 +4105,25 @@ def executar_exclusao_varias_conversas(
         ):
 
             return jsonify({
-                "success": False,
+
+                "success":
+                    False,
+
                 "message":
                     "Lista de conversas inválida."
+
             }), 400
 
         if not ids:
 
             return jsonify({
-                "success": False,
+
+                "success":
+                    False,
+
                 "message":
                     "Nenhuma conversa foi selecionada."
+
             }), 400
 
         conversation_ids = []
@@ -3327,7 +4132,9 @@ def executar_exclusao_varias_conversas(
 
             try:
 
-                conversation_id = int(item)
+                conversation_id = int(
+                    item
+                )
 
             except (
                 ValueError,
@@ -3351,15 +4158,21 @@ def executar_exclusao_varias_conversas(
         if not conversation_ids:
 
             return jsonify({
-                "success": False,
+
+                "success":
+                    False,
+
                 "message":
                     "Nenhuma conversa válida foi selecionada."
+
             }), 400
 
         username = session["user"]
 
-        conversa_atual_id = session.get(
-            "conversation_id"
+        conversa_atual_id = (
+            session.get(
+                "conversation_id"
+            )
         )
 
         with get_db() as conn:
@@ -3376,11 +4189,16 @@ def executar_exclusao_varias_conversas(
                 conversation_ids
             ))
 
-            conversas_validas = cursor.fetchall()
+            conversas_validas = (
+                cursor.fetchall()
+            )
 
             ids_validos = [
+
                 item[0]
+
                 for item in conversas_validas
+
             ]
 
             if not ids_validos:
@@ -3388,9 +4206,13 @@ def executar_exclusao_varias_conversas(
                 conn.rollback()
 
                 return jsonify({
-                    "success": False,
+
+                    "success":
+                        False,
+
                     "message":
                         "Nenhuma das conversas selecionadas pertence ao usuário."
+
                 }), 404
 
             cursor.execute("""
@@ -3415,14 +4237,20 @@ def executar_exclusao_varias_conversas(
             conn.commit()
 
         ids_excluidos = [
+
             int(item[0])
+
             for item in excluidas
+
         ]
 
         conversa_atual_excluida = (
+
             conversa_atual_id is not None
+
             and int(conversa_atual_id)
             in ids_excluidos
+
         )
 
         if conversa_atual_excluida:
@@ -3448,9 +4276,11 @@ def executar_exclusao_varias_conversas(
 
                 try:
 
-                    atual_existe = verificar_conversa(
-                        username,
-                        atual
+                    atual_existe = (
+                        verificar_conversa(
+                            username,
+                            atual
+                        )
                     )
 
                 except Exception:
@@ -3459,9 +4289,11 @@ def executar_exclusao_varias_conversas(
 
                 if not atual_existe:
 
-                    nova_conversa = criar_conversa(
-                        username,
-                        "Nova conversa"
+                    nova_conversa = (
+                        criar_conversa(
+                            username,
+                            "Nova conversa"
+                        )
                     )
 
                     session["conversation_id"] = (
@@ -3472,9 +4304,11 @@ def executar_exclusao_varias_conversas(
 
             else:
 
-                nova_conversa = criar_conversa(
-                    username,
-                    "Nova conversa"
+                nova_conversa = (
+                    criar_conversa(
+                        username,
+                        "Nova conversa"
+                    )
                 )
 
                 session["conversation_id"] = (
@@ -3496,7 +4330,10 @@ def executar_exclusao_varias_conversas(
                 True,
 
             "message":
-                f"{len(ids_excluidos)} conversa(s) excluída(s) permanentemente.",
+                (
+                    f"{len(ids_excluidos)} "
+                    "conversa(s) excluída(s) permanentemente."
+                ),
 
             "deleted_ids":
                 ids_excluidos,
@@ -3531,7 +4368,8 @@ def executar_exclusao_varias_conversas(
 
         return jsonify({
 
-            "success": False,
+            "success":
+                False,
 
             "message":
                 "Erro ao excluir as conversas.",
@@ -3557,9 +4395,15 @@ def delete_multiple_conversations():
     ) or {}
 
     ids = (
+
         data.get("ids")
+
         if data.get("ids") is not None
-        else data.get("conversation_ids")
+
+        else data.get(
+            "conversation_ids"
+        )
+
     )
 
     return executar_exclusao_varias_conversas(
@@ -3582,9 +4426,17 @@ def delete_conversations_legacy():
     ) or {}
 
     ids = (
-        data.get("conversation_ids")
-        if data.get("conversation_ids") is not None
+
+        data.get(
+            "conversation_ids"
+        )
+
+        if data.get(
+            "conversation_ids"
+        ) is not None
+
         else data.get("ids")
+
     )
 
     return executar_exclusao_varias_conversas(
@@ -3607,9 +4459,15 @@ def api_delete_multiple_conversations():
     ) or {}
 
     ids = (
+
         data.get("ids")
+
         if data.get("ids") is not None
-        else data.get("conversation_ids")
+
+        else data.get(
+            "conversation_ids"
+        )
+
     )
 
     return executar_exclusao_varias_conversas(
@@ -3627,11 +4485,13 @@ def api_plan():
     if "user" not in session:
 
         return jsonify({
+
             "success":
                 False,
 
             "message":
                 "Faça login primeiro."
+
         }), 401
 
     try:
@@ -3660,9 +4520,13 @@ def api_plan():
         )
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Erro ao consultar plano."
+
         }), 500
 
 
@@ -3676,8 +4540,10 @@ def api_status():
     if "user" not in session:
 
         return jsonify({
+
             "logged":
                 False
+
         })
 
     try:
@@ -3808,4 +4674,3 @@ if __name__ == "__main__":
         port=port,
         debug=False
     )
-
