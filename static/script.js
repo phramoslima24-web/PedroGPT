@@ -1,3 +1,4 @@
+````javascript
 // ============================================================
 // ORION AI - SCRIPT.JS
 // ============================================================
@@ -9,12 +10,13 @@ let vozes = [];
 let conversaSelecionada = null;
 let modoSelecao = false;
 
+
 // ============================================================
 // ELEMENTOS
 // ============================================================
 
 function elemento(id) {
-return document.getElementById(id);
+    return document.getElementById(id);
 }
 
 const chat = elemento("chat");
@@ -27,57 +29,20 @@ const arquivoBox = elemento("arquivoSelecionado");
 const nomeArquivo = elemento("nomeArquivo");
 const removerArquivo = elemento("removerArquivo");
 
+
 // ============================================================
 // ESCAPAR HTML
 // ============================================================
 
 function escaparHTML(texto) {
-
-```
-return String(texto ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-```
-
+    return String(texto ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
-// ============================================================
-// LER RESPOSTA DO SERVIDOR COM SEGURANÇA
-// ============================================================
-
-async function lerRespostaJSON(resposta) {
-
-```
-const texto = await resposta.text();
-
-if (!texto) {
-    return {};
-}
-
-try {
-    return JSON.parse(texto);
-
-} catch (erro) {
-
-    console.error(
-        "Resposta não-JSON do servidor:",
-        texto
-    );
-
-    return {
-        success: false,
-        message:
-            resposta.status === 404
-                ? "Rota não encontrada no servidor."
-                : `O servidor retornou uma resposta inválida. Código: ${resposta.status}`
-    };
-}
-```
-
-}
 
 // ============================================================
 // WELCOME
@@ -85,19 +50,17 @@ try {
 
 function atualizarWelcome() {
 
-```
-if (!chat || !welcome) {
-    return;
+    if (!chat || !welcome) {
+        return;
+    }
+
+    if (chat.children.length === 0) {
+        welcome.classList.remove("hidden");
+    } else {
+        welcome.classList.add("hidden");
+    }
 }
 
-if (chat.children.length === 0) {
-    welcome.classList.remove("hidden");
-} else {
-    welcome.classList.add("hidden");
-}
-```
-
-}
 
 // ============================================================
 // ADICIONAR MENSAGEM DO USUÁRIO
@@ -105,40 +68,34 @@ if (chat.children.length === 0) {
 
 function adicionarMensagem(texto, tipo = "user") {
 
-```
-if (!chat) {
-    return null;
+    if (!chat) {
+        return null;
+    }
+
+    const div = document.createElement("div");
+
+    div.className =
+        tipo === "user"
+            ? "msg-user"
+            : "msg-bot";
+
+    const conteudo = document.createElement("div");
+
+    conteudo.className = "conteudo-mensagem";
+
+    conteudo.textContent = String(texto ?? "");
+
+    div.appendChild(conteudo);
+
+    chat.appendChild(div);
+
+    atualizarWelcome();
+
+    chat.scrollTop = chat.scrollHeight;
+
+    return div;
 }
 
-const div = document.createElement("div");
-
-div.className =
-    tipo === "user"
-        ? "msg-user"
-        : "msg-bot";
-
-const conteudo =
-    document.createElement("div");
-
-conteudo.className =
-    "conteudo-mensagem";
-
-conteudo.textContent =
-    texto;
-
-div.appendChild(conteudo);
-
-chat.appendChild(div);
-
-atualizarWelcome();
-
-chat.scrollTop =
-    chat.scrollHeight;
-
-return div;
-```
-
-}
 
 // ============================================================
 // MARKDOWN
@@ -146,54 +103,53 @@ return div;
 
 function formatarResposta(texto) {
 
-````
-let html =
-    escaparHTML(texto);
+    let html = escaparHTML(texto);
 
-html = html.replace(
-    /```([\s\S]*?)```/g,
-    function (_, codigo) {
+    // Código em bloco
+    html = html.replace(
+        /```(?:[a-zA-Z0-9_-]+)?\s*([\s\S]*?)```/g,
+        function (_, codigo) {
 
-        return `
-            <pre class="codigo-pedrogpt"><code>${codigo.trim()}</code></pre>
-        `;
-    }
-);
+            return `
+                <pre class="codigo-pedrogpt"><code>${codigo.trim()}</code></pre>
+            `;
+        }
+    );
 
-html = html.replace(
-    /^### (.*)$/gm,
-    "<h4>$1</h4>"
-);
+    // Títulos
+    html = html.replace(
+        /^### (.*)$/gm,
+        "<h4>$1</h4>"
+    );
 
-html = html.replace(
-    /^## (.*)$/gm,
-    "<h3>$1</h3>"
-);
+    html = html.replace(
+        /^## (.*)$/gm,
+        "<h3>$1</h3>"
+    );
 
-html = html.replace(
-    /^# (.*)$/gm,
-    "<h2>$1</h2>"
-);
+    html = html.replace(
+        /^# (.*)$/gm,
+        "<h2>$1</h2>"
+    );
 
-html = html.replace(
-    /\*\*(.*?)\*\*/g,
-    "<strong>$1</strong>"
-);
+    // Negrito
+    html = html.replace(
+        /\*\*(.*?)\*\*/g,
+        "<strong>$1</strong>"
+    );
 
-html = html.replace(
-    /\*(.*?)\*/g,
-    "<em>$1</em>"
-);
+    // Itálico
+    html = html.replace(
+        /(^|[^*])\*([^*\n]+)\*(?!\*)/g,
+        "$1<em>$2</em>"
+    );
 
-html = html.replace(
-    /\n/g,
-    "<br>"
-);
+    // Quebras de linha
+    html = html.replace(/\n/g, "<br>");
 
-return html;
-````
-
+    return html;
 }
+
 
 // ============================================================
 // ADICIONAR RESPOSTA DA IA
@@ -201,43 +157,36 @@ return html;
 
 function adicionarResposta(texto, falar = true) {
 
-```
-if (!chat) {
-    return null;
+    if (!chat) {
+        return null;
+    }
+
+    const div = document.createElement("div");
+
+    div.className = "msg-bot";
+
+    const conteudo = document.createElement("div");
+
+    conteudo.className = "conteudo-mensagem";
+
+    conteudo.innerHTML =
+        formatarResposta(texto);
+
+    div.appendChild(conteudo);
+
+    chat.appendChild(div);
+
+    atualizarWelcome();
+
+    chat.scrollTop = chat.scrollHeight;
+
+    if (falar) {
+        falarResposta(texto);
+    }
+
+    return div;
 }
 
-const div =
-    document.createElement("div");
-
-div.className =
-    "msg-bot";
-
-const conteudo =
-    document.createElement("div");
-
-conteudo.className =
-    "conteudo-mensagem";
-
-conteudo.innerHTML =
-    formatarResposta(texto);
-
-div.appendChild(conteudo);
-
-chat.appendChild(div);
-
-atualizarWelcome();
-
-chat.scrollTop =
-    chat.scrollHeight;
-
-if (falar) {
-    falarResposta(texto);
-}
-
-return div;
-```
-
-}
 
 // ============================================================
 // TYPING
@@ -245,57 +194,50 @@ return div;
 
 function mostrarTyping() {
 
-```
-if (!chat) {
-    return null;
+    if (!chat) {
+        return null;
+    }
+
+    removerTyping();
+
+    const div = document.createElement("div");
+
+    div.className =
+        "msg-bot typing-message";
+
+    div.id = "typingMessage";
+
+    div.innerHTML = `
+        <div class="conteudo-mensagem">
+            Orion AI está digitando
+            <span class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+        </div>
+    `;
+
+    chat.appendChild(div);
+
+    atualizarWelcome();
+
+    chat.scrollTop = chat.scrollHeight;
+
+    return div;
 }
 
-removerTyping();
-
-const div =
-    document.createElement("div");
-
-div.className =
-    "msg-bot typing-message";
-
-div.id =
-    "typingMessage";
-
-div.innerHTML = `
-    <div class="conteudo-mensagem">
-        Orion AI está digitando
-        <span class="typing-dots">
-            <span></span>
-            <span></span>
-            <span></span>
-        </span>
-    </div>
-`;
-
-chat.appendChild(div);
-
-atualizarWelcome();
-
-chat.scrollTop =
-    chat.scrollHeight;
-
-return div;
-```
-
-}
 
 function removerTyping() {
 
-```
-const typing =
-    elemento("typingMessage");
+    const typing =
+        elemento("typingMessage");
 
-if (typing) {
-    typing.remove();
+    if (typing) {
+        typing.remove();
+    }
 }
-```
 
-}
 
 // ============================================================
 // NOVA CONVERSA
@@ -303,37 +245,34 @@ if (typing) {
 
 async function novaConversa() {
 
-```
-if (enviando) {
-    return;
-}
-
-sairModoSelecao();
-
-const botao =
-    document.querySelector(".nova-conversa");
-
-const textoOriginal =
-    botao
-        ? botao.innerHTML
-        : "🆕 Nova conversa";
-
-try {
-
-    enviando = true;
-
-    if (botao) {
-
-        botao.disabled = true;
-
-        botao.innerHTML =
-            "⏳ Criando...";
+    if (enviando) {
+        return;
     }
 
-    const resposta =
-        await fetch(
-            "/new_chat",
-            {
+    sairModoSelecao();
+
+    const botao =
+        document.querySelector(".nova-conversa");
+
+    const textoOriginal =
+        botao
+            ? botao.innerHTML
+            : "🆕 Nova conversa";
+
+    try {
+
+        enviando = true;
+
+        if (botao) {
+
+            botao.disabled = true;
+
+            botao.innerHTML =
+                "⏳ Criando...";
+        }
+
+        const resposta =
+            await fetch("/new_chat", {
                 method: "POST",
                 credentials: "same-origin",
                 headers: {
@@ -344,97 +283,113 @@ try {
                 },
                 body:
                     JSON.stringify({})
-            }
+            });
+
+        if (resposta.redirected) {
+
+            window.location.href =
+                resposta.url;
+
+            return;
+        }
+
+        const textoResposta =
+            await resposta.text();
+
+        let dados;
+
+        try {
+
+            dados =
+                JSON.parse(textoResposta);
+
+        } catch (erro) {
+
+            console.error(
+                "Resposta inválida do /new_chat:",
+                textoResposta
+            );
+
+            throw new Error(
+                "O servidor retornou uma resposta inválida."
+            );
+        }
+
+        if (
+            !resposta.ok ||
+            dados.success === false
+        ) {
+
+            throw new Error(
+                dados.message ||
+                "Não foi possível criar uma nova conversa."
+            );
+        }
+
+        if (dados.conversation_id) {
+
+            window.conversationId =
+                dados.conversation_id;
+        }
+
+        if (chat) {
+            chat.innerHTML = "";
+        }
+
+        removerTyping();
+
+        if (mensagemInput) {
+            mensagemInput.value = "";
+        }
+
+        limparArquivo();
+
+        const titulo =
+            elemento("tituloConversa");
+
+        if (titulo) {
+
+            titulo.textContent =
+                dados.title ||
+                dados.titulo ||
+                "Nova conversa";
+        }
+
+        atualizarWelcome();
+
+        await carregarHistoricoConversas();
+
+        if (mensagemInput) {
+            mensagemInput.focus();
+        }
+
+    } catch (erro) {
+
+        console.error(
+            "ERRO NOVA CONVERSA:",
+            erro
         );
 
-    if (resposta.redirected) {
-
-        window.location.href =
-            resposta.url;
-
-        return;
-    }
-
-    const dados =
-        await lerRespostaJSON(
-            resposta
+        alert(
+            "❌ Não foi possível criar uma nova conversa.\n\n" +
+            erro.message
         );
 
-    if (
-        !resposta.ok ||
-        !dados.success
-    ) {
+    } finally {
 
-        throw new Error(
-            dados.message ||
-            "Não foi possível criar uma nova conversa."
-        );
-    }
+        enviando = false;
 
-    if (dados.conversation_id) {
+        if (botao) {
 
-        window.conversationId =
-            dados.conversation_id;
-    }
+            botao.disabled = false;
 
-    if (chat) {
-        chat.innerHTML = "";
-    }
-
-    removerTyping();
-
-    if (mensagemInput) {
-        mensagemInput.value = "";
-    }
-
-    limparArquivo();
-
-    const titulo =
-        elemento("tituloConversa");
-
-    if (titulo) {
-
-        titulo.textContent =
-            dados.title ||
-            "Nova conversa";
-    }
-
-    atualizarWelcome();
-
-    await carregarHistoricoConversas();
-
-    if (mensagemInput) {
-        mensagemInput.focus();
-    }
-
-} catch (erro) {
-
-    console.error(
-        "ERRO NOVA CONVERSA:",
-        erro
-    );
-
-    alert(
-        "❌ Não foi possível criar uma nova conversa.\n\n" +
-        erro.message
-    );
-
-} finally {
-
-    enviando = false;
-
-    if (botao) {
-
-        botao.disabled = false;
-
-        botao.innerHTML =
-            textoOriginal ||
-            "🆕 Nova conversa";
+            botao.innerHTML =
+                textoOriginal ||
+                "🆕 Nova conversa";
+        }
     }
 }
-```
 
-}
 
 // ============================================================
 // ENVIAR MENSAGEM
@@ -442,103 +397,119 @@ try {
 
 async function enviar() {
 
-```
-if (enviando) {
-    return;
-}
-
-if (!mensagemInput) {
-    return;
-}
-
-const texto =
-    mensagemInput.value.trim();
-
-const temArquivo =
-    arquivoSelecionado !== null;
-
-if (!texto && !temArquivo) {
-
-    mensagemInput.focus();
-
-    return;
-}
-
-enviando = true;
-
-if (btnEnviar) {
-
-    btnEnviar.disabled = true;
-
-    btnEnviar.textContent =
-        "Enviando...";
-}
-
-if (texto) {
-
-    adicionarMensagem(
-        texto,
-        "user"
-    );
-
-} else {
-
-    adicionarMensagem(
-        "📷 Imagem enviada",
-        "user"
-    );
-}
-
-mensagemInput.value = "";
-
-const typing =
-    mostrarTyping();
-
-try {
-
-    const dadosEnvio = {
-        message: texto
-    };
-
-    if (arquivoSelecionado) {
-
-        const arquivo =
-            arquivoSelecionado;
-
-        if (
-            arquivo.type &&
-            arquivo.type.startsWith("image/")
-        ) {
-
-            const base64 =
-                await converterArquivoBase64(
-                    arquivo
-                );
-
-            dadosEnvio.image =
-                base64.split(",")[1];
-
-            dadosEnvio.image_type =
-                arquivo.type;
-
-        } else {
-
-            if (typing) {
-                typing.remove();
-            }
-
-            adicionarResposta(
-                "❌ No momento, o Orion AI aceita apenas imagens JPG, PNG, WEBP ou GIF."
-            );
-
-            return;
-        }
+    if (enviando) {
+        return;
     }
 
-    const resposta =
-        await fetch(
-            "/chat",
-            {
+    if (!mensagemInput) {
+        return;
+    }
+
+    const texto =
+        mensagemInput.value.trim();
+
+    const temArquivo =
+        arquivoSelecionado !== null;
+
+    if (!texto && !temArquivo) {
+
+        mensagemInput.focus();
+
+        return;
+    }
+
+    enviando = true;
+
+    if (btnEnviar) {
+
+        btnEnviar.disabled = true;
+
+        btnEnviar.textContent =
+            "Enviando...";
+    }
+
+    if (texto) {
+
+        adicionarMensagem(
+            texto,
+            "user"
+        );
+
+    } else {
+
+        adicionarMensagem(
+            "📷 Imagem enviada",
+            "user"
+        );
+    }
+
+    mensagemInput.value = "";
+
+    const typing =
+        mostrarTyping();
+
+    try {
+
+        const dadosEnvio = {
+            message: texto
+        };
+
+        // ====================================================
+        // IMAGEM
+        // ====================================================
+
+        if (arquivoSelecionado) {
+
+            const arquivo =
+                arquivoSelecionado;
+
+            if (
+                arquivo.type &&
+                arquivo.type.startsWith("image/")
+            ) {
+
+                const base64 =
+                    await converterArquivoBase64(
+                        arquivo
+                    );
+
+                if (!base64) {
+                    throw new Error(
+                        "Não foi possível processar a imagem."
+                    );
+                }
+
+                const partes =
+                    base64.split(",");
+
+                dadosEnvio.image =
+                    partes.length > 1
+                        ? partes[1]
+                        : partes[0];
+
+                dadosEnvio.image_type =
+                    arquivo.type;
+
+            } else {
+
+                removerTyping();
+
+                adicionarResposta(
+                    "❌ No momento, o Orion AI aceita apenas imagens JPG, PNG, WEBP ou GIF."
+                );
+
+                limparArquivo();
+
+                return;
+            }
+        }
+
+        // ====================================================
+        // CHAT
+        // ====================================================
+
+        const resposta =
+            await fetch("/chat", {
                 method: "POST",
                 credentials: "same-origin",
                 headers: {
@@ -551,101 +522,137 @@ try {
                     JSON.stringify(
                         dadosEnvio
                     )
-            }
-        );
+            });
 
-    if (resposta.redirected) {
+        if (resposta.redirected) {
 
-        window.location.href =
-            resposta.url;
+            window.location.href =
+                resposta.url;
 
-        return;
-    }
+            return;
+        }
 
-    const dados =
-        await lerRespostaJSON(
-            resposta
-        );
+        const textoResposta =
+            await resposta.text();
 
-    if (typing) {
-        typing.remove();
-    }
+        let dados;
 
-    if (
-        !resposta.ok ||
-        dados.success === false
-    ) {
+        try {
+
+            dados =
+                JSON.parse(textoResposta);
+
+        } catch (erro) {
+
+            console.error(
+                "Resposta do /chat:",
+                textoResposta
+            );
+
+            throw new Error(
+                "O servidor retornou uma resposta inválida."
+            );
+        }
+
+        removerTyping();
+
+        // ====================================================
+        // ERRO DO SERVIDOR
+        // ====================================================
+
+        if (
+            !resposta.ok ||
+            dados.success === false
+        ) {
+
+            adicionarResposta(
+                dados.reply ||
+                dados.message ||
+                dados.error ||
+                "❌ Não foi possível obter uma resposta."
+            );
+
+            return;
+        }
+
+        // ====================================================
+        // ID DA CONVERSA
+        // ====================================================
+
+        if (dados.conversation_id) {
+
+            window.conversationId =
+                dados.conversation_id;
+        }
+
+        // ====================================================
+        // RESPOSTA
+        // ====================================================
+
+        const respostaIA =
+            dados.reply ||
+            dados.response ||
+            dados.message ||
+            dados.answer ||
+            "Não recebi uma resposta da IA.";
 
         adicionarResposta(
-            dados.reply ||
-            dados.message ||
-            "❌ Não foi possível obter uma resposta."
+            respostaIA
         );
 
-        return;
-    }
+        // ====================================================
+        // TÍTULO
+        // ====================================================
 
-    if (dados.conversation_id) {
+        if (dados.title || dados.titulo) {
 
-        window.conversationId =
-            dados.conversation_id;
-    }
+            const titulo =
+                elemento("tituloConversa");
 
-    adicionarResposta(
-        dados.reply ||
-        "Não recebi uma resposta da IA."
-    );
+            if (titulo) {
 
-    if (dados.title) {
+                titulo.textContent =
+                    dados.title ||
+                    dados.titulo;
+            }
+        }
 
-        const titulo =
-            elemento("tituloConversa");
+        limparArquivo();
 
-        if (titulo) {
+        // Atualiza lista lateral
+        await carregarHistoricoConversas();
 
-            titulo.textContent =
-                dados.title;
+    } catch (erro) {
+
+        console.error(
+            "ERRO AO ENVIAR:",
+            erro
+        );
+
+        removerTyping();
+
+        adicionarResposta(
+            "❌ Erro ao conectar com o servidor. Tente novamente."
+        );
+
+    } finally {
+
+        enviando = false;
+
+        if (btnEnviar) {
+
+            btnEnviar.disabled = false;
+
+            btnEnviar.textContent =
+                "Enviar";
+        }
+
+        if (mensagemInput) {
+            mensagemInput.focus();
         }
     }
-
-    limparArquivo();
-
-    carregarHistoricoConversas();
-
-} catch (erro) {
-
-    console.error(
-        "ERRO AO ENVIAR:",
-        erro
-    );
-
-    if (typing) {
-        typing.remove();
-    }
-
-    adicionarResposta(
-        "❌ Erro ao conectar com o servidor. Tente novamente."
-    );
-
-} finally {
-
-    enviando = false;
-
-    if (btnEnviar) {
-
-        btnEnviar.disabled = false;
-
-        btnEnviar.textContent =
-            "Enviar";
-    }
-
-    if (mensagemInput) {
-        mensagemInput.focus();
-    }
 }
-```
 
-}
 
 // ============================================================
 // CONVERTER ARQUIVO
@@ -653,39 +660,48 @@ try {
 
 function converterArquivoBase64(arquivo) {
 
-```
-return new Promise(
-    (resolve, reject) => {
+    return new Promise(
+        function (resolve, reject) {
 
-        const leitor =
-            new FileReader();
-
-        leitor.onload =
-            function () {
-
-                resolve(
-                    leitor.result
-                );
-            };
-
-        leitor.onerror =
-            function () {
+            if (!arquivo) {
 
                 reject(
                     new Error(
-                        "Não foi possível ler a imagem."
+                        "Arquivo inválido."
                     )
                 );
-            };
 
-        leitor.readAsDataURL(
-            arquivo
-        );
-    }
-);
-```
+                return;
+            }
 
+            const leitor =
+                new FileReader();
+
+            leitor.onload =
+                function () {
+
+                    resolve(
+                        leitor.result
+                    );
+                };
+
+            leitor.onerror =
+                function () {
+
+                    reject(
+                        new Error(
+                            "Não foi possível ler a imagem."
+                        )
+                    );
+                };
+
+            leitor.readAsDataURL(
+                arquivo
+            );
+        }
+    );
 }
+
 
 // ============================================================
 // ENTER
@@ -693,25 +709,23 @@ return new Promise(
 
 if (mensagemInput) {
 
-```
-mensagemInput.addEventListener(
-    "keydown",
-    function (event) {
+    mensagemInput.addEventListener(
+        "keydown",
+        function (event) {
 
-        if (
-            event.key === "Enter" &&
-            !event.shiftKey
-        ) {
+            if (
+                event.key === "Enter" &&
+                !event.shiftKey
+            ) {
 
-            event.preventDefault();
+                event.preventDefault();
 
-            enviar();
+                enviar();
+            }
         }
-    }
-);
-```
-
+    );
 }
+
 
 // ============================================================
 // BOTÃO ENVIAR
@@ -719,45 +733,41 @@ mensagemInput.addEventListener(
 
 if (btnEnviar) {
 
-```
-btnEnviar.addEventListener(
-    "click",
-    function (event) {
+    btnEnviar.addEventListener(
+        "click",
+        function (event) {
 
-        event.preventDefault();
+            event.preventDefault();
 
-        enviar();
-    }
-);
-```
-
+            enviar();
+        }
+    );
 }
+
 
 // ============================================================
 // NOVA CONVERSA
 // ============================================================
 
 document.addEventListener(
-"click",
-function (event) {
+    "click",
+    function (event) {
 
-```
-    const botao =
-        event.target.closest(
-            ".nova-conversa"
-        );
+        const botao =
+            event.target.closest(
+                ".nova-conversa"
+            );
 
-    if (!botao) {
-        return;
+        if (!botao) {
+            return;
+        }
+
+        event.preventDefault();
+
+        novaConversa();
     }
-
-    event.preventDefault();
-
-    novaConversa();
-}
-```
-
 );
+
 
 // ============================================================
 // ATALHOS
@@ -765,20 +775,18 @@ function (event) {
 
 function atalho(texto) {
 
-```
-if (!mensagemInput) {
-    return;
+    if (!mensagemInput) {
+        return;
+    }
+
+    mensagemInput.value =
+        texto;
+
+    mensagemInput.focus();
+
+    enviar();
 }
 
-mensagemInput.value =
-    texto;
-
-mensagemInput.focus();
-
-enviar();
-```
-
-}
 
 // ============================================================
 // ARQUIVO
@@ -786,88 +794,96 @@ enviar();
 
 if (btnArquivo && arquivoInput) {
 
-```
-btnArquivo.addEventListener(
-    "click",
-    function (event) {
+    btnArquivo.addEventListener(
+        "click",
+        function (event) {
 
-        event.preventDefault();
+            event.preventDefault();
 
-        arquivoInput.click();
-    }
-);
-```
-
+            arquivoInput.click();
+        }
+    );
 }
+
 
 if (arquivoInput) {
 
-```
-arquivoInput.addEventListener(
-    "change",
-    function () {
+    arquivoInput.addEventListener(
+        "change",
+        function () {
 
-        const arquivo =
-            arquivoInput.files &&
-            arquivoInput.files[0];
+            const arquivo =
+                arquivoInput.files &&
+                arquivoInput.files[0];
 
-        if (!arquivo) {
+            if (!arquivo) {
 
-            limparArquivo();
+                limparArquivo();
 
-            return;
+                return;
+            }
+
+            const tipo =
+                arquivo.type
+                    ? arquivo.type.toLowerCase()
+                    : "";
+
+            const extensoesPermitidas = [
+                "image/jpeg",
+                "image/jpg",
+                "image/png",
+                "image/webp",
+                "image/gif"
+            ];
+
+            if (
+                !extensoesPermitidas.includes(
+                    tipo
+                )
+            ) {
+
+                alert(
+                    "❌ Selecione uma imagem JPG, PNG, WEBP ou GIF."
+                );
+
+                limparArquivo();
+
+                return;
+            }
+
+            if (
+                arquivo.size >
+                20 * 1024 * 1024
+            ) {
+
+                alert(
+                    "❌ A imagem não pode ter mais de 20 MB."
+                );
+
+                limparArquivo();
+
+                return;
+            }
+
+            arquivoSelecionado =
+                arquivo;
+
+            if (nomeArquivo) {
+
+                nomeArquivo.textContent =
+                    arquivo.name;
+            }
+
+            if (arquivoBox) {
+
+                arquivoBox.classList.add(
+                    "ativo"
+                );
+            }
         }
-
-        if (
-            arquivo.type &&
-            !arquivo.type.startsWith(
-                "image/"
-            )
-        ) {
-
-            alert(
-                "❌ Selecione uma imagem JPG, PNG, WEBP ou GIF."
-            );
-
-            limparArquivo();
-
-            return;
-        }
-
-        if (
-            arquivo.size >
-            20 * 1024 * 1024
-        ) {
-
-            alert(
-                "❌ A imagem não pode ter mais de 20 MB."
-            );
-
-            limparArquivo();
-
-            return;
-        }
-
-        arquivoSelecionado =
-            arquivo;
-
-        if (nomeArquivo) {
-
-            nomeArquivo.textContent =
-                arquivo.name;
-        }
-
-        if (arquivoBox) {
-
-            arquivoBox.classList.add(
-                "ativo"
-            );
-        }
-    }
-);
-```
-
+    );
 }
+
 
 // ============================================================
 // LIMPAR ARQUIVO
@@ -875,45 +891,40 @@ arquivoInput.addEventListener(
 
 function limparArquivo() {
 
-```
-arquivoSelecionado =
-    null;
+    arquivoSelecionado = null;
 
-if (arquivoInput) {
-    arquivoInput.value = "";
+    if (arquivoInput) {
+        arquivoInput.value = "";
+    }
+
+    if (arquivoBox) {
+
+        arquivoBox.classList.remove(
+            "ativo"
+        );
+    }
+
+    if (nomeArquivo) {
+
+        nomeArquivo.textContent =
+            "Nenhum arquivo selecionado";
+    }
 }
 
-if (arquivoBox) {
-
-    arquivoBox.classList.remove(
-        "ativo"
-    );
-}
-
-if (nomeArquivo) {
-
-    nomeArquivo.textContent =
-        "Nenhum arquivo selecionado";
-}
-```
-
-}
 
 if (removerArquivo) {
 
-```
-removerArquivo.addEventListener(
-    "click",
-    function (event) {
+    removerArquivo.addEventListener(
+        "click",
+        function (event) {
 
-        event.preventDefault();
+            event.preventDefault();
 
-        limparArquivo();
-    }
-);
-```
-
+            limparArquivo();
+        }
+    );
 }
+
 
 // ============================================================
 // VOZ
@@ -921,93 +932,93 @@ removerArquivo.addEventListener(
 
 function carregarVozes() {
 
-```
-const seletor =
-    elemento("seletorVoz");
+    const seletor =
+        elemento("seletorVoz");
 
-if (
-    !("speechSynthesis" in window)
-) {
+    if (
+        !("speechSynthesis" in window)
+    ) {
 
-    if (seletor) {
+        if (seletor) {
+
+            seletor.innerHTML =
+                `<option value="">Voz não disponível</option>`;
+        }
+
+        return;
+    }
+
+    vozes =
+        window.speechSynthesis
+            .getVoices();
+
+    if (!seletor) {
+        return;
+    }
+
+    seletor.innerHTML = "";
+
+    const vozesPT =
+        vozes.filter(
+            function (voz) {
+
+                return (
+                    voz.lang &&
+                    voz.lang
+                        .toLowerCase()
+                        .startsWith("pt")
+                );
+            }
+        );
+
+    const lista =
+        vozesPT.length
+            ? vozesPT
+            : vozes;
+
+    if (!lista.length) {
 
         seletor.innerHTML =
-            `<option value="">Voz não disponível</option>`;
+            `<option value="">Nenhuma voz disponível</option>`;
+
+        return;
     }
 
-    return;
-}
+    lista.forEach(
+        function (voz) {
 
-vozes =
-    window.speechSynthesis
-        .getVoices();
+            const option =
+                document.createElement(
+                    "option"
+                );
 
-if (!seletor) {
-    return;
-}
+            option.value =
+                String(
+                    vozes.indexOf(voz)
+                );
 
-seletor.innerHTML = "";
+            option.textContent =
+                `${voz.name} (${voz.lang})`;
 
-const vozesPT =
-    vozes.filter(
-        voz =>
-            voz.lang &&
-            voz.lang
-                .toLowerCase()
-                .startsWith("pt")
+            seletor.appendChild(
+                option
+            );
+        }
     );
-
-const lista =
-    vozesPT.length
-        ? vozesPT
-        : vozes;
-
-if (!lista.length) {
-
-    seletor.innerHTML =
-        `<option value="">Nenhuma voz disponível</option>`;
-
-    return;
 }
 
-lista.forEach(
-    function (voz) {
-
-        const option =
-            document.createElement(
-                "option"
-            );
-
-        option.value =
-            String(
-                vozes.indexOf(voz)
-            );
-
-        option.textContent =
-            `${voz.name} (${voz.lang})`;
-
-        seletor.appendChild(
-            option
-        );
-    }
-);
-```
-
-}
 
 if (
-"speechSynthesis" in window
+    "speechSynthesis" in window
 ) {
 
-```
-carregarVozes();
+    carregarVozes();
 
-window.speechSynthesis
-    .onvoiceschanged =
-    carregarVozes;
-```
-
+    window.speechSynthesis
+        .onvoiceschanged =
+        carregarVozes;
 }
+
 
 // ============================================================
 // FALAR RESPOSTA
@@ -1015,98 +1026,98 @@ window.speechSynthesis
 
 function falarResposta(texto) {
 
-````
-const checkbox =
-    elemento("voz");
+    const checkbox =
+        elemento("voz");
 
-if (
-    !checkbox ||
-    !checkbox.checked
-) {
-    return;
-}
-
-if (
-    !("speechSynthesis" in window)
-) {
-    return;
-}
-
-const textoLimpo =
-    String(texto)
-        .replace(
-            /```[\s\S]*?```/g,
-            ""
-        )
-        .replace(
-            /[#*_>`]/g,
-            ""
-        );
-
-if (!textoLimpo.trim()) {
-    return;
-}
-
-window.speechSynthesis.cancel();
-
-const fala =
-    new SpeechSynthesisUtterance(
-        textoLimpo
-    );
-
-const seletor =
-    elemento("seletorVoz");
-
-if (
-    seletor &&
-    seletor.value !== ""
-) {
-
-    const indice =
-        Number(
-            seletor.value
-        );
-
-    if (vozes[indice]) {
-
-        fala.voice =
-            vozes[indice];
+    if (
+        !checkbox ||
+        !checkbox.checked
+    ) {
+        return;
     }
+
+    if (
+        !("speechSynthesis" in window)
+    ) {
+        return;
+    }
+
+    const textoLimpo =
+        String(texto ?? "")
+            .replace(
+                /```[\s\S]*?```/g,
+                ""
+            )
+            .replace(
+                /[#*_>`]/g,
+                ""
+            )
+            .replace(
+                /<[^>]*>/g,
+                ""
+            );
+
+    if (!textoLimpo.trim()) {
+        return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const fala =
+        new SpeechSynthesisUtterance(
+            textoLimpo
+        );
+
+    const seletor =
+        elemento("seletorVoz");
+
+    if (
+        seletor &&
+        seletor.value !== ""
+    ) {
+
+        const indice =
+            Number(
+                seletor.value
+            );
+
+        if (vozes[indice]) {
+
+            fala.voice =
+                vozes[indice];
+        }
+    }
+
+    fala.lang = "pt-BR";
+    fala.rate = 1;
+    fala.pitch = 1;
+
+    window.speechSynthesis.speak(
+        fala
+    );
 }
 
-fala.lang = "pt-BR";
-fala.rate = 1;
-fala.pitch = 1;
-
-window.speechSynthesis.speak(
-    fala
-);
-````
-
-}
 
 // ============================================================
 // TESTAR VOZ
 // ============================================================
 
 const btnTestarVoz =
-elemento("btnTestarVoz");
+    elemento("btnTestarVoz");
 
 if (btnTestarVoz) {
 
-```
-btnTestarVoz.addEventListener(
-    "click",
-    function () {
+    btnTestarVoz.addEventListener(
+        "click",
+        function () {
 
-        falarResposta(
-            "Olá! Eu sou o Orion AI. Esta é a minha voz."
-        );
-    }
-);
-```
-
+            falarResposta(
+                "Olá! Eu sou o Orion AI. Esta é a minha voz."
+            );
+        }
+    );
 }
+
 
 // ============================================================
 // HISTÓRICO - CARREGAR CONVERSA ATUAL
@@ -1114,100 +1125,107 @@ btnTestarVoz.addEventListener(
 
 async function carregarHistorico() {
 
-```
-if (!chat) {
-    return;
-}
-
-try {
-
-    const resposta =
-        await fetch(
-            "/history",
-            {
-                method: "GET",
-                credentials: "same-origin",
-                headers: {
-                    "Accept":
-                        "application/json"
-                }
-            }
-        );
-
-    if (
-        resposta.status === 401
-    ) {
-
-        window.location.href =
-            "/login";
-
+    if (!chat) {
         return;
     }
 
-    if (!resposta.ok) {
+    try {
 
-        console.warn(
-            "Erro ao carregar histórico:",
-            resposta.status
-        );
+        const resposta =
+            await fetch(
+                "/history",
+                {
+                    method: "GET",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept":
+                            "application/json"
+                    }
+                }
+            );
+
+        if (
+            resposta.status === 401 ||
+            resposta.redirected
+        ) {
+
+            window.location.href =
+                "/login";
+
+            return;
+        }
+
+        if (!resposta.ok) {
+
+            console.warn(
+                "Erro ao carregar histórico:",
+                resposta.status
+            );
+
+            atualizarWelcome();
+
+            return;
+        }
+
+        const historico =
+            await resposta.json();
+
+        chat.innerHTML = "";
+
+        if (
+            Array.isArray(historico)
+        ) {
+
+            historico.forEach(
+                function (item) {
+
+                    if (!item) {
+                        return;
+                    }
+
+                    const mensagem =
+                        item.message ??
+                        item.content ??
+                        item.text ??
+                        "";
+
+                    if (
+                        item.sender ===
+                        "user"
+                    ) {
+
+                        adicionarMensagem(
+                            mensagem,
+                            "user"
+                        );
+
+                    } else {
+
+                        adicionarResposta(
+                            mensagem,
+                            false
+                        );
+                    }
+                }
+            );
+        }
 
         atualizarWelcome();
 
-        return;
-    }
+        chat.scrollTop =
+            chat.scrollHeight;
 
-    const historico =
-        await lerRespostaJSON(
-            resposta
+    } catch (erro) {
+
+        console.error(
+            "ERRO AO CARREGAR HISTÓRICO:",
+            erro
         );
 
-    chat.innerHTML = "";
-
-    if (
-        Array.isArray(historico)
-    ) {
-
-        historico.forEach(
-            function (item) {
-
-                if (
-                    item.sender ===
-                    "user"
-                ) {
-
-                    adicionarMensagem(
-                        item.message,
-                        "user"
-                    );
-
-                } else {
-
-                    adicionarResposta(
-                        item.message,
-                        false
-                    );
-                }
-            }
-        );
+        atualizarWelcome();
     }
-
-    atualizarWelcome();
-
-    chat.scrollTop =
-        chat.scrollHeight;
-
-} catch (erro) {
-
-    console.error(
-        "ERRO AO CARREGAR HISTÓRICO:",
-        erro
-    );
-
-    atualizarWelcome();
 }
-```
 
-}
 
 // ============================================================
 // HISTÓRICO - LISTA DE CONVERSAS
@@ -1215,109 +1233,110 @@ try {
 
 async function carregarHistoricoConversas() {
 
-```
-const container =
-    elemento("historicoConversas");
+    const container =
+        elemento("historicoConversas");
 
-if (!container) {
-    return;
-}
+    if (!container) {
+        return;
+    }
 
-try {
+    try {
 
-    const resposta =
-        await fetch(
-            "/conversations",
-            {
-                method: "GET",
-                credentials: "same-origin",
-                headers: {
-                    "Accept":
-                        "application/json"
+        const resposta =
+            await fetch(
+                "/conversations",
+                {
+                    method: "GET",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept":
+                            "application/json"
+                    }
+                }
+            );
+
+        if (
+            resposta.status === 401 ||
+            resposta.redirected
+        ) {
+
+            window.location.href =
+                "/login";
+
+            return;
+        }
+
+        if (!resposta.ok) {
+
+            console.warn(
+                "Erro ao carregar conversas:",
+                resposta.status
+            );
+
+            container.innerHTML = `
+                <div class="historico-vazio">
+                    Erro ao carregar conversas
+                </div>
+            `;
+
+            return;
+        }
+
+        const dados =
+            await resposta.json();
+
+        const conversas =
+            Array.isArray(dados)
+                ? dados
+                : (
+                    Array.isArray(
+                        dados.conversations
+                    )
+                        ? dados.conversations
+                        : []
+                );
+
+        container.innerHTML = "";
+
+        if (!conversas.length) {
+
+            container.innerHTML = `
+                <div class="historico-vazio">
+                    Nenhuma conversa ainda
+                </div>
+            `;
+
+            return;
+        }
+
+        conversas.forEach(
+            function (conversa) {
+
+                if (conversa) {
+                    criarItemConversa(
+                        conversa
+                    );
                 }
             }
         );
 
-    if (
-        resposta.status === 401
-    ) {
+        atualizarSelecaoVisual();
 
-        window.location.href =
-            "/login";
+    } catch (erro) {
 
-        return;
-    }
-
-    const dados =
-        await lerRespostaJSON(
-            resposta
-        );
-
-    if (!resposta.ok) {
-
-        console.warn(
-            "Erro ao carregar conversas:",
-            resposta.status,
-            dados
+        console.error(
+            "ERRO AO CARREGAR CONVERSAS:",
+            erro
         );
 
         container.innerHTML = `
             <div class="historico-vazio">
-                ${escaparHTML(
-                    dados.message ||
-                    "Erro ao carregar conversas"
-                )}
+                Erro ao carregar conversas
             </div>
         `;
-
-        return;
     }
-
-    const conversas =
-        Array.isArray(dados)
-            ? dados
-            : dados.conversations || [];
-
-    container.innerHTML = "";
-
-    if (!conversas.length) {
-
-        container.innerHTML = `
-            <div class="historico-vazio">
-                Nenhuma conversa ainda
-            </div>
-        `;
-
-        return;
-    }
-
-    conversas.forEach(
-        function (conversa) {
-
-            criarItemConversa(
-                conversa
-            );
-        }
-    );
-
-    atualizarSelecaoVisual();
-
-} catch (erro) {
-
-    console.error(
-        "ERRO AO CARREGAR CONVERSAS:",
-        erro
-    );
-
-    container.innerHTML = `
-        <div class="historico-vazio">
-            Erro ao carregar conversas
-        </div>
-    `;
 }
-```
 
-}
 
 // ============================================================
 // CRIAR ITEM DA CONVERSA
@@ -1325,179 +1344,202 @@ try {
 
 function criarItemConversa(conversa) {
 
-```
-const container =
-    elemento("historicoConversas");
+    const container =
+        elemento("historicoConversas");
 
-if (!container) {
-    return;
-}
+    if (!container) {
+        return;
+    }
 
-const id =
-    conversa.id ||
-    conversa.conversation_id;
+    const id =
+        conversa.id ??
+        conversa.conversation_id;
 
-const titulo =
-    conversa.title ||
-    conversa.titulo ||
-    "Nova conversa";
+    if (
+        id === null ||
+        id === undefined ||
+        id === ""
+    ) {
+        return;
+    }
 
-const item =
-    document.createElement("div");
+    const titulo =
+        conversa.title ||
+        conversa.titulo ||
+        "Nova conversa";
 
-item.className =
-    "conversa-item";
+    const item =
+        document.createElement("div");
 
-item.dataset.id =
-    id;
+    item.className =
+        "conversa-item";
 
-const abrir =
-    document.createElement("button");
+    item.dataset.id =
+        String(id);
 
-abrir.type = "button";
+    const abrir =
+        document.createElement("button");
 
-abrir.className =
-    "conversa-abrir";
+    abrir.type = "button";
 
-abrir.innerHTML = `
-    <span class="conversa-titulo">
-        ${escaparHTML(titulo)}
-    </span>
-`;
+    abrir.className =
+        "conversa-abrir";
 
-abrir.addEventListener(
-    "click",
-    function () {
+    const tituloSpan =
+        document.createElement("span");
 
-        if (modoSelecao) {
+    tituloSpan.className =
+        "conversa-titulo";
+
+    tituloSpan.textContent =
+        titulo;
+
+    abrir.appendChild(
+        tituloSpan
+    );
+
+    abrir.addEventListener(
+        "click",
+        function () {
+
+            if (modoSelecao) {
+
+                alternarSelecaoConversa(
+                    id,
+                    item
+                );
+
+                return;
+            }
+
+            abrirConversa(id);
+        }
+    );
+
+    const acoes =
+        document.createElement("div");
+
+    acoes.className =
+        "conversa-acoes";
+
+    // ========================================================
+    // SELECIONAR
+    // ========================================================
+
+    const btnSelecionar =
+        document.createElement("button");
+
+    btnSelecionar.type =
+        "button";
+
+    btnSelecionar.className =
+        "btn-conversa btn-selecionar";
+
+    btnSelecionar.title =
+        "Selecionar";
+
+    btnSelecionar.textContent =
+        "☐";
+
+    btnSelecionar.addEventListener(
+        "click",
+        function (event) {
+
+            event.stopPropagation();
 
             alternarSelecaoConversa(
                 id,
                 item
             );
-
-            return;
         }
+    );
 
-        abrirConversa(id);
-    }
-);
+    // ========================================================
+    // RENOMEAR
+    // ========================================================
 
-const acoes =
-    document.createElement("div");
+    const btnRenomear =
+        document.createElement("button");
 
-acoes.className =
-    "conversa-acoes";
+    btnRenomear.type =
+        "button";
 
-const btnSelecionar =
-    document.createElement("button");
+    btnRenomear.className =
+        "btn-conversa btn-renomear";
 
-btnSelecionar.type =
-    "button";
+    btnRenomear.title =
+        "Renomear";
 
-btnSelecionar.className =
-    "btn-conversa btn-selecionar";
+    btnRenomear.textContent =
+        "✏️";
 
-btnSelecionar.title =
-    "Selecionar";
+    btnRenomear.addEventListener(
+        "click",
+        function (event) {
 
-btnSelecionar.textContent =
-    "☐";
+            event.stopPropagation();
 
-btnSelecionar.addEventListener(
-    "click",
-    function (event) {
+            renomearConversa(
+                id,
+                titulo
+            );
+        }
+    );
 
-        event.stopPropagation();
+    // ========================================================
+    // EXCLUIR
+    // ========================================================
 
-        alternarSelecaoConversa(
-            id,
-            item
-        );
-    }
-);
+    const btnExcluir =
+        document.createElement("button");
 
-const btnRenomear =
-    document.createElement("button");
+    btnExcluir.type =
+        "button";
 
-btnRenomear.type =
-    "button";
+    btnExcluir.className =
+        "btn-conversa btn-excluir";
 
-btnRenomear.className =
-    "btn-conversa btn-renomear";
+    btnExcluir.title =
+        "Excluir";
 
-btnRenomear.title =
-    "Renomear";
+    btnExcluir.textContent =
+        "🗑️";
 
-btnRenomear.textContent =
-    "✏️";
+    btnExcluir.addEventListener(
+        "click",
+        function (event) {
 
-btnRenomear.addEventListener(
-    "click",
-    function (event) {
+            event.stopPropagation();
 
-        event.stopPropagation();
+            excluirConversa(id);
+        }
+    );
 
-        renomearConversa(
-            id,
-            titulo
-        );
-    }
-);
+    acoes.appendChild(
+        btnSelecionar
+    );
 
-const btnExcluir =
-    document.createElement("button");
+    acoes.appendChild(
+        btnRenomear
+    );
 
-btnExcluir.type =
-    "button";
+    acoes.appendChild(
+        btnExcluir
+    );
 
-btnExcluir.className =
-    "btn-conversa btn-excluir";
+    item.appendChild(
+        abrir
+    );
 
-btnExcluir.title =
-    "Excluir";
+    item.appendChild(
+        acoes
+    );
 
-btnExcluir.textContent =
-    "🗑️";
-
-btnExcluir.addEventListener(
-    "click",
-    function (event) {
-
-        event.stopPropagation();
-
-        excluirConversa(
-            id
-        );
-    }
-);
-
-acoes.appendChild(
-    btnSelecionar
-);
-
-acoes.appendChild(
-    btnRenomear
-);
-
-acoes.appendChild(
-    btnExcluir
-);
-
-item.appendChild(
-    abrir
-);
-
-item.appendChild(
-    acoes
-);
-
-container.appendChild(
-    item
-);
-```
-
+    container.appendChild(
+        item
+    );
 }
+
 
 // ============================================================
 // ABRIR CONVERSA
@@ -1505,264 +1547,316 @@ container.appendChild(
 
 async function abrirConversa(id) {
 
-```
-if (modoSelecao) {
-    return;
-}
-
-if (!id) {
-    return;
-}
-
-try {
-
-    const resposta =
-        await fetch(
-            `/conversation/${encodeURIComponent(id)}`,
-            {
-                method: "GET",
-                credentials: "same-origin",
-                headers: {
-                    "Accept":
-                        "application/json"
-                }
-            }
-        );
+    if (modoSelecao) {
+        return;
+    }
 
     if (
-        resposta.status === 401
+        id === null ||
+        id === undefined ||
+        id === ""
     ) {
-
-        window.location.href =
-            "/login";
-
         return;
     }
 
-    const dados =
-        await lerRespostaJSON(
-            resposta
-        );
+    try {
 
-    if (!resposta.ok) {
+        const resposta =
+            await fetch(
+                `/conversation/${encodeURIComponent(id)}`,
+                {
+                    method: "GET",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept":
+                            "application/json"
+                    }
+                }
+            );
+
+        if (
+            resposta.status === 401 ||
+            resposta.redirected
+        ) {
+
+            window.location.href =
+                "/login";
+
+            return;
+        }
+
+        const texto =
+            await resposta.text();
+
+        let dados;
+
+        try {
+
+            dados =
+                JSON.parse(texto);
+
+        } catch (erro) {
+
+            console.error(
+                "Resposta inválida:",
+                texto
+            );
+
+            throw new Error(
+                "O servidor retornou uma resposta inválida."
+            );
+        }
+
+        if (!resposta.ok) {
+
+            alert(
+                dados.message ||
+                "❌ Não foi possível abrir a conversa."
+            );
+
+            return;
+        }
+
+        window.conversationId =
+            id;
+
+        if (chat) {
+            chat.innerHTML = "";
+        }
+
+        const mensagens =
+            dados.messages ||
+            dados.history ||
+            [];
+
+        if (Array.isArray(mensagens)) {
+
+            mensagens.forEach(
+                function (item) {
+
+                    if (!item) {
+                        return;
+                    }
+
+                    const mensagem =
+                        item.message ??
+                        item.content ??
+                        item.text ??
+                        "";
+
+                    if (
+                        item.sender ===
+                        "user"
+                    ) {
+
+                        adicionarMensagem(
+                            mensagem,
+                            "user"
+                        );
+
+                    } else {
+
+                        adicionarResposta(
+                            mensagem,
+                            false
+                        );
+                    }
+                }
+            );
+        }
+
+        const titulo =
+            elemento("tituloConversa");
+
+        if (titulo) {
+
+            titulo.textContent =
+                dados.title ||
+                dados.titulo ||
+                "Orion AI";
+        }
+
+        document
+            .querySelectorAll(
+                ".conversa-item"
+            )
+            .forEach(
+                function (item) {
+
+                    item.classList.toggle(
+                        "ativa",
+                        String(
+                            item.dataset.id
+                        ) === String(id)
+                    );
+                }
+            );
+
+        atualizarWelcome();
+
+        if (chat) {
+            chat.scrollTop =
+                chat.scrollHeight;
+        }
+
+    } catch (erro) {
+
+        console.error(
+            "ERRO AO ABRIR CONVERSA:",
+            erro
+        );
 
         alert(
-            dados.message ||
-            "❌ Não foi possível abrir a conversa."
+            "❌ Erro ao abrir a conversa."
         );
-
-        return;
     }
-
-    window.conversationId =
-        id;
-
-    if (chat) {
-        chat.innerHTML = "";
-    }
-
-    const mensagens =
-        dados.messages ||
-        dados.history ||
-        [];
-
-    mensagens.forEach(
-        function (item) {
-
-            if (
-                item.sender ===
-                "user"
-            ) {
-
-                adicionarMensagem(
-                    item.message,
-                    "user"
-                );
-
-            } else {
-
-                adicionarResposta(
-                    item.message,
-                    false
-                );
-            }
-        }
-    );
-
-    const titulo =
-        elemento("tituloConversa");
-
-    if (titulo) {
-
-        titulo.textContent =
-            dados.title ||
-            dados.titulo ||
-            "Orion AI";
-    }
-
-    document
-        .querySelectorAll(
-            ".conversa-item"
-        )
-        .forEach(
-            function (item) {
-
-                item.classList.toggle(
-                    "ativa",
-                    String(
-                        item.dataset.id
-                    ) === String(id)
-                );
-            }
-        );
-
-    atualizarWelcome();
-
-    if (chat) {
-        chat.scrollTop =
-            chat.scrollHeight;
-    }
-
-} catch (erro) {
-
-    console.error(
-        "ERRO AO ABRIR CONVERSA:",
-        erro
-    );
-
-    alert(
-        "❌ Erro ao abrir a conversa."
-    );
 }
-```
 
-}
 
 // ============================================================
 // RENOMEAR CONVERSA
 // ============================================================
 
 async function renomearConversa(
-id,
-tituloAtual
+    id,
+    tituloAtual
 ) {
 
-```
-const novoTitulo =
-    prompt(
-        "Digite o novo nome da conversa:",
-        tituloAtual
-    );
+    const novoTitulo =
+        prompt(
+            "Digite o novo nome da conversa:",
+            tituloAtual
+        );
 
-if (
-    novoTitulo === null
-) {
-    return;
-}
+    if (novoTitulo === null) {
+        return;
+    }
 
-const titulo =
-    novoTitulo.trim();
+    const titulo =
+        novoTitulo.trim();
 
-if (!titulo) {
+    if (!titulo) {
 
-    alert(
-        "❌ O nome não pode ficar vazio."
-    );
+        alert(
+            "❌ O nome não pode ficar vazio."
+        );
 
-    return;
-}
+        return;
+    }
 
-try {
+    try {
 
-    const resposta =
-        await fetch(
-            "/rename_conversation",
-            {
-                method: "POST",
-                credentials: "same-origin",
-                headers: {
-                    "Accept":
-                        "application/json",
-                    "Content-Type":
-                        "application/json"
-                },
-                body:
-                    JSON.stringify({
-                        conversation_id:
-                            id,
-                        title:
-                            titulo
-                    })
+        const resposta =
+            await fetch(
+                "/rename_conversation",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept":
+                            "application/json",
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body:
+                        JSON.stringify({
+                            conversation_id:
+                                id,
+                            title:
+                                titulo
+                        })
+                }
+            );
+
+        const texto =
+            await resposta.text();
+
+        let dados;
+
+        try {
+
+            dados =
+                JSON.parse(texto);
+
+        } catch (erro) {
+
+            throw new Error(
+                "O servidor retornou uma resposta inválida."
+            );
+        }
+
+        if (
+            !resposta.ok ||
+            dados.success === false
+        ) {
+
+            throw new Error(
+                dados.message ||
+                "Não foi possível renomear."
+            );
+        }
+
+        const item =
+            Array.from(
+                document.querySelectorAll(
+                    ".conversa-item"
+                )
+            ).find(
+                function (elementoItem) {
+
+                    return (
+                        String(
+                            elementoItem.dataset.id
+                        ) === String(id)
+                    );
+                }
+            );
+
+        if (item) {
+
+            const tituloElemento =
+                item.querySelector(
+                    ".conversa-titulo"
+                );
+
+            if (tituloElemento) {
+
+                tituloElemento.textContent =
+                    titulo;
             }
-        );
-
-    const dados =
-        await lerRespostaJSON(
-            resposta
-        );
-
-    if (
-        !resposta.ok ||
-        dados.success === false
-    ) {
-
-        throw new Error(
-            dados.message ||
-            "Não foi possível renomear."
-        );
-    }
-
-    const item =
-        document.querySelector(
-            `.conversa-item[data-id="${CSS.escape(String(id))}"]`
-        );
-
-    if (item) {
-
-        const tituloElemento =
-            item.querySelector(
-                ".conversa-titulo"
-            );
-
-        if (tituloElemento) {
-
-            tituloElemento.textContent =
-                titulo;
         }
-    }
 
-    if (
-        String(window.conversationId) ===
-        String(id)
-    ) {
+        if (
+            String(window.conversationId) ===
+            String(id)
+        ) {
 
-        const tituloHeader =
-            elemento(
-                "tituloConversa"
-            );
+            const tituloHeader =
+                elemento(
+                    "tituloConversa"
+                );
 
-        if (tituloHeader) {
+            if (tituloHeader) {
 
-            tituloHeader.textContent =
-                titulo;
+                tituloHeader.textContent =
+                    titulo;
+            }
         }
+
+    } catch (erro) {
+
+        console.error(
+            "ERRO AO RENOMEAR:",
+            erro
+        );
+
+        alert(
+            "❌ " +
+            erro.message
+        );
     }
-
-} catch (erro) {
-
-    console.error(
-        "ERRO AO RENOMEAR:",
-        erro
-    );
-
-    alert(
-        "❌ " +
-        erro.message
-    );
 }
-```
 
-}
 
 // ============================================================
 // EXCLUIR UMA CONVERSA
@@ -1770,102 +1864,116 @@ try {
 
 async function excluirConversa(id) {
 
-```
-if (!id) {
-    return;
-}
-
-const confirmar =
-    confirm(
-        "⚠️ Tem certeza que deseja excluir esta conversa?\n\n" +
-        "As mensagens serão apagadas permanentemente."
-    );
-
-if (!confirmar) {
-    return;
-}
-
-try {
-
-    const resposta =
-        await fetch(
-            "/delete_conversation",
-            {
-                method: "POST",
-                credentials: "same-origin",
-                headers: {
-                    "Accept":
-                        "application/json",
-                    "Content-Type":
-                        "application/json"
-                },
-                body:
-                    JSON.stringify({
-                        conversation_id:
-                            id
-                    })
-            }
-        );
-
-    const dados =
-        await lerRespostaJSON(
-            resposta
-        );
-
     if (
-        !resposta.ok ||
-        dados.success === false
+        id === null ||
+        id === undefined ||
+        id === ""
     ) {
-
-        throw new Error(
-            dados.message ||
-            "Não foi possível excluir a conversa."
-        );
+        return;
     }
 
-    if (
-        String(window.conversationId) ===
-        String(id)
-    ) {
+    const confirmar =
+        confirm(
+            "⚠️ Tem certeza que deseja excluir esta conversa?\n\n" +
+            "As mensagens serão apagadas permanentemente."
+        );
 
-        window.conversationId =
-            null;
+    if (!confirmar) {
+        return;
+    }
 
-        if (chat) {
-            chat.innerHTML = "";
-        }
+    try {
 
-        const titulo =
-            elemento(
-                "tituloConversa"
+        const resposta =
+            await fetch(
+                "/delete_conversation",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept":
+                            "application/json",
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body:
+                        JSON.stringify({
+                            conversation_id:
+                                id
+                        })
+                }
             );
 
-        if (titulo) {
+        const texto =
+            await resposta.text();
 
-            titulo.textContent =
-                "Orion AI";
+        let dados;
+
+        try {
+
+            dados =
+                JSON.parse(texto);
+
+        } catch (erro) {
+
+            throw new Error(
+                "O servidor retornou uma resposta inválida."
+            );
         }
 
-        atualizarWelcome();
+        if (
+            !resposta.ok ||
+            dados.success === false
+        ) {
+
+            throw new Error(
+                dados.message ||
+                "Não foi possível excluir a conversa."
+            );
+        }
+
+        if (
+            String(window.conversationId) ===
+            String(id)
+        ) {
+
+            window.conversationId =
+                null;
+
+            if (chat) {
+                chat.innerHTML = "";
+            }
+
+            const titulo =
+                elemento(
+                    "tituloConversa"
+                );
+
+            if (titulo) {
+
+                titulo.textContent =
+                    "Orion AI";
+            }
+
+            atualizarWelcome();
+        }
+
+        await carregarHistoricoConversas();
+
+    } catch (erro) {
+
+        console.error(
+            "ERRO AO EXCLUIR:",
+            erro
+        );
+
+        alert(
+            "❌ " +
+            erro.message
+        );
     }
-
-    await carregarHistoricoConversas();
-
-} catch (erro) {
-
-    console.error(
-        "ERRO AO EXCLUIR:",
-        erro
-    );
-
-    alert(
-        "❌ " +
-        erro.message
-    );
 }
-```
 
-}
 
 // ============================================================
 // CRIAR BARRA DE SELEÇÃO
@@ -1873,132 +1981,143 @@ try {
 
 function criarBarraSelecao() {
 
-```
-if (
-    elemento("barraSelecao")
-) {
-    return;
-}
+    if (
+        elemento("barraSelecao")
+    ) {
+        return;
+    }
 
-const sidebar =
-    document.querySelector(
-        ".sidebar"
-    );
+    const sidebar =
+        document.querySelector(
+            ".sidebar"
+        );
 
-const historicoTitulo =
-    document.querySelector(
-        ".historico-titulo"
-    );
+    const historicoTitulo =
+        document.querySelector(
+            ".historico-titulo"
+        );
 
-if (!sidebar || !historicoTitulo) {
-    return;
-}
+    if (!sidebar || !historicoTitulo) {
+        return;
+    }
 
-const barra =
-    document.createElement("div");
+    const barra =
+        document.createElement("div");
 
-barra.id =
-    "barraSelecao";
+    barra.id =
+        "barraSelecao";
 
-barra.style.display =
-    "none";
+    barra.style.display =
+        "none";
 
-barra.style.flexDirection =
-    "column";
+    barra.style.flexDirection =
+        "column";
 
-barra.style.gap =
-    "7px";
+    barra.style.gap =
+        "7px";
 
-barra.innerHTML = `
+    barra.innerHTML = `
 
-    <div style="
-        display:flex;
-        gap:6px;
-    ">
+        <div style="
+            display:flex;
+            gap:6px;
+        ">
+
+            <button
+                type="button"
+                id="btnSelecionarTudo"
+                style="
+                    flex:1;
+                    border:none;
+                    padding:8px;
+                    border-radius:8px;
+                    background:rgba(255,255,255,.07);
+                    color:white;
+                    cursor:pointer;
+                    font-size:12px;
+                "
+            >
+                ☑️ Selecionar tudo
+            </button>
+
+            <button
+                type="button"
+                id="btnCancelarSelecao"
+                style="
+                    flex:1;
+                    border:none;
+                    padding:8px;
+                    border-radius:8px;
+                    background:rgba(255,255,255,.07);
+                    color:white;
+                    cursor:pointer;
+                    font-size:12px;
+                "
+            >
+                ❌ Cancelar
+            </button>
+
+        </div>
 
         <button
             type="button"
-            id="btnSelecionarTudo"
+            id="btnExcluirSelecionadas"
             style="
-                flex:1;
                 border:none;
-                padding:8px;
+                padding:9px;
                 border-radius:8px;
-                background:rgba(255,255,255,.07);
-                color:white;
+                background:rgba(239,68,68,.18);
+                border:1px solid rgba(239,68,68,.25);
+                color:#fca5a5;
                 cursor:pointer;
+                font-weight:bold;
                 font-size:12px;
             "
         >
-            ☑️ Selecionar tudo
+            🗑️ Excluir selecionadas
+            (<span id="contadorSelecionadas">0</span>)
         </button>
+    `;
 
-        <button
-            type="button"
-            id="btnCancelarSelecao"
-            style="
-                flex:1;
-                border:none;
-                padding:8px;
-                border-radius:8px;
-                background:rgba(255,255,255,.07);
-                color:white;
-                cursor:pointer;
-                font-size:12px;
-            "
-        >
-            ❌ Cancelar
-        </button>
+    sidebar.insertBefore(
+        barra,
+        historicoTitulo
+    );
 
-    </div>
+    const selecionarTudo =
+        elemento("btnSelecionarTudo");
 
-    <button
-        type="button"
-        id="btnExcluirSelecionadas"
-        style="
-            border:none;
-            padding:9px;
-            border-radius:8px;
-            background:rgba(239,68,68,.18);
-            border:1px solid rgba(239,68,68,.25);
-            color:#fca5a5;
-            cursor:pointer;
-            font-weight:bold;
-            font-size:12px;
-        "
-    >
-        🗑️ Excluir selecionadas (<span id="contadorSelecionadas">0</span>)
-    </button>
-`;
+    const cancelar =
+        elemento("btnCancelarSelecao");
 
-sidebar.insertBefore(
-    barra,
-    historicoTitulo
-);
+    const excluir =
+        elemento("btnExcluirSelecionadas");
 
-elemento(
-    "btnSelecionarTudo"
-).addEventListener(
-    "click",
-    selecionarTodasConversas
-);
+    if (selecionarTudo) {
 
-elemento(
-    "btnCancelarSelecao"
-).addEventListener(
-    "click",
-    sairModoSelecao
-);
+        selecionarTudo.addEventListener(
+            "click",
+            selecionarTodasConversas
+        );
+    }
 
-elemento(
-    "btnExcluirSelecionadas"
-).addEventListener(
-    "click",
-    excluirSelecionadas
-);
-```
+    if (cancelar) {
 
+        cancelar.addEventListener(
+            "click",
+            sairModoSelecao
+        );
+    }
+
+    if (excluir) {
+
+        excluir.addEventListener(
+            "click",
+            excluirSelecionadas
+        );
+    }
 }
+
 
 // ============================================================
 // ENTRAR NO MODO SELEÇÃO
@@ -2006,24 +2125,22 @@ elemento(
 
 function entrarModoSelecao() {
 
-```
-modoSelecao = true;
+    modoSelecao = true;
 
-criarBarraSelecao();
+    criarBarraSelecao();
 
-const barra =
-    elemento("barraSelecao");
+    const barra =
+        elemento("barraSelecao");
 
-if (barra) {
+    if (barra) {
 
-    barra.style.display =
-        "flex";
+        barra.style.display =
+            "flex";
+    }
+
+    atualizarSelecaoVisual();
 }
 
-atualizarSelecaoVisual();
-```
-
-}
 
 // ============================================================
 // SAIR DO MODO SELEÇÃO
@@ -2031,58 +2148,58 @@ atualizarSelecaoVisual();
 
 function sairModoSelecao() {
 
-```
-modoSelecao = false;
+    modoSelecao = false;
 
-document
-    .querySelectorAll(
-        ".conversa-item.selecionada"
-    )
-    .forEach(
-        function (item) {
+    document
+        .querySelectorAll(
+            ".conversa-item.selecionada"
+        )
+        .forEach(
+            function (item) {
 
-            item.classList.remove(
-                "selecionada"
-            );
-        }
-    );
+                item.classList.remove(
+                    "selecionada"
+                );
+            }
+        );
 
-const barra =
-    elemento("barraSelecao");
+    const barra =
+        elemento("barraSelecao");
 
-if (barra) {
+    if (barra) {
 
-    barra.style.display =
-        "none";
+        barra.style.display =
+            "none";
+    }
+
+    atualizarSelecaoVisual();
 }
 
-atualizarSelecaoVisual();
-```
-
-}
 
 // ============================================================
 // SELECIONAR / DESSELECIONAR
 // ============================================================
 
 function alternarSelecaoConversa(
-id,
-item
+    id,
+    item
 ) {
 
-```
-if (!modoSelecao) {
-    entrarModoSelecao();
+    if (!item) {
+        return;
+    }
+
+    if (!modoSelecao) {
+        entrarModoSelecao();
+    }
+
+    item.classList.toggle(
+        "selecionada"
+    );
+
+    atualizarSelecaoVisual();
 }
 
-item.classList.toggle(
-    "selecionada"
-);
-
-atualizarSelecaoVisual();
-```
-
-}
 
 // ============================================================
 // ATUALIZAR VISUAL DA SELEÇÃO
@@ -2090,66 +2207,64 @@ atualizarSelecaoVisual();
 
 function atualizarSelecaoVisual() {
 
-```
-const itens =
-    document.querySelectorAll(
-        ".conversa-item"
+    const itens =
+        document.querySelectorAll(
+            ".conversa-item"
+        );
+
+    itens.forEach(
+        function (item) {
+
+            const selecionada =
+                item.classList.contains(
+                    "selecionada"
+                );
+
+            const botao =
+                item.querySelector(
+                    ".btn-selecionar"
+                );
+
+            if (botao) {
+
+                botao.textContent =
+                    selecionada
+                        ? "☑️"
+                        : "☐";
+            }
+
+            if (modoSelecao) {
+
+                item.style.background =
+                    selecionada
+                        ? "rgba(124,58,237,.28)"
+                        : "";
+
+            } else {
+
+                item.style.background =
+                    "";
+            }
+        }
     );
 
-itens.forEach(
-    function (item) {
+    const selecionadas =
+        document.querySelectorAll(
+            ".conversa-item.selecionada"
+        );
 
-        const selecionada =
-            item.classList.contains(
-                "selecionada"
-            );
+    const contador =
+        elemento(
+            "contadorSelecionadas"
+        );
 
-        const botao =
-            item.querySelector(
-                ".btn-selecionar"
-            );
+    if (contador) {
 
-        if (botao) {
-
-            botao.textContent =
-                selecionada
-                    ? "☑️"
-                    : "☐";
-        }
-
-        if (modoSelecao) {
-
-            item.style.background =
-                selecionada
-                    ? "rgba(124,58,237,.28)"
-                    : "";
-
-        } else {
-
-            item.style.background =
-                "";
-        }
+        contador.textContent =
+            selecionadas.length;
     }
-);
-
-const selecionadas =
-    document.querySelectorAll(
-        ".conversa-item.selecionada"
-    );
-
-const contador =
-    elemento(
-        "contadorSelecionadas"
-    );
-
-if (contador) {
-
-    contador.textContent =
-        selecionadas.length;
 }
-```
 
-}
 
 // ============================================================
 // SELECIONAR TODAS
@@ -2157,27 +2272,25 @@ if (contador) {
 
 function selecionarTodasConversas() {
 
-```
-entrarModoSelecao();
+    entrarModoSelecao();
 
-const itens =
-    document.querySelectorAll(
-        ".conversa-item"
+    const itens =
+        document.querySelectorAll(
+            ".conversa-item"
+        );
+
+    itens.forEach(
+        function (item) {
+
+            item.classList.add(
+                "selecionada"
+            );
+        }
     );
 
-itens.forEach(
-    function (item) {
-
-        item.classList.add(
-            "selecionada"
-        );
-    }
-);
-
-atualizarSelecaoVisual();
-```
-
+    atualizarSelecaoVisual();
 }
+
 
 // ============================================================
 // PEGAR IDS SELECIONADOS
@@ -2185,20 +2298,20 @@ atualizarSelecaoVisual();
 
 function obterIdsSelecionados() {
 
-```
-return Array.from(
-    document.querySelectorAll(
-        ".conversa-item.selecionada"
+    return Array.from(
+        document.querySelectorAll(
+            ".conversa-item.selecionada"
+        )
     )
-)
-    .map(
-        item =>
-            item.dataset.id
-    )
-    .filter(Boolean);
-```
+        .map(
+            function (item) {
 
+                return item.dataset.id;
+            }
+        )
+        .filter(Boolean);
 }
+
 
 // ============================================================
 // EXCLUIR VÁRIAS CONVERSAS
@@ -2206,231 +2319,245 @@ return Array.from(
 
 async function excluirSelecionadas() {
 
-```
-const ids =
-    obterIdsSelecionados();
+    const ids =
+        obterIdsSelecionados();
 
-if (!ids.length) {
+    if (!ids.length) {
 
-    alert(
-        "⚠️ Selecione pelo menos uma conversa."
-    );
-
-    return;
-}
-
-const confirmar =
-    confirm(
-        `⚠️ Você selecionou ${ids.length} conversa(s).\n\n` +
-        "Todas as mensagens dessas conversas serão apagadas permanentemente.\n\n" +
-        "Deseja continuar?"
-    );
-
-if (!confirmar) {
-    return;
-}
-
-const botao =
-    elemento(
-        "btnExcluirSelecionadas"
-    );
-
-if (botao) {
-
-    botao.disabled = true;
-
-    botao.textContent =
-        "⏳ Excluindo...";
-}
-
-try {
-
-    const resposta =
-        await fetch(
-            "/delete_conversations",
-            {
-                method: "POST",
-                credentials: "same-origin",
-                headers: {
-                    "Accept":
-                        "application/json",
-                    "Content-Type":
-                        "application/json"
-                },
-                body:
-                    JSON.stringify({
-                        conversation_ids:
-                            ids
-                    })
-            }
+        alert(
+            "⚠️ Selecione pelo menos uma conversa."
         );
 
-    const dados =
-        await lerRespostaJSON(
-            resposta
-        );
-
-    if (
-        !resposta.ok ||
-        dados.success === false
-    ) {
-
-        throw new Error(
-            dados.message ||
-            "Não foi possível excluir as conversas."
-        );
+        return;
     }
 
-    if (
-        window.conversationId &&
-        ids.some(
-            id =>
-                String(id) ===
-                String(
-                    window.conversationId
-                )
-        )
-    ) {
+    const confirmar =
+        confirm(
+            `⚠️ Você selecionou ${ids.length} conversa(s).\n\n` +
+            "Todas as mensagens dessas conversas serão apagadas permanentemente.\n\n" +
+            "Deseja continuar?"
+        );
 
-        window.conversationId =
-            null;
-
-        if (chat) {
-            chat.innerHTML = "";
-        }
-
-        const titulo =
-            elemento(
-                "tituloConversa"
-            );
-
-        if (titulo) {
-
-            titulo.textContent =
-                "Orion AI";
-        }
-
-        atualizarWelcome();
+    if (!confirmar) {
+        return;
     }
 
-    sairModoSelecao();
-
-    await carregarHistoricoConversas();
-
-} catch (erro) {
-
-    console.error(
-        "ERRO AO EXCLUIR VÁRIAS:",
-        erro
-    );
-
-    alert(
-        "❌ " +
-        erro.message
-    );
-
-} finally {
+    const botao =
+        elemento(
+            "btnExcluirSelecionadas"
+        );
 
     if (botao) {
 
-        botao.disabled = false;
+        botao.disabled = true;
 
-        botao.innerHTML =
-            `🗑️ Excluir selecionadas (<span id="contadorSelecionadas">0</span>)`;
+        botao.textContent =
+            "⏳ Excluindo...";
+    }
+
+    try {
+
+        const resposta =
+            await fetch(
+                "/delete_conversations",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept":
+                            "application/json",
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body:
+                        JSON.stringify({
+                            conversation_ids:
+                                ids
+                        })
+                }
+            );
+
+        const texto =
+            await resposta.text();
+
+        let dados;
+
+        try {
+
+            dados =
+                JSON.parse(texto);
+
+        } catch (erro) {
+
+            throw new Error(
+                "O servidor retornou uma resposta inválida."
+            );
+        }
+
+        if (
+            !resposta.ok ||
+            dados.success === false
+        ) {
+
+            throw new Error(
+                dados.message ||
+                "Não foi possível excluir as conversas."
+            );
+        }
+
+        if (
+            window.conversationId &&
+            ids.some(
+                function (id) {
+
+                    return (
+                        String(id) ===
+                        String(
+                            window.conversationId
+                        )
+                    );
+                }
+            )
+        ) {
+
+            window.conversationId =
+                null;
+
+            if (chat) {
+                chat.innerHTML = "";
+            }
+
+            const titulo =
+                elemento(
+                    "tituloConversa"
+                );
+
+            if (titulo) {
+
+                titulo.textContent =
+                    "Orion AI";
+            }
+
+            atualizarWelcome();
+        }
+
+        sairModoSelecao();
+
+        await carregarHistoricoConversas();
+
+    } catch (erro) {
+
+        console.error(
+            "ERRO AO EXCLUIR VÁRIAS:",
+            erro
+        );
+
+        alert(
+            "❌ " +
+            erro.message
+        );
+
+    } finally {
+
+        if (botao) {
+
+            botao.disabled = false;
+
+            botao.innerHTML =
+                `🗑️ Excluir selecionadas (<span id="contadorSelecionadas">0</span>)`;
+        }
     }
 }
-```
 
-}
 
 // ============================================================
 // BOTÃO PARA ATIVAR SELEÇÃO
 // ============================================================
 
 document.addEventListener(
-"dblclick",
-function (event) {
+    "dblclick",
+    function (event) {
 
-```
-    const item =
-        event.target.closest(
-            ".conversa-item"
+        const item =
+            event.target.closest(
+                ".conversa-item"
+            );
+
+        if (!item) {
+            return;
+        }
+
+        entrarModoSelecao();
+
+        item.classList.add(
+            "selecionada"
         );
 
-    if (!item) {
-        return;
+        atualizarSelecaoVisual();
     }
-
-    entrarModoSelecao();
-
-    item.classList.add(
-        "selecionada"
-    );
-
-    atualizarSelecaoVisual();
-}
-```
-
 );
+
 
 // ============================================================
 // INICIALIZAÇÃO
 // ============================================================
 
 document.addEventListener(
-"DOMContentLoaded",
-function () {
+    "DOMContentLoaded",
+    function () {
 
-```
-    criarBarraSelecao();
+        criarBarraSelecao();
 
-    atualizarWelcome();
+        atualizarWelcome();
 
-    carregarHistorico();
+        carregarHistorico();
 
-    carregarHistoricoConversas();
+        carregarHistoricoConversas();
 
-    if (mensagemInput) {
-        mensagemInput.focus();
+        if (mensagemInput) {
+            mensagemInput.focus();
+        }
     }
-}
-```
-
 );
+
 
 // ============================================================
 // EXPOR FUNÇÕES
 // ============================================================
 
 window.enviar =
-enviar;
+    enviar;
 
 window.novaConversa =
-novaConversa;
+    novaConversa;
 
 window.atalho =
-atalho;
+    atalho;
 
 window.limparArquivo =
-limparArquivo;
+    limparArquivo;
+
+window.carregarHistorico =
+    carregarHistorico;
 
 window.carregarHistoricoConversas =
-carregarHistoricoConversas;
+    carregarHistoricoConversas;
 
 window.abrirConversa =
-abrirConversa;
+    abrirConversa;
 
 window.renomearConversa =
-renomearConversa;
+    renomearConversa;
 
 window.excluirConversa =
-excluirConversa;
+    excluirConversa;
 
 window.entrarModoSelecao =
-entrarModoSelecao;
+    entrarModoSelecao;
 
 window.sairModoSelecao =
-sairModoSelecao;
+    sairModoSelecao;
 
 window.excluirSelecionadas =
-excluirSelecionadas;
+    excluirSelecionadas;
+````
