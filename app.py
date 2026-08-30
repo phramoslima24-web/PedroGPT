@@ -1,3 +1,4 @@
+
 import os
 from datetime import datetime
 
@@ -511,8 +512,13 @@ def perfil():
                 cursor_factory=psycopg2.extras.RealDictCursor
             )
 
+            # ------------------------------------------------
+            # USUÁRIO
+            # ------------------------------------------------
+
             cursor.execute("""
                 SELECT
+                    id,
                     username,
                     plan
                 FROM users
@@ -531,6 +537,10 @@ def perfil():
                     url_for("login")
                 )
 
+            # ------------------------------------------------
+            # TOTAL DE CONVERSAS
+            # ------------------------------------------------
+
             cursor.execute("""
                 SELECT COUNT(*) AS total
                 FROM conversations
@@ -539,9 +549,17 @@ def perfil():
                 username,
             ))
 
+            resultado_conversas = cursor.fetchone()
+
             total_conversas = (
-                cursor.fetchone()["total"]
+                resultado_conversas["total"]
+                if resultado_conversas
+                else 0
             )
+
+            # ------------------------------------------------
+            # TOTAL DE MENSAGENS
+            # ------------------------------------------------
 
             cursor.execute("""
                 SELECT COUNT(*) AS total
@@ -553,8 +571,12 @@ def perfil():
                 username,
             ))
 
+            resultado_mensagens = cursor.fetchone()
+
             total_mensagens = (
-                cursor.fetchone()["total"]
+                resultado_mensagens["total"]
+                if resultado_mensagens
+                else 0
             )
 
         return render_template(
@@ -573,6 +595,7 @@ def perfil():
         )
 
         return jsonify({
+
             "success":
                 False,
 
@@ -581,6 +604,7 @@ def perfil():
 
             "error":
                 str(e)
+
         }), 500
 
 
@@ -594,11 +618,13 @@ def api_profile():
     if "user" not in session:
 
         return jsonify({
+
             "success":
                 False,
 
             "message":
                 "Faça login primeiro."
+
         }), 401
 
     username = session["user"]
@@ -627,11 +653,13 @@ def api_profile():
             if not usuario:
 
                 return jsonify({
+
                     "success":
                         False,
 
                     "message":
                         "Usuário não encontrado."
+
                 }), 404
 
             cursor.execute("""
@@ -642,8 +670,12 @@ def api_profile():
                 username,
             ))
 
+            resultado_conversas = cursor.fetchone()
+
             total_conversas = (
-                cursor.fetchone()["total"]
+                resultado_conversas["total"]
+                if resultado_conversas
+                else 0
             )
 
             cursor.execute("""
@@ -656,8 +688,12 @@ def api_profile():
                 username,
             ))
 
+            resultado_mensagens = cursor.fetchone()
+
             total_mensagens = (
-                cursor.fetchone()["total"]
+                resultado_mensagens["total"]
+                if resultado_mensagens
+                else 0
             )
 
         return jsonify({
@@ -704,6 +740,291 @@ def api_profile():
 
 
 # ============================================================
+# ALTERAR SENHA
+# ============================================================
+
+@app.route(
+    "/api/change-password",
+    methods=["POST"]
+)
+def change_password():
+
+    if "user" not in session:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Faça login primeiro."
+
+        }), 401
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    current_password = str(
+        data.get("current_password") or ""
+    )
+
+    new_password = str(
+        data.get("new_password") or ""
+    )
+
+    confirm_password = str(
+        data.get("confirm_password") or ""
+    )
+
+    # ========================================================
+    # VALIDAR CAMPOS
+    # ========================================================
+
+    if (
+        not current_password
+        or not new_password
+        or not confirm_password
+    ):
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Preencha todos os campos."
+
+        }), 400
+
+    # ========================================================
+    # VALIDAR TAMANHO
+    # ========================================================
+
+    if len(new_password) < 6:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "A nova senha precisa ter pelo menos 6 caracteres."
+
+        }), 400
+
+    if len(new_password) > 200:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "A nova senha é muito longa."
+
+        }), 400
+
+    # ========================================================
+    # VALIDAR NÚMERO
+    # ========================================================
+
+    if not any(
+        caractere.isdigit()
+        for caractere in new_password
+    ):
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "A nova senha precisa ter pelo menos 1 número."
+
+        }), 400
+
+    # ========================================================
+    # CONFIRMAÇÃO
+    # ========================================================
+
+    if new_password != confirm_password:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "A confirmação da senha não confere."
+
+        }), 400
+
+    # ========================================================
+    # NÃO PERMITIR MESMA SENHA
+    # ========================================================
+
+    if current_password == new_password:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "A nova senha precisa ser diferente da senha atual."
+
+        }), 400
+
+    username = session["user"]
+
+    try:
+
+        with get_db() as conn:
+
+            cursor = conn.cursor(
+                cursor_factory=psycopg2.extras.RealDictCursor
+            )
+
+            cursor.execute("""
+                SELECT
+                    id,
+                    username,
+                    password
+                FROM users
+                WHERE username = %s
+            """, (
+                username,
+            ))
+
+            usuario = cursor.fetchone()
+
+            if not usuario:
+
+                session.clear()
+
+                return jsonify({
+
+                    "success":
+                        False,
+
+                    "message":
+                        "Usuário não encontrado."
+
+                }), 404
+
+            senha_correta = False
+
+            # =================================================
+            # VERIFICAR HASH NORMAL
+            # =================================================
+
+            try:
+
+                senha_correta = check_password_hash(
+                    usuario["password"],
+                    current_password
+                )
+
+            except Exception:
+
+                senha_correta = False
+
+            # =================================================
+            # COMPATIBILIDADE COM SENHAS ANTIGAS
+            # =================================================
+
+            if not senha_correta:
+
+                senha_antiga = usuario["password"]
+
+                if (
+                    senha_antiga ==
+                    current_password
+                ):
+
+                    senha_correta = True
+
+            # =================================================
+            # SENHA INCORRETA
+            # =================================================
+
+            if not senha_correta:
+
+                return jsonify({
+
+                    "success":
+                        False,
+
+                    "message":
+                        "A senha atual está incorreta."
+
+                }), 401
+
+            # =================================================
+            # GERAR NOVA HASH
+            # =================================================
+
+            nova_hash = generate_password_hash(
+                new_password
+            )
+
+            cursor.execute("""
+                UPDATE users
+                SET password = %s
+                WHERE id = %s
+            """, (
+                nova_hash,
+                usuario["id"]
+            ))
+
+            conn.commit()
+
+        print(
+            "SENHA ALTERADA COM SUCESSO:",
+            username
+        )
+
+        return jsonify({
+
+            "success":
+                True,
+
+            "message":
+                "Senha alterada com sucesso."
+
+        })
+
+    except Exception as e:
+
+        print(
+            "=================================================="
+        )
+
+        print(
+            "ERRO AO ALTERAR SENHA:"
+        )
+
+        print(
+            repr(e)
+        )
+
+        print(
+            "=================================================="
+        )
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Erro interno ao alterar a senha."
+
+        }), 500
+
+
+# ============================================================
 # LOGIN ADMIN
 # ============================================================
 
@@ -740,41 +1061,61 @@ def admin_login():
     if not username or not password:
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Preencha usuário e senha."
+
         }), 400
 
     if not ADMIN_USERNAME:
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "ADMIN_USERNAME não está configurado."
+
         }), 500
 
     if not ADMIN_PASSWORD:
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "ADMIN_PASSWORD não está configurado no servidor."
+
         }), 500
 
     if username != ADMIN_USERNAME:
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Usuário ou senha administrativos incorretos."
+
         }), 401
 
     if password != ADMIN_PASSWORD:
 
         return jsonify({
-            "success": False,
+
+            "success":
+                False,
+
             "message":
                 "Usuário ou senha administrativos incorretos."
+
         }), 401
 
     session.clear()
@@ -784,9 +1125,13 @@ def admin_login():
     session["plan"] = "premium"
 
     return jsonify({
-        "success": True,
+
+        "success":
+            True,
+
         "message":
             "Login administrativo realizado com sucesso."
+
     })
 
 
@@ -916,6 +1261,7 @@ def admin_users():
 
                 "plan":
                     usuario["plan"] or "free"
+
             }
 
             for usuario in usuarios
@@ -3185,8 +3531,7 @@ def executar_exclusao_varias_conversas(
 
         return jsonify({
 
-            "success":
-                False,
+            "success": False,
 
             "message":
                 "Erro ao excluir as conversas.",
@@ -3463,3 +3808,4 @@ if __name__ == "__main__":
         port=port,
         debug=False
     )
+
