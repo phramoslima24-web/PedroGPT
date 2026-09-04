@@ -1,4 +1,3 @@
-
 // ============================================================
 // ORION AI - SCRIPT.JS
 // ============================================================
@@ -712,7 +711,7 @@ async function novaConversa() {
 
 
         alert(
-            "❌ Não foi possível criar uma nova conversa.\n\n" +
+            "❌ Não foi possível criar a nova conversa.\n\n" +
             erro.message
         );
 
@@ -737,7 +736,7 @@ async function novaConversa() {
 
 
 // ============================================================
-// ENVIAR MENSAGEM
+// ENVIAR MENSAGEM COM STREAMING
 // ============================================================
 
 async function enviar() {
@@ -882,7 +881,7 @@ async function enviar() {
                     headers: {
 
                         "Accept":
-                            "application/json",
+                            "text/plain",
 
                         "Content-Type":
                             "application/json"
@@ -908,25 +907,71 @@ async function enviar() {
         }
 
 
-        const textoResposta =
-            await resposta.text();
+        // ====================================================
+        // VERIFICAÇÃO DO SERVIDOR
+        // ====================================================
+
+        if (!resposta.ok) {
+
+            if (typing) {
+
+                typing.remove();
+            }
 
 
-        let dados;
+            let mensagemErro =
+                "❌ Não foi possível obter uma resposta da IA.";
 
 
-        try {
+            try {
 
-            dados =
-                JSON.parse(
-                    textoResposta
+                const erroTexto =
+                    await resposta.text();
+
+
+                if (erroTexto) {
+
+                    try {
+
+                        const erroJSON =
+                            JSON.parse(
+                                erroTexto
+                            );
+
+
+                        mensagemErro =
+                            erroJSON.reply ||
+                            erroJSON.message ||
+                            erroJSON.error ||
+                            mensagemErro;
+
+                    } catch (erroJSON) {
+
+                        if (
+                            erroTexto.trim()
+                        ) {
+
+                            mensagemErro =
+                                erroTexto;
+                        }
+                    }
+                }
+
+            } catch (erroLeitura) {
+
+                console.error(
+                    "ERRO AO LER ERRO DO SERVIDOR:",
+                    erroLeitura
                 );
+            }
 
-        } catch (erro) {
 
-            throw new Error(
-                "O servidor retornou uma resposta inválida."
+            adicionarResposta(
+                mensagemErro
             );
+
+
+            return;
         }
 
 
@@ -936,55 +981,187 @@ async function enviar() {
         }
 
 
-        if (
-            !resposta.ok ||
-            dados.success === false
-        ) {
+        // ====================================================
+        // CRIA A BOLHA DA RESPOSTA
+        // ====================================================
 
-            adicionarResposta(
-                dados.reply ||
-                dados.message ||
-                "❌ Não foi possível obter uma resposta."
+        const div =
+            document.createElement(
+                "div"
             );
 
 
-            return;
-        }
+        div.className =
+            "msg-bot";
 
 
         if (
-            dados.conversation_id
+            orionObterConfiguracoes()
+                .animacoes === false
         ) {
 
-            window.conversationId =
-                dados.conversation_id;
+            div.style.animation =
+                "none";
         }
 
 
-        adicionarResposta(
-            dados.reply ||
-            "Não recebi uma resposta da IA."
+        const conteudo =
+            document.createElement(
+                "div"
+            );
+
+
+        conteudo.className =
+            "conteudo-mensagem";
+
+
+        div.appendChild(
+            conteudo
         );
 
 
-        if (dados.title) {
-
-            const titulo =
-                elemento(
-                    "tituloConversa"
-                );
+        orionChat.appendChild(
+            div
+        );
 
 
-            if (titulo) {
+        atualizarWelcome();
 
-                titulo.textContent =
-                    dados.title;
-            }
+
+        // ====================================================
+        // VERIFICA STREAM
+        // ====================================================
+
+        if (!resposta.body) {
+
+            throw new Error(
+                "O navegador não conseguiu abrir o streaming."
+            );
         }
 
 
+        const reader =
+            resposta.body.getReader();
+
+
+        const decoder =
+            new TextDecoder(
+                "utf-8"
+            );
+
+
+        let textoCompleto =
+            "";
+
+
+        // ====================================================
+        // RECEBER PEDAÇOS DA IA
+        // ====================================================
+
+        while (true) {
+
+            const resultado =
+                await reader.read();
+
+
+            if (
+                resultado.done
+            ) {
+
+                break;
+            }
+
+
+            const parte =
+                decoder.decode(
+                    resultado.value,
+                    {
+                        stream:
+                            true
+                    }
+                );
+
+
+            if (!parte) {
+
+                continue;
+            }
+
+
+            textoCompleto +=
+                parte;
+
+
+            conteudo.innerHTML =
+                formatarResposta(
+                    textoCompleto
+                );
+
+
+            orionChat.scrollTop =
+                orionChat.scrollHeight;
+        }
+
+
+        // ====================================================
+        // FINALIZA DECODER
+        // ====================================================
+
+        const restante =
+            decoder.decode();
+
+
+        if (restante) {
+
+            textoCompleto +=
+                restante;
+
+
+            conteudo.innerHTML =
+                formatarResposta(
+                    textoCompleto
+                );
+        }
+
+
+        // ====================================================
+        // RESPOSTA VAZIA
+        // ====================================================
+
+        if (
+            !textoCompleto.trim()
+        ) {
+
+            textoCompleto =
+                "Não recebi uma resposta da IA.";
+
+
+            conteudo.innerHTML =
+                formatarResposta(
+                    textoCompleto
+                );
+        }
+
+
+        // ====================================================
+        // FALAR SOMENTE DEPOIS DA RESPOSTA COMPLETA
+        // ====================================================
+
+        falarResposta(
+            textoCompleto
+        );
+
+
+        // ====================================================
+        // LIMPAR ARQUIVO
+        // ====================================================
+
         limparArquivo();
 
+
+        // ====================================================
+        // ATUALIZAR CONVERSAS
+        // ====================================================
 
         await carregarHistoricoConversas();
 
@@ -1025,7 +1202,12 @@ async function enviar() {
         }
 
 
-        orionMensagemInput.focus();
+        if (
+            orionMensagemInput
+        ) {
+
+            orionMensagemInput.focus();
+        }
     }
 }
 
@@ -3643,4 +3825,3 @@ window.orionSalvarConfiguracoes =
     orionSalvarConfiguracoes;
 
 })();
-
