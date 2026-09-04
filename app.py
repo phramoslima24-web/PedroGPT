@@ -1,6 +1,7 @@
 import os
 import secrets
 import re
+import time
 
 from datetime import datetime, timedelta
 
@@ -9,114 +10,123 @@ import psycopg2
 import psycopg2.extras
 
 from flask import (
-    Flask,
-    render_template,
-    request,
-    jsonify,
-    session,
-    redirect,
-    url_for,
-    Response,
-    stream_with_context
+Flask,
+render_template,
+request,
+jsonify,
+session,
+redirect,
+url_for,
+Response,
+stream_with_context
 )
 
 from werkzeug.security import (
-    generate_password_hash,
-    check_password_hash
+generate_password_hash,
+check_password_hash
 )
 
 from groq import Groq
 
 from authlib.integrations.flask_client import OAuth
 
-
 # ============================================================
+
 # ORION AI - APP.PY
-# ============================================================
-
-app = Flask(__name__)
-
 
 # ============================================================
+
+app = Flask(**name**)
+
+# ============================================================
+
 # CONFIGURAÇÕES
+
 # ============================================================
 
 app.secret_key = os.getenv(
-    "FLASK_SECRET_KEY",
-    "orion_ai_secret_key"
+"FLASK_SECRET_KEY",
+"orion_ai_secret_key"
 )
 
 GROQ_API_KEY = os.getenv(
-    "GROQ_API_KEY"
+"GROQ_API_KEY"
 )
 
 DATABASE_URL = os.getenv(
-    "DATABASE_URL"
+"DATABASE_URL"
 )
 
-
 # ============================================================
+
 # ADMIN
+
 # ============================================================
 
 ADMIN_USERNAME = os.getenv(
-    "ADMIN_USERNAME",
-    "admin"
+"ADMIN_USERNAME",
+"admin"
 ).strip()
 
 ADMIN_PASSWORD = os.getenv(
-    "ADMIN_PASSWORD",
-    ""
+"ADMIN_PASSWORD",
+""
 )
 
-
 # ============================================================
+
 # GOOGLE
+
 # ============================================================
 
 GOOGLE_CLIENT_ID = os.getenv(
-    "GOOGLE_CLIENT_ID",
-    ""
+"GOOGLE_CLIENT_ID",
+""
 ).strip()
 
 GOOGLE_CLIENT_SECRET = os.getenv(
-    "GOOGLE_CLIENT_SECRET",
-    ""
+"GOOGLE_CLIENT_SECRET",
+""
 ).strip()
 
-
 # ============================================================
+
 # RESEND / RECUPERAÇÃO DE CONTA
+
 # ============================================================
 
 RESEND_API_KEY = os.getenv(
-    "RESEND_API_KEY",
-    ""
+"RESEND_API_KEY",
+""
 ).strip()
 
 RESEND_FROM = os.getenv(
-    "RESEND_FROM",
-    ""
+"RESEND_FROM",
+""
 ).strip()
 
 RESET_TOKEN_EXPIRATION_MINUTES = 30
 
-
 # ============================================================
+
 # GROQ
+
 # ============================================================
 
 client = None
 
 if GROQ_API_KEY:
 
-    client = Groq(
-        api_key=GROQ_API_KEY
-    )
-
+```
+client = Groq(
+    api_key=GROQ_API_KEY
+)
+```
 
 # ============================================================
+
 # GOOGLE OAUTH
+
 # ============================================================
 
 oauth = OAuth(app)
@@ -124,277 +134,522 @@ oauth = OAuth(app)
 google = None
 
 if (
-    GOOGLE_CLIENT_ID
-    and GOOGLE_CLIENT_SECRET
+GOOGLE_CLIENT_ID
+and GOOGLE_CLIENT_SECRET
 ):
 
-    google = oauth.register(
+```
+google = oauth.register(
 
-        name="google",
+    name="google",
 
-        client_id=GOOGLE_CLIENT_ID,
+    client_id=GOOGLE_CLIENT_ID,
 
-        client_secret=GOOGLE_CLIENT_SECRET,
+    client_secret=GOOGLE_CLIENT_SECRET,
 
-        server_metadata_url=(
-            "https://accounts.google.com/"
-            ".well-known/openid-configuration"
-        ),
+    server_metadata_url=(
+        "https://accounts.google.com/"
+        ".well-known/openid-configuration"
+    ),
 
-        client_kwargs={
+    client_kwargs={
 
-            "scope":
-                "openid email profile"
+        "scope":
+            "openid email profile"
 
-        }
+    }
 
-    )
-
+)
+```
 
 # ============================================================
+
 # BANCO DE DADOS
+
 # ============================================================
 
 def get_db():
 
-    if not DATABASE_URL:
+```
+if not DATABASE_URL:
 
-        raise RuntimeError(
-            "DATABASE_URL não está configurada no servidor."
-        )
-
-    return psycopg2.connect(
-        DATABASE_URL,
-        connect_timeout=10
+    raise RuntimeError(
+        "DATABASE_URL não está configurada no servidor."
     )
 
+return psycopg2.connect(
+    DATABASE_URL,
+    connect_timeout=10
+)
+```
 
 # ============================================================
+
 # INICIALIZAR BANCO
+
 # ============================================================
 
 def init_db():
 
-    with get_db() as conn:
+```
+with get_db() as conn:
 
-        cursor = conn.cursor()
+    cursor = conn.cursor()
 
-        # ----------------------------------------------------
-        # USERS
-        # ----------------------------------------------------
+    # ----------------------------------------------------
+    # USERS
+    # ----------------------------------------------------
 
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL,
-                plan TEXT DEFAULT 'free'
-            )
-        """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            plan TEXT DEFAULT 'free'
+        )
+    """)
 
-        cursor.execute("""
-            ALTER TABLE users
-            ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'free'
-        """)
+    cursor.execute("""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'free'
+    """)
 
-        cursor.execute("""
-            ALTER TABLE users
-            ADD COLUMN IF NOT EXISTS google_id TEXT
-        """)
+    cursor.execute("""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS google_id TEXT
+    """)
 
-        cursor.execute("""
-            ALTER TABLE users
-            ADD COLUMN IF NOT EXISTS email TEXT
-        """)
+    cursor.execute("""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS email TEXT
+    """)
 
-        cursor.execute("""
-            CREATE UNIQUE INDEX IF NOT EXISTS
-            users_google_id_unique
-            ON users (google_id)
-            WHERE google_id IS NOT NULL
-        """)
+    cursor.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS
+        users_google_id_unique
+        ON users (google_id)
+        WHERE google_id IS NOT NULL
+    """)
 
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS
-            users_email_index
-            ON users (LOWER(email))
-        """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS
+        users_email_index
+        ON users (LOWER(email))
+    """)
 
-        # ----------------------------------------------------
-        # MESSAGES
-        # ----------------------------------------------------
+    # ----------------------------------------------------
+    # MESSAGES
+    # ----------------------------------------------------
 
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS messages (
-                id SERIAL PRIMARY KEY,
-                username TEXT,
-                sender TEXT,
-                message TEXT
-            )
-        """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS messages (
+            id SERIAL PRIMARY KEY,
+            username TEXT,
+            sender TEXT,
+            message TEXT
+        )
+    """)
 
-        # ----------------------------------------------------
-        # CONVERSATIONS
-        # ----------------------------------------------------
+    # ----------------------------------------------------
+    # CONVERSATIONS
+    # ----------------------------------------------------
 
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS conversations (
-                id SERIAL PRIMARY KEY,
-                username TEXT NOT NULL,
-                title TEXT DEFAULT 'Nova conversa',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS conversations (
+            id SERIAL PRIMARY KEY,
+            username TEXT NOT NULL,
+            title TEXT DEFAULT 'Nova conversa',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
 
-        # ----------------------------------------------------
-        # CHAT MESSAGES
-        # ----------------------------------------------------
+    # ----------------------------------------------------
+    # CHAT MESSAGES
+    # ----------------------------------------------------
 
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS chat_messages (
-                id SERIAL PRIMARY KEY,
-                conversation_id INTEGER NOT NULL,
-                sender TEXT NOT NULL,
-                message TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id SERIAL PRIMARY KEY,
+            conversation_id INTEGER NOT NULL,
+            sender TEXT NOT NULL,
+            message TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-                FOREIGN KEY (conversation_id)
-                REFERENCES conversations(id)
-                ON DELETE CASCADE
-            )
-        """)
+            FOREIGN KEY (conversation_id)
+            REFERENCES conversations(id)
+            ON DELETE CASCADE
+        )
+    """)
 
-        # ----------------------------------------------------
-        # TOKENS DE RECUPERAÇÃO
-        # ----------------------------------------------------
+    # ----------------------------------------------------
+    # TOKENS DE RECUPERAÇÃO
+    # ----------------------------------------------------
 
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS password_reset_tokens (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                token_hash TEXT UNIQUE NOT NULL,
-                expires_at TIMESTAMP NOT NULL,
-                used BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            token_hash TEXT UNIQUE NOT NULL,
+            expires_at TIMESTAMP NOT NULL,
+            used BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-                FOREIGN KEY (user_id)
-                REFERENCES users(id)
-                ON DELETE CASCADE
-            )
-        """)
+            FOREIGN KEY (user_id)
+            REFERENCES users(id)
+            ON DELETE CASCADE
+        )
+    """)
 
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS
-            password_reset_user_index
-            ON password_reset_tokens (user_id)
-        """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS
+        password_reset_user_index
+        ON password_reset_tokens (user_id)
+    """)
 
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS
-            password_reset_expiration_index
-            ON password_reset_tokens (expires_at)
-        """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS
+        password_reset_expiration_index
+        ON password_reset_tokens (expires_at)
+    """)
 
-        conn.commit()
-
+    conn.commit()
+```
 
 try:
 
-    init_db()
+```
+init_db()
 
-    print(
-        "BANCO DE DADOS INICIALIZADO COM SUCESSO."
-    )
+print(
+    "BANCO DE DADOS INICIALIZADO COM SUCESSO."
+)
+```
 
 except Exception as e:
 
-    print(
-        "ERRO AO INICIALIZAR BANCO:",
-        repr(e)
-    )
-
+```
+print(
+    "ERRO AO INICIALIZAR BANCO:",
+    repr(e)
+)
+```
 
 # ============================================================
+
 # VERSION
+
 # ============================================================
 
 @app.route("/version")
 def version():
 
-    return jsonify({
+```
+return jsonify({
 
-        "success":
-            True,
+    "success":
+        True,
 
-        "version":
-            "1.4",
+    "version":
+        "1.4",
 
-        "apk_url":
-            "https://drive.google.com/file/d/1mdpeCrIJNcU2DlHLabjgh17zvM2ha703/view?usp=drive_link"
+    "apk_url":
+        "https://drive.google.com/file/d/1mdpeCrIJNcU2DlHLabjgh17zvM2ha703/view?usp=drive_link"
 
-    })
-
+})
+```
 
 # ============================================================
+
 # FUNÇÕES AUXILIARES
+
 # ============================================================
 
 def criar_conversa(
-    username,
-    titulo="Nova conversa"
+username,
+titulo="Nova conversa"
 ):
 
-    with get_db() as conn:
+```
+with get_db() as conn:
 
-        cursor = conn.cursor()
+    cursor = conn.cursor()
 
-        cursor.execute("""
-            INSERT INTO conversations
-            (username, title)
-            VALUES (%s, %s)
-            RETURNING id
-        """, (
-            username,
-            titulo
-        ))
+    cursor.execute("""
+        INSERT INTO conversations
+        (username, title)
+        VALUES (%s, %s)
+        RETURNING id
+    """, (
+        username,
+        titulo
+    ))
 
-        resultado = cursor.fetchone()
+    resultado = cursor.fetchone()
 
-        if not resultado:
+    if not resultado:
 
-            raise RuntimeError(
-                "Não foi possível criar a conversa."
-            )
+        raise RuntimeError(
+            "Não foi possível criar a conversa."
+        )
 
-        conversation_id = resultado[0]
+    conversation_id = resultado[0]
 
-        conn.commit()
+    conn.commit()
 
-        return conversation_id
-
+    return conversation_id
+```
 
 def verificar_conversa(
-    username,
-    conversation_id
+username,
+conversation_id
 ):
 
-    if not conversation_id:
+```
+if not conversation_id:
 
-        return False
+    return False
+
+try:
+
+    conversation_id = int(
+        conversation_id
+    )
+
+except (
+    ValueError,
+    TypeError
+):
+
+    return False
+
+with get_db() as conn:
+
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id
+        FROM conversations
+        WHERE id = %s
+        AND username = %s
+    """, (
+        conversation_id,
+        username
+    ))
+
+    return (
+        cursor.fetchone()
+        is not None
+    )
+```
+
+def conversa_atual():
+
+```
+if "user" not in session:
+
+    return None
+
+username = session["user"]
+
+conversation_id = session.get(
+    "conversation_id"
+)
+
+if conversation_id:
 
     try:
 
-        conversation_id = int(
+        if verificar_conversa(
+            username,
             conversation_id
+        ):
+
+            return int(
+                conversation_id
+            )
+
+    except Exception as e:
+
+        print(
+            "ERRO AO VERIFICAR CONVERSA:",
+            repr(e)
         )
 
-    except (
-        ValueError,
-        TypeError
-    ):
+conversation_id = criar_conversa(
+    username,
+    "Nova conversa"
+)
 
-        return False
+session["conversation_id"] = (
+    conversation_id
+)
+
+session.modified = True
+
+return conversation_id
+```
+
+def gerar_titulo(mensagem):
+
+```
+titulo = (
+    str(mensagem or "")
+    .replace("\n", " ")
+    .strip()
+)
+
+if not titulo:
+
+    return "Nova conversa"
+
+if len(titulo) > 45:
+
+    titulo = (
+        titulo[:45]
+        .rstrip()
+        + "..."
+    )
+
+return titulo
+```
+
+def atualizar_titulo_se_necessario(
+conversation_id,
+mensagem
+):
+
+```
+with get_db() as conn:
+
+    cursor = conn.cursor(
+        cursor_factory=
+        psycopg2.extras.RealDictCursor
+    )
+
+    cursor.execute("""
+        SELECT title
+        FROM conversations
+        WHERE id = %s
+    """, (
+        conversation_id,
+    ))
+
+    conversa = cursor.fetchone()
+
+    if not conversa:
+
+        return
+
+    titulo_atual = (
+        conversa["title"] or ""
+    ).strip()
+
+    if titulo_atual != "Nova conversa":
+
+        return
+
+    novo_titulo = gerar_titulo(
+        mensagem
+    )
+
+    cursor.execute("""
+        UPDATE conversations
+        SET title = %s,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = %s
+    """, (
+        novo_titulo,
+        conversation_id
+    ))
+
+    conn.commit()
+```
+
+def obter_plan_usuario(username):
+
+```
+with get_db() as conn:
+
+    cursor = conn.cursor(
+        cursor_factory=
+        psycopg2.extras.RealDictCursor
+    )
+
+    cursor.execute("""
+        SELECT plan
+        FROM users
+        WHERE username = %s
+    """, (
+        username,
+    ))
+
+    usuario = cursor.fetchone()
+
+    if not usuario:
+
+        return "free"
+
+    return (
+        usuario["plan"]
+        or "free"
+    ).lower()
+```
+
+# ============================================================
+
+# GOOGLE - GERAR USERNAME
+
+# ============================================================
+
+def gerar_username_google(
+nome,
+email
+):
+
+```
+nome_base = (
+    str(nome or "")
+    .strip()
+    .lower()
+)
+
+if not nome_base:
+
+    nome_base = (
+        str(email or "")
+        .split("@")[0]
+        .strip()
+        .lower()
+    )
+
+nome_base = re.sub(
+    r"[^a-z0-9_]+",
+    "_",
+    nome_base
+)
+
+nome_base = (
+    nome_base
+    .strip("_")
+)
+
+if len(nome_base) < 3:
+
+    nome_base = "google_user"
+
+if len(nome_base) > 24:
+
+    nome_base = (
+        nome_base[:24]
+        .rstrip("_")
+    )
+
+candidato = nome_base
+
+numero = 1
+
+while True:
 
     with get_db() as conn:
 
@@ -402,288 +657,115 @@ def verificar_conversa(
 
         cursor.execute("""
             SELECT id
-            FROM conversations
-            WHERE id = %s
-            AND username = %s
+            FROM users
+            WHERE username = %s
         """, (
-            conversation_id,
-            username
+            candidato,
         ))
 
-        return (
+        existe = (
             cursor.fetchone()
             is not None
         )
 
+    if not existe:
 
-def conversa_atual():
+        return candidato
 
-    if "user" not in session:
-
-        return None
-
-    username = session["user"]
-
-    conversation_id = session.get(
-        "conversation_id"
+    candidato = (
+        f"{nome_base}_{numero}"
     )
 
-    if conversation_id:
+    numero += 1
 
-        try:
-
-            if verificar_conversa(
-                username,
-                conversation_id
-            ):
-
-                return int(
-                    conversation_id
-                )
-
-        except Exception as e:
-
-            print(
-                "ERRO AO VERIFICAR CONVERSA:",
-                repr(e)
-            )
-
-    conversation_id = criar_conversa(
-        username,
-        "Nova conversa"
-    )
-
-    session["conversation_id"] = (
-        conversation_id
-    )
-
-    session.modified = True
-
-    return conversation_id
-
-
-def gerar_titulo(mensagem):
-
-    titulo = (
-        str(mensagem or "")
-        .replace("\n", " ")
-        .strip()
-    )
-
-    if not titulo:
-
-        return "Nova conversa"
-
-    if len(titulo) > 45:
-
-        titulo = (
-            titulo[:45]
-            .rstrip()
-            + "..."
-        )
-
-    return titulo
-
-
-def atualizar_titulo_se_necessario(
-    conversation_id,
-    mensagem
-):
-
-    with get_db() as conn:
-
-        cursor = conn.cursor(
-            cursor_factory=
-            psycopg2.extras.RealDictCursor
-        )
-
-        cursor.execute("""
-            SELECT title
-            FROM conversations
-            WHERE id = %s
-        """, (
-            conversation_id,
-        ))
-
-        conversa = cursor.fetchone()
-
-        if not conversa:
-
-            return
-
-        titulo_atual = (
-            conversa["title"] or ""
-        ).strip()
-
-        if titulo_atual != "Nova conversa":
-
-            return
-
-        novo_titulo = gerar_titulo(
-            mensagem
-        )
-
-        cursor.execute("""
-            UPDATE conversations
-            SET title = %s,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = %s
-        """, (
-            novo_titulo,
-            conversation_id
-        ))
-
-        conn.commit()
-
-
-def obter_plan_usuario(username):
-
-    with get_db() as conn:
-
-        cursor = conn.cursor(
-            cursor_factory=
-            psycopg2.extras.RealDictCursor
-        )
-
-        cursor.execute("""
-            SELECT plan
-            FROM users
-            WHERE username = %s
-        """, (
-            username,
-        ))
-
-        usuario = cursor.fetchone()
-
-        if not usuario:
-
-            return "free"
-
-        return (
-            usuario["plan"]
-            or "free"
-        ).lower()
-
-
-# ============================================================
-# GOOGLE - GERAR USERNAME
-# ============================================================
-
-def gerar_username_google(
-    nome,
-    email
-):
-
-    nome_base = (
-        str(nome or "")
-        .strip()
-        .lower()
-    )
-
-    if not nome_base:
-
-        nome_base = (
-            str(email or "")
-            .split("@")[0]
-            .strip()
-            .lower()
-        )
-
-    nome_base = re.sub(
-        r"[^a-z0-9_]+",
-        "_",
-        nome_base
-    )
-
-    nome_base = (
-        nome_base
-        .strip("_")
-    )
-
-    if len(nome_base) < 3:
-
-        nome_base = "google_user"
-
-    if len(nome_base) > 24:
-
-        nome_base = (
-            nome_base[:24]
-            .rstrip("_")
-        )
-
-    candidato = nome_base
-
-    numero = 1
-
-    while True:
-
-        with get_db() as conn:
-
-            cursor = conn.cursor()
-
-            cursor.execute("""
-                SELECT id
-                FROM users
-                WHERE username = %s
-            """, (
-                candidato,
-            ))
-
-            existe = (
-                cursor.fetchone()
-                is not None
-            )
-
-        if not existe:
-
-            return candidato
+    if numero > 9999:
 
         candidato = (
-            f"{nome_base}_{numero}"
+            f"{nome_base}_{secrets.token_hex(3)}"
         )
-
-        numero += 1
-
-        if numero > 9999:
-
-            candidato = (
-                f"{nome_base}_{secrets.token_hex(3)}"
-            )
-
+```
 
 # ============================================================
+
 # GOOGLE - LOGIN
+
 # ============================================================
 
 def login_com_google(
-    google_id,
-    nome,
-    email
+google_id,
+nome,
+email
 ):
 
-    if not google_id:
+```
+if not google_id:
 
-        raise RuntimeError(
-            "O Google não retornou um identificador válido."
-        )
-
-    email = (
-        str(email or "")
-        .strip()
-        .lower()
+    raise RuntimeError(
+        "O Google não retornou um identificador válido."
     )
 
-    nome = (
-        str(nome or "")
-        .strip()
+email = (
+    str(email or "")
+    .strip()
+    .lower()
+)
+
+nome = (
+    str(nome or "")
+    .strip()
+)
+
+with get_db() as conn:
+
+    cursor = conn.cursor(
+        cursor_factory=
+        psycopg2.extras.RealDictCursor
     )
 
-    with get_db() as conn:
+    cursor.execute("""
+        SELECT
+            id,
+            username,
+            plan
+        FROM users
+        WHERE google_id = %s
+    """, (
+        google_id,
+    ))
 
-        cursor = conn.cursor(
-            cursor_factory=
-            psycopg2.extras.RealDictCursor
+    usuario = cursor.fetchone()
+
+    if usuario:
+
+        session.clear()
+
+        session["user"] = (
+            usuario["username"]
         )
+
+        session["admin"] = False
+
+        session["plan"] = (
+            usuario["plan"]
+            or "free"
+        )
+
+        conversation_id = criar_conversa(
+            usuario["username"],
+            "Nova conversa"
+        )
+
+        session["conversation_id"] = (
+            conversation_id
+        )
+
+        session.modified = True
+
+        return usuario["username"]
+
+    usuario = None
+
+    if email:
 
         cursor.execute("""
             SELECT
@@ -691,190 +773,150 @@ def login_com_google(
                 username,
                 plan
             FROM users
-            WHERE google_id = %s
+            WHERE LOWER(email) = %s
         """, (
-            google_id,
+            email,
         ))
 
         usuario = cursor.fetchone()
 
-        if usuario:
-
-            session.clear()
-
-            session["user"] = (
-                usuario["username"]
-            )
-
-            session["admin"] = False
-
-            session["plan"] = (
-                usuario["plan"]
-                or "free"
-            )
-
-            conversation_id = criar_conversa(
-                usuario["username"],
-                "Nova conversa"
-            )
-
-            session["conversation_id"] = (
-                conversation_id
-            )
-
-            session.modified = True
-
-            return usuario["username"]
-
-        usuario = None
-
-        if email:
-
-            cursor.execute("""
-                SELECT
-                    id,
-                    username,
-                    plan
-                FROM users
-                WHERE LOWER(email) = %s
-            """, (
-                email,
-            ))
-
-            usuario = cursor.fetchone()
-
-        if usuario:
-
-            cursor.execute("""
-                UPDATE users
-                SET google_id = %s,
-                    email = %s
-                WHERE id = %s
-            """, (
-                google_id,
-                email or None,
-                usuario["id"]
-            ))
-
-            conn.commit()
-
-            session.clear()
-
-            session["user"] = (
-                usuario["username"]
-            )
-
-            session["admin"] = False
-
-            session["plan"] = (
-                usuario["plan"]
-                or "free"
-            )
-
-            conversation_id = criar_conversa(
-                usuario["username"],
-                "Nova conversa"
-            )
-
-            session["conversation_id"] = (
-                conversation_id
-            )
-
-            session.modified = True
-
-            return usuario["username"]
-
-        username = gerar_username_google(
-            nome,
-            email
-        )
-
-        senha_temporaria = secrets.token_urlsafe(
-            32
-        )
-
-        password_hash = generate_password_hash(
-            senha_temporaria
-        )
+    if usuario:
 
         cursor.execute("""
-            INSERT INTO users
-            (
-                username,
-                password,
-                plan,
-                google_id,
-                email
-            )
-            VALUES
-            (%s, %s, %s, %s, %s)
-            RETURNING id
+            UPDATE users
+            SET google_id = %s,
+                email = %s
+            WHERE id = %s
         """, (
-            username,
-            password_hash,
-            "free",
             google_id,
-            email or None
+            email or None,
+            usuario["id"]
         ))
-
-        resultado = cursor.fetchone()
-
-        if not resultado:
-
-            raise RuntimeError(
-                "Não foi possível criar a conta Google."
-            )
 
         conn.commit()
 
-    session.clear()
+        session.clear()
 
-    session["user"] = username
+        session["user"] = (
+            usuario["username"]
+        )
 
-    session["admin"] = False
+        session["admin"] = False
 
-    session["plan"] = "free"
+        session["plan"] = (
+            usuario["plan"]
+            or "free"
+        )
 
-    conversation_id = criar_conversa(
+        conversation_id = criar_conversa(
+            usuario["username"],
+            "Nova conversa"
+        )
+
+        session["conversation_id"] = (
+            conversation_id
+        )
+
+        session.modified = True
+
+        return usuario["username"]
+
+    username = gerar_username_google(
+        nome,
+        email
+    )
+
+    senha_temporaria = secrets.token_urlsafe(
+        32
+    )
+
+    password_hash = generate_password_hash(
+        senha_temporaria
+    )
+
+    cursor.execute("""
+        INSERT INTO users
+        (
+            username,
+            password,
+            plan,
+            google_id,
+            email
+        )
+        VALUES
+        (%s, %s, %s, %s, %s)
+        RETURNING id
+    """, (
         username,
-        "Nova conversa"
-    )
+        password_hash,
+        "free",
+        google_id,
+        email or None
+    ))
 
-    session["conversation_id"] = (
-        conversation_id
-    )
+    resultado = cursor.fetchone()
 
-    session.modified = True
+    if not resultado:
 
-    return username
+        raise RuntimeError(
+            "Não foi possível criar a conta Google."
+        )
 
+    conn.commit()
+
+session.clear()
+
+session["user"] = username
+
+session["admin"] = False
+
+session["plan"] = "free"
+
+conversation_id = criar_conversa(
+    username,
+    "Nova conversa"
+)
+
+session["conversation_id"] = (
+    conversation_id
+)
+
+session.modified = True
+
+return username
+```
 
 # ============================================================
+
 # RECUPERAÇÃO DE CONTA - RESEND
+
 # ============================================================
 
 def enviar_email_recuperacao(
-    email,
-    link
+email,
+link
 ):
 
-    if not RESEND_API_KEY:
+```
+if not RESEND_API_KEY:
 
-        raise RuntimeError(
-            "RESEND_API_KEY não está configurada no Render."
-        )
-
-    if not RESEND_FROM:
-
-        raise RuntimeError(
-            "RESEND_FROM não está configurada no Render."
-        )
-
-    assunto = (
-        "Recuperação da sua conta - Orion AI"
+    raise RuntimeError(
+        "RESEND_API_KEY não está configurada no Render."
     )
 
-    html = f"""
+if not RESEND_FROM:
+
+    raise RuntimeError(
+        "RESEND_FROM não está configurada no Render."
+    )
+
+assunto = (
+    "Recuperação da sua conta - Orion AI"
+)
+
+html = f"""
+```
+
 <!DOCTYPE html>
 
 <html lang="pt-BR">
@@ -903,88 +945,90 @@ def enviar_email_recuperacao(
     border:1px solid #e5e7eb;
 ">
 
-    <h1 style="
-        color:#111827;
-        margin-top:0;
-    ">
-        🤖 Orion AI
-    </h1>
+```
+<h1 style="
+    color:#111827;
+    margin-top:0;
+">
+    🤖 Orion AI
+</h1>
 
-    <h2 style="
-        color:#111827;
-    ">
-        Recuperação de conta
-    </h2>
+<h2 style="
+    color:#111827;
+">
+    Recuperação de conta
+</h2>
 
-    <p style="
-        color:#374151;
-        font-size:16px;
-        line-height:1.6;
-    ">
-        Recebemos uma solicitação para redefinir
-        a senha da sua conta no Orion AI.
-    </p>
+<p style="
+    color:#374151;
+    font-size:16px;
+    line-height:1.6;
+">
+    Recebemos uma solicitação para redefinir
+    a senha da sua conta no Orion AI.
+</p>
 
-    <p style="
-        color:#374151;
-        font-size:16px;
-        line-height:1.6;
-    ">
-        Clique no botão abaixo para criar uma nova senha:
-    </p>
+<p style="
+    color:#374151;
+    font-size:16px;
+    line-height:1.6;
+">
+    Clique no botão abaixo para criar uma nova senha:
+</p>
 
-    <div style="
-        text-align:center;
-        margin:30px 0;
-    ">
+<div style="
+    text-align:center;
+    margin:30px 0;
+">
 
-        <a
-            href="{link}"
-            style="
-                display:inline-block;
-                padding:14px 22px;
-                border-radius:10px;
-                background:#7c3aed;
-                color:#ffffff;
-                text-decoration:none;
-                font-weight:bold;
-            "
-        >
-            Redefinir senha
-        </a>
+    <a
+        href="{link}"
+        style="
+            display:inline-block;
+            padding:14px 22px;
+            border-radius:10px;
+            background:#7c3aed;
+            color:#ffffff;
+            text-decoration:none;
+            font-weight:bold;
+        "
+    >
+        Redefinir senha
+    </a>
 
-    </div>
+</div>
 
-    <p style="
-        color:#6b7280;
-        font-size:14px;
-        line-height:1.5;
-    ">
-        Este link ficará disponível por
-        {RESET_TOKEN_EXPIRATION_MINUTES} minutos.
-    </p>
+<p style="
+    color:#6b7280;
+    font-size:14px;
+    line-height:1.5;
+">
+    Este link ficará disponível por
+    {RESET_TOKEN_EXPIRATION_MINUTES} minutos.
+</p>
 
-    <p style="
-        color:#6b7280;
-        font-size:14px;
-        line-height:1.5;
-    ">
-        Se você não solicitou a recuperação,
-        ignore este e-mail.
-    </p>
+<p style="
+    color:#6b7280;
+    font-size:14px;
+    line-height:1.5;
+">
+    Se você não solicitou a recuperação,
+    ignore este e-mail.
+</p>
 
-    <hr style="
-        border:none;
-        border-top:1px solid #e5e7eb;
-        margin:25px 0;
-    ">
+<hr style="
+    border:none;
+    border-top:1px solid #e5e7eb;
+    margin:25px 0;
+">
 
-    <p style="
-        color:#9ca3af;
-        font-size:12px;
-    ">
-        Orion AI
-    </p>
+<p style="
+    color:#9ca3af;
+    font-size:12px;
+">
+    Orion AI
+</p>
+```
 
 </div>
 
@@ -993,774 +1037,2019 @@ def enviar_email_recuperacao(
 </html>
 """
 
-    payload = {
+```
+payload = {
 
-        "from":
-            RESEND_FROM,
+    "from":
+        RESEND_FROM,
 
-        "to": [
-            email
-        ],
+    "to": [
+        email
+    ],
 
-        "subject":
-            assunto,
+    "subject":
+        assunto,
 
-        "html":
-            html
+    "html":
+        html
 
-    }
+}
 
-    try:
+try:
 
-        resposta = requests.post(
+    resposta = requests.post(
 
-            "https://api.resend.com/emails",
+        "https://api.resend.com/emails",
 
-            headers={
+        headers={
 
-                "Authorization":
-                    f"Bearer {RESEND_API_KEY}",
+            "Authorization":
+                f"Bearer {RESEND_API_KEY}",
 
-                "Content-Type":
-                    "application/json",
+            "Content-Type":
+                "application/json",
 
-                "Accept":
-                    "application/json"
+            "Accept":
+                "application/json"
 
-            },
+        },
 
-            json=payload,
+        json=payload,
 
-            timeout=20
+        timeout=20
 
-        )
+    )
 
-    except requests.exceptions.Timeout:
+except requests.exceptions.Timeout:
 
-        raise RuntimeError(
-            "O Resend demorou demais para responder."
-        )
+    raise RuntimeError(
+        "O Resend demorou demais para responder."
+    )
 
-    except requests.exceptions.RequestException as e:
+except requests.exceptions.RequestException as e:
 
-        print(
-            "ERRO DE CONEXÃO COM RESEND:",
-            repr(e)
-        )
+    print(
+        "ERRO DE CONEXÃO COM RESEND:",
+        repr(e)
+    )
 
-        raise RuntimeError(
-            "Não foi possível conectar ao serviço de e-mail."
-        )
+    raise RuntimeError(
+        "Não foi possível conectar ao serviço de e-mail."
+    )
 
-    if not resposta.ok:
-
-        try:
-
-            erro = resposta.json()
-
-        except Exception:
-
-            erro = {}
-
-        print(
-            "=================================================="
-        )
-
-        print(
-            "ERRO RESEND:"
-        )
-
-        print(
-            "STATUS:",
-            resposta.status_code
-        )
-
-        print(
-            "RESPOSTA:",
-            erro
-        )
-
-        print(
-            "=================================================="
-        )
-
-        mensagem_erro = (
-            erro.get("message")
-            or erro.get("error")
-            or "O Resend recusou o envio do e-mail."
-        )
-
-        raise RuntimeError(
-            mensagem_erro
-        )
+if not resposta.ok:
 
     try:
 
-        resultado = resposta.json()
+        erro = resposta.json()
 
     except Exception:
 
-        resultado = {}
+        erro = {}
 
     print(
         "=================================================="
     )
 
     print(
-        "E-MAIL DE RECUPERAÇÃO ENVIADO PELO RESEND"
+        "ERRO RESEND:"
     )
 
     print(
-        "DESTINATÁRIO:",
-        email
+        "STATUS:",
+        resposta.status_code
     )
 
     print(
-        "RESULTADO:",
-        resultado
+        "RESPOSTA:",
+        erro
     )
 
     print(
         "=================================================="
     )
 
-    return resultado
+    mensagem_erro = (
+        erro.get("message")
+        or erro.get("error")
+        or "O Resend recusou o envio do e-mail."
+    )
 
+    raise RuntimeError(
+        mensagem_erro
+    )
+
+try:
+
+    resultado = resposta.json()
+
+except Exception:
+
+    resultado = {}
+
+print(
+    "=================================================="
+)
+
+print(
+    "E-MAIL DE RECUPERAÇÃO ENVIADO PELO RESEND"
+)
+
+print(
+    "DESTINATÁRIO:",
+    email
+)
+
+print(
+    "RESULTADO:",
+    resultado
+)
+
+print(
+    "=================================================="
+)
+
+return resultado
+```
 
 # ============================================================
+
 # CRIAR TOKEN DE RECUPERAÇÃO
+
 # ============================================================
 
 def criar_token_recuperacao(
-    user_id
+user_id
 ):
 
-    token = secrets.token_urlsafe(
-        48
+```
+token = secrets.token_urlsafe(
+    48
+)
+
+token_hash = generate_password_hash(
+    token
+)
+
+expiracao = (
+    datetime.utcnow()
+    + timedelta(
+        minutes=RESET_TOKEN_EXPIRATION_MINUTES
+    )
+)
+
+with get_db() as conn:
+
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE password_reset_tokens
+        SET used = TRUE
+        WHERE user_id = %s
+        AND used = FALSE
+    """, (
+        user_id,
+    ))
+
+    cursor.execute("""
+        INSERT INTO password_reset_tokens
+        (
+            user_id,
+            token_hash,
+            expires_at,
+            used
+        )
+        VALUES
+        (%s, %s, %s, FALSE)
+    """, (
+        user_id,
+        token_hash,
+        expiracao
+    ))
+
+    conn.commit()
+
+return token
+```
+
+# ============================================================
+
+# VALIDAR TOKEN DE RECUPERAÇÃO
+
+# ============================================================
+
+def validar_token_recuperacao(
+token
+):
+
+```
+if not token:
+
+    return None
+
+agora = datetime.utcnow()
+
+try:
+
+    with get_db() as conn:
+
+        cursor = conn.cursor(
+            cursor_factory=
+            psycopg2.extras.RealDictCursor
+        )
+
+        cursor.execute("""
+            SELECT
+                id,
+                user_id,
+                token_hash,
+                expires_at,
+                used
+            FROM password_reset_tokens
+            WHERE used = FALSE
+            AND expires_at > %s
+            ORDER BY id DESC
+        """, (
+            agora,
+        ))
+
+        tokens = cursor.fetchall()
+
+        for item in tokens:
+
+            try:
+
+                valido = check_password_hash(
+                    item["token_hash"],
+                    token
+                )
+
+            except Exception:
+
+                valido = False
+
+            if valido:
+
+                return item
+
+except Exception as e:
+
+    print(
+        "ERRO AO VALIDAR TOKEN:",
+        repr(e)
     )
 
-    token_hash = generate_password_hash(
-        token
+return None
+```
+
+# ============================================================
+
+# VERIFICAR ADMIN
+
+# ============================================================
+
+def verificar_admin():
+
+```
+return (
+    session.get("admin") is True
+    and session.get("user") ==
+    ADMIN_USERNAME
+)
+```
+
+# ============================================================
+
+# GOOGLE LOGIN
+
+# ============================================================
+
+@app.route("/google/login")
+def google_login():
+
+```
+if "user" in session:
+
+    return redirect(
+        url_for("home")
     )
 
-    expiracao = (
-        datetime.utcnow()
-        + timedelta(
-            minutes=RESET_TOKEN_EXPIRATION_MINUTES
+if google is None:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Login com Google não está configurado no servidor."
+
+    }), 500
+
+redirect_uri = url_for(
+    "google_callback",
+    _external=True
+)
+
+return google.authorize_redirect(
+    redirect_uri
+)
+```
+
+# ============================================================
+
+# GOOGLE CALLBACK
+
+# ============================================================
+
+@app.route("/google/callback")
+def google_callback():
+
+```
+if google is None:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Login com Google não está configurado no servidor."
+
+    }), 500
+
+try:
+
+    token = google.authorize_access_token()
+
+    userinfo = token.get(
+        "userinfo"
+    )
+
+    if not userinfo:
+
+        userinfo = google.userinfo()
+
+    google_id = (
+        userinfo.get("sub")
+    )
+
+    nome = (
+        userinfo.get("name")
+        or userinfo.get("given_name")
+        or "Google User"
+    )
+
+    email = (
+        userinfo.get("email")
+        or ""
+    )
+
+    if not google_id:
+
+        raise RuntimeError(
+            "O Google não retornou o identificador da conta."
+        )
+
+    login_com_google(
+        google_id,
+        nome,
+        email
+    )
+
+    return redirect(
+        url_for("home")
+    )
+
+except Exception as e:
+
+    print(
+        "=================================================="
+    )
+
+    print(
+        "ERRO LOGIN GOOGLE:"
+    )
+
+    print(
+        repr(e)
+    )
+
+    print(
+        "=================================================="
+    )
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Não foi possível realizar o login com Google.",
+
+        "error":
+            str(e)
+
+    }), 500
+```
+
+# ============================================================
+
+# PÁGINAS
+
+# ============================================================
+
+@app.route("/")
+def home():
+
+```
+if "user" not in session:
+
+    return redirect(
+        url_for("login")
+    )
+
+try:
+
+    conversa_atual()
+
+    session["plan"] = (
+        obter_plan_usuario(
+            session["user"]
         )
     )
+
+except Exception as e:
+
+    print(
+        "ERRO AO CARREGAR HOME:",
+        repr(e)
+    )
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Erro ao carregar o banco de dados."
+
+    }), 500
+
+return render_template(
+    "index.html",
+    username=session["user"],
+    plan=session.get(
+        "plan",
+        "free"
+    )
+)
+```
+
+@app.route("/login")
+def login():
+
+```
+if "user" in session:
+
+    return redirect(
+        url_for("home")
+    )
+
+return render_template(
+    "login.html"
+)
+```
+
+@app.route("/register")
+def register():
+
+```
+if "user" in session:
+
+    return redirect(
+        url_for("home")
+    )
+
+return render_template(
+    "register.html"
+)
+```
+
+@app.route("/logout")
+def logout():
+
+```
+session.clear()
+
+return redirect(
+    url_for("login")
+)
+```
+
+# ============================================================
+
+# RECUPERAR CONTA - PÁGINA
+
+# ============================================================
+
+@app.route("/recuperar-conta")
+def recuperar_conta():
+
+```
+if "user" in session:
+
+    return redirect(
+        url_for("home")
+    )
+
+return render_template(
+    "recuperar.html"
+)
+```
+
+# ============================================================
+
+# REDEFINIR SENHA - PÁGINA
+
+# ============================================================
+
+@app.route("/reset-password")
+def reset_password_page():
+
+```
+if "user" in session:
+
+    return redirect(
+        url_for("home")
+    )
+
+token = request.args.get(
+    "token",
+    ""
+).strip()
+
+if not token:
+
+    return render_template(
+        "reset.html",
+        token_invalido=True,
+        token=""
+    )
+
+item = validar_token_recuperacao(
+    token
+)
+
+if not item:
+
+    return render_template(
+        "reset.html",
+        token_invalido=True,
+        token=""
+    )
+
+return render_template(
+    "reset.html",
+    token_invalido=False,
+    token=token
+)
+```
+
+# ============================================================
+
+# PERFIL
+
+# ============================================================
+
+@app.route("/perfil")
+def perfil():
+
+```
+if "user" not in session:
+
+    return redirect(
+        url_for("login")
+    )
+
+username = session["user"]
+
+try:
+
+    with get_db() as conn:
+
+        cursor = conn.cursor(
+            cursor_factory=
+            psycopg2.extras.RealDictCursor
+        )
+
+        cursor.execute("""
+            SELECT
+                id,
+                username,
+                plan,
+                email,
+                google_id
+            FROM users
+            WHERE username = %s
+        """, (
+            username,
+        ))
+
+        usuario = cursor.fetchone()
+
+        if not usuario:
+
+            session.clear()
+
+            return redirect(
+                url_for("login")
+            )
+
+        cursor.execute("""
+            SELECT COUNT(*) AS total
+            FROM conversations
+            WHERE username = %s
+        """, (
+            username,
+        ))
+
+        resultado_conversas = (
+            cursor.fetchone()
+        )
+
+        total_conversas = (
+            resultado_conversas["total"]
+            if resultado_conversas
+            else 0
+        )
+
+        cursor.execute("""
+            SELECT COUNT(*) AS total
+            FROM chat_messages cm
+            INNER JOIN conversations c
+            ON cm.conversation_id = c.id
+            WHERE c.username = %s
+        """, (
+            username,
+        ))
+
+        resultado_mensagens = (
+            cursor.fetchone()
+        )
+
+        total_mensagens = (
+            resultado_mensagens["total"]
+            if resultado_mensagens
+            else 0
+        )
+
+    return render_template(
+        "perfil.html",
+        username=usuario["username"],
+        plan=usuario["plan"] or "free",
+        total_conversas=total_conversas,
+        total_mensagens=total_mensagens,
+        email=usuario["email"] or "",
+        login_google=bool(
+            usuario["google_id"]
+        )
+    )
+
+except Exception as e:
+
+    print(
+        "ERRO AO CARREGAR PERFIL:",
+        repr(e)
+    )
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Erro ao carregar o perfil.",
+
+        "error":
+            str(e)
+
+    }), 500
+```
+
+# ============================================================
+
+# API DO PERFIL
+
+# ============================================================
+
+@app.route("/api/profile")
+def api_profile():
+
+```
+if "user" not in session:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Faça login primeiro."
+
+    }), 401
+
+username = session["user"]
+
+try:
+
+    with get_db() as conn:
+
+        cursor = conn.cursor(
+            cursor_factory=
+            psycopg2.extras.RealDictCursor
+        )
+
+        cursor.execute("""
+            SELECT
+                id,
+                username,
+                plan,
+                email,
+                google_id
+            FROM users
+            WHERE username = %s
+        """, (
+            username,
+        ))
+
+        usuario = cursor.fetchone()
+
+        if not usuario:
+
+            return jsonify({
+
+                "success":
+                    False,
+
+                "message":
+                    "Usuário não encontrado."
+
+            }), 404
+
+        cursor.execute("""
+            SELECT COUNT(*) AS total
+            FROM conversations
+            WHERE username = %s
+        """, (
+            username,
+        ))
+
+        resultado_conversas = (
+            cursor.fetchone()
+        )
+
+        total_conversas = (
+            resultado_conversas["total"]
+            if resultado_conversas
+            else 0
+        )
+
+        cursor.execute("""
+            SELECT COUNT(*) AS total
+            FROM chat_messages cm
+            INNER JOIN conversations c
+            ON cm.conversation_id = c.id
+            WHERE c.username = %s
+        """, (
+            username,
+        ))
+
+        resultado_mensagens = (
+            cursor.fetchone()
+        )
+
+        total_mensagens = (
+            resultado_mensagens["total"]
+            if resultado_mensagens
+            else 0
+        )
+
+    return jsonify({
+
+        "success":
+            True,
+
+        "id":
+            usuario["id"],
+
+        "username":
+            usuario["username"],
+
+        "plan":
+            usuario["plan"]
+            or "free",
+
+        "email":
+            usuario["email"]
+            or "",
+
+        "google":
+            bool(
+                usuario["google_id"]
+            ),
+
+        "total_conversas":
+            total_conversas,
+
+        "total_mensagens":
+            total_mensagens
+
+    })
+
+except Exception as e:
+
+    print(
+        "ERRO API PROFILE:",
+        repr(e)
+    )
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Erro ao carregar o perfil.",
+
+        "error":
+            str(e)
+
+    }), 500
+```
+
+# ============================================================
+
+# ALTERAR NOME DE USUÁRIO
+
+# ============================================================
+
+@app.route(
+"/api/change-username",
+methods=["POST"]
+)
+def change_username():
+
+```
+if "user" not in session:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Faça login primeiro."
+
+    }), 401
+
+if verificar_admin():
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "O administrador não pode alterar o nome de usuário."
+
+    }), 400
+
+data = request.get_json(
+    silent=True
+) or {}
+
+novo_username = str(
+    data.get("username")
+    or data.get("new_username")
+    or ""
+).strip()
+
+if not novo_username:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Digite um novo nome de usuário."
+
+    }), 400
+
+if len(novo_username) < 3:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "O usuário precisa ter pelo menos 3 caracteres."
+
+    }), 400
+
+if len(novo_username) > 30:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "O usuário pode ter no máximo 30 caracteres."
+
+    }), 400
+
+if not re.fullmatch(
+    r"[A-Za-z0-9_]+",
+    novo_username
+):
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Use apenas letras, números e _ no nome de usuário."
+
+    }), 400
+
+if (
+    novo_username.lower()
+    == ADMIN_USERNAME.lower()
+):
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Esse nome de usuário não está disponível."
+
+    }), 409
+
+username_atual = session["user"]
+
+if (
+    novo_username
+    == username_atual
+):
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Digite um nome de usuário diferente do atual."
+
+    }), 400
+
+try:
 
     with get_db() as conn:
 
         cursor = conn.cursor()
 
         cursor.execute("""
-            UPDATE password_reset_tokens
-            SET used = TRUE
-            WHERE user_id = %s
-            AND used = FALSE
+            SELECT id
+            FROM users
+            WHERE username = %s
         """, (
-            user_id,
+            novo_username,
+        ))
+
+        if cursor.fetchone():
+
+            return jsonify({
+
+                "success":
+                    False,
+
+                "message":
+                    "Esse nome de usuário já está em uso."
+
+            }), 409
+
+        cursor.execute("""
+            UPDATE users
+            SET username = %s
+            WHERE username = %s
+        """, (
+            novo_username,
+            username_atual
+        ))
+
+        if cursor.rowcount == 0:
+
+            conn.rollback()
+
+            return jsonify({
+
+                "success":
+                    False,
+
+                "message":
+                    "Usuário atual não foi encontrado."
+
+            }), 404
+
+        cursor.execute("""
+            UPDATE conversations
+            SET username = %s
+            WHERE username = %s
+        """, (
+            novo_username,
+            username_atual
         ))
 
         cursor.execute("""
-            INSERT INTO password_reset_tokens
-            (
-                user_id,
-                token_hash,
-                expires_at,
-                used
-            )
-            VALUES
-            (%s, %s, %s, FALSE)
+            UPDATE messages
+            SET username = %s
+            WHERE username = %s
         """, (
-            user_id,
-            token_hash,
-            expiracao
+            novo_username,
+            username_atual
         ))
 
         conn.commit()
 
-    return token
+    session["user"] = novo_username
 
+    session.modified = True
 
-# ============================================================
-# VALIDAR TOKEN DE RECUPERAÇÃO
-# ============================================================
-
-def validar_token_recuperacao(
-    token
-):
-
-    if not token:
-
-        return None
-
-    agora = datetime.utcnow()
-
-    try:
-
-        with get_db() as conn:
-
-            cursor = conn.cursor(
-                cursor_factory=
-                psycopg2.extras.RealDictCursor
-            )
-
-            cursor.execute("""
-                SELECT
-                    id,
-                    user_id,
-                    token_hash,
-                    expires_at,
-                    used
-                FROM password_reset_tokens
-                WHERE used = FALSE
-                AND expires_at > %s
-                ORDER BY id DESC
-            """, (
-                agora,
-            ))
-
-            tokens = cursor.fetchall()
-
-            for item in tokens:
-
-                try:
-
-                    valido = check_password_hash(
-                        item["token_hash"],
-                        token
-                    )
-
-                except Exception:
-
-                    valido = False
-
-                if valido:
-
-                    return item
-
-    except Exception as e:
-
-        print(
-            "ERRO AO VALIDAR TOKEN:",
-            repr(e)
-        )
-
-    return None
-
-
-# ============================================================
-# VERIFICAR ADMIN
-# ============================================================
-
-def verificar_admin():
-
-    return (
-        session.get("admin") is True
-        and session.get("user") ==
-        ADMIN_USERNAME
+    print(
+        "USUÁRIO ALTERADO:",
+        username_atual,
+        "->",
+        novo_username
     )
 
+    return jsonify({
+
+        "success":
+            True,
+
+        "message":
+            "Nome de usuário alterado com sucesso.",
+
+        "username":
+            novo_username
+
+    })
+
+except psycopg2.IntegrityError:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Esse nome de usuário já está em uso."
+
+    }), 409
+
+except Exception as e:
+
+    print(
+        "=================================================="
+    )
+
+    print(
+        "ERRO AO ALTERAR NOME DE USUÁRIO:"
+    )
+
+    print(
+        repr(e)
+    )
+
+    print(
+        "=================================================="
+    )
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Erro interno ao alterar o nome de usuário.",
+
+        "error":
+            str(e)
+
+    }), 500
+```
 
 # ============================================================
-# GOOGLE LOGIN
+
+# ALTERAR SENHA
+
 # ============================================================
 
-@app.route("/google/login")
-def google_login():
+@app.route(
+"/api/change-password",
+methods=["POST"]
+)
+def change_password():
 
-    if "user" in session:
+```
+if "user" not in session:
 
-        return redirect(
-            url_for("home")
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Faça login primeiro."
+
+    }), 401
+
+data = request.get_json(
+    silent=True
+) or {}
+
+current_password = str(
+    data.get(
+        "current_password"
+    )
+    or ""
+)
+
+new_password = str(
+    data.get(
+        "new_password"
+    )
+    or ""
+)
+
+confirm_password = str(
+    data.get(
+        "confirm_password"
+    )
+    or ""
+)
+
+if (
+    not current_password
+    or not new_password
+    or not confirm_password
+):
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Preencha todos os campos."
+
+    }), 400
+
+if len(new_password) < 6:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "A nova senha precisa ter pelo menos 6 caracteres."
+
+    }), 400
+
+if len(new_password) > 200:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "A nova senha é muito longa."
+
+    }), 400
+
+if not any(
+    caractere.isdigit()
+    for caractere in new_password
+):
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "A nova senha precisa ter pelo menos 1 número."
+
+    }), 400
+
+if new_password != confirm_password:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "A confirmação da senha não confere."
+
+    }), 400
+
+if current_password == new_password:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "A nova senha precisa ser diferente da senha atual."
+
+    }), 400
+
+username = session["user"]
+
+try:
+
+    with get_db() as conn:
+
+        cursor = conn.cursor(
+            cursor_factory=
+            psycopg2.extras.RealDictCursor
         )
 
-    if google is None:
+        cursor.execute("""
+            SELECT
+                id,
+                username,
+                password
+            FROM users
+            WHERE username = %s
+        """, (
+            username,
+        ))
 
-        return jsonify({
+        usuario = cursor.fetchone()
 
-            "success":
-                False,
+        if not usuario:
 
-            "message":
-                "Login com Google não está configurado no servidor."
+            session.clear()
 
-        }), 500
+            return jsonify({
 
-    redirect_uri = url_for(
-        "google_callback",
+                "success":
+                    False,
+
+                "message":
+                    "Usuário não encontrado."
+
+            }), 404
+
+        senha_correta = False
+
+        try:
+
+            senha_correta = (
+                check_password_hash(
+                    usuario["password"],
+                    current_password
+                )
+            )
+
+        except Exception:
+
+            senha_correta = False
+
+        if not senha_correta:
+
+            senha_antiga = (
+                usuario["password"]
+            )
+
+            if (
+                senha_antiga ==
+                current_password
+            ):
+
+                senha_correta = True
+
+        if not senha_correta:
+
+            return jsonify({
+
+                "success":
+                    False,
+
+                "message":
+                    "A senha atual está incorreta."
+
+            }), 401
+
+        nova_hash = (
+            generate_password_hash(
+                new_password
+            )
+        )
+
+        cursor.execute("""
+            UPDATE users
+            SET password = %s
+            WHERE id = %s
+        """, (
+            nova_hash,
+            usuario["id"]
+        ))
+
+        conn.commit()
+
+    print(
+        "SENHA ALTERADA COM SUCESSO:",
+        username
+    )
+
+    return jsonify({
+
+        "success":
+            True,
+
+        "message":
+            "Senha alterada com sucesso."
+
+    })
+
+except Exception as e:
+
+    print(
+        "=================================================="
+    )
+
+    print(
+        "ERRO AO ALTERAR SENHA:"
+    )
+
+    print(
+        repr(e)
+    )
+
+    print(
+        "=================================================="
+    )
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Erro interno ao alterar a senha."
+
+    }), 500
+```
+
+# ============================================================
+
+# API - SOLICITAR RECUPERAÇÃO
+
+# ============================================================
+
+@app.route(
+"/api/forgot-password",
+methods=["POST"]
+)
+def forgot_password():
+
+```
+data = request.get_json(
+    silent=True
+) or {}
+
+email = str(
+    data.get("email") or ""
+).strip().lower()
+
+resposta_padrao = {
+
+    "success":
+        True,
+
+    "message":
+        "Se existir uma conta com esse e-mail, "
+        "você receberá um link para redefinir sua senha."
+
+}
+
+if not email:
+
+    return jsonify(
+        resposta_padrao
+    )
+
+if (
+    len(email) > 320
+    or "@" not in email
+    or "." not in email.split("@")[-1]
+):
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Digite um e-mail válido."
+
+    }), 400
+
+try:
+
+    with get_db() as conn:
+
+        cursor = conn.cursor(
+            cursor_factory=
+            psycopg2.extras.RealDictCursor
+        )
+
+        cursor.execute("""
+            SELECT
+                id,
+                username,
+                email
+            FROM users
+            WHERE LOWER(email) = %s
+            LIMIT 1
+        """, (
+            email,
+        ))
+
+        usuario = cursor.fetchone()
+
+    if not usuario:
+
+        return jsonify(
+            resposta_padrao
+        )
+
+    token = criar_token_recuperacao(
+        usuario["id"]
+    )
+
+    link = url_for(
+        "reset_password_page",
+        token=token,
         _external=True
     )
 
-    return google.authorize_redirect(
-        redirect_uri
+    enviar_email_recuperacao(
+        email,
+        link
     )
 
-
-# ============================================================
-# GOOGLE CALLBACK
-# ============================================================
-
-@app.route("/google/callback")
-def google_callback():
-
-    if google is None:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Login com Google não está configurado no servidor."
-
-        }), 500
-
-    try:
-
-        token = google.authorize_access_token()
-
-        userinfo = token.get(
-            "userinfo"
-        )
-
-        if not userinfo:
-
-            userinfo = google.userinfo()
-
-        google_id = (
-            userinfo.get("sub")
-        )
-
-        nome = (
-            userinfo.get("name")
-            or userinfo.get("given_name")
-            or "Google User"
-        )
-
-        email = (
-            userinfo.get("email")
-            or ""
-        )
-
-        if not google_id:
-
-            raise RuntimeError(
-                "O Google não retornou o identificador da conta."
-            )
-
-        login_com_google(
-            google_id,
-            nome,
-            email
-        )
-
-        return redirect(
-            url_for("home")
-        )
-
-    except Exception as e:
-
-        print(
-            "=================================================="
-        )
-
-        print(
-            "ERRO LOGIN GOOGLE:"
-        )
-
-        print(
-            repr(e)
-        )
-
-        print(
-            "=================================================="
-        )
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Não foi possível realizar o login com Google.",
-
-            "error":
-                str(e)
-
-        }), 500
-
-
-# ============================================================
-# PÁGINAS
-# ============================================================
-
-@app.route("/")
-def home():
-
-    if "user" not in session:
-
-        return redirect(
-            url_for("login")
-        )
-
-    try:
-
-        conversa_atual()
-
-        session["plan"] = (
-            obter_plan_usuario(
-                session["user"]
-            )
-        )
-
-    except Exception as e:
-
-        print(
-            "ERRO AO CARREGAR HOME:",
-            repr(e)
-        )
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Erro ao carregar o banco de dados."
-
-        }), 500
-
-    return render_template(
-        "index.html",
-        username=session["user"],
-        plan=session.get(
-            "plan",
-            "free"
-        )
+    print(
+        "RECUPERAÇÃO DE CONTA ENVIADA:",
+        usuario["username"],
+        email
     )
 
-
-@app.route("/login")
-def login():
-
-    if "user" in session:
-
-        return redirect(
-            url_for("home")
-        )
-
-    return render_template(
-        "login.html"
+    return jsonify(
+        resposta_padrao
     )
 
+except Exception as e:
 
-@app.route("/register")
-def register():
-
-    if "user" in session:
-
-        return redirect(
-            url_for("home")
-        )
-
-    return render_template(
-        "register.html"
+    print(
+        "=================================================="
     )
 
+    print(
+        "ERRO RECUPERAÇÃO DE CONTA:"
+    )
 
-@app.route("/logout")
-def logout():
+    print(
+        repr(e)
+    )
 
-    session.clear()
+    print(
+        "=================================================="
+    )
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Não foi possível enviar o e-mail de recuperação agora."
+
+    }), 500
+```
+
+# ============================================================
+
+# API - REDEFINIR SENHA
+
+# ============================================================
+
+@app.route(
+"/api/reset-password",
+methods=["POST"]
+)
+def reset_password():
+
+```
+data = request.get_json(
+    silent=True
+) or {}
+
+token = str(
+    data.get("token") or ""
+).strip()
+
+nova_senha = str(
+    data.get("new_password") or ""
+)
+
+confirmacao = str(
+    data.get("confirm_password") or ""
+)
+
+if (
+    not token
+    or not nova_senha
+    or not confirmacao
+):
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Preencha todos os campos."
+
+    }), 400
+
+if len(nova_senha) < 6:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "A senha precisa ter pelo menos 6 caracteres."
+
+    }), 400
+
+if len(nova_senha) > 200:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "A senha é muito longa."
+
+    }), 400
+
+if not any(
+    caractere.isdigit()
+    for caractere in nova_senha
+):
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "A senha precisa ter pelo menos 1 número."
+
+    }), 400
+
+if nova_senha != confirmacao:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "As senhas não são iguais."
+
+    }), 400
+
+item = validar_token_recuperacao(
+    token
+)
+
+if not item:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Este link de recuperação é inválido ou expirou."
+
+    }), 400
+
+nova_hash = (
+    generate_password_hash(
+        nova_senha
+    )
+)
+
+try:
+
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            UPDATE users
+            SET password = %s
+            WHERE id = %s
+        """, (
+            nova_hash,
+            item["user_id"]
+        ))
+
+        if cursor.rowcount == 0:
+
+            conn.rollback()
+
+            return jsonify({
+
+                "success":
+                    False,
+
+                "message":
+                    "Usuário não encontrado."
+
+            }), 404
+
+        cursor.execute("""
+            UPDATE password_reset_tokens
+            SET used = TRUE
+            WHERE id = %s
+        """, (
+            item["id"],
+        ))
+
+        cursor.execute("""
+            UPDATE password_reset_tokens
+            SET used = TRUE
+            WHERE user_id = %s
+            AND id != %s
+            AND used = FALSE
+        """, (
+            item["user_id"],
+            item["id"]
+        ))
+
+        conn.commit()
+
+    print(
+        "SENHA RECUPERADA COM SUCESSO:",
+        item["user_id"]
+    )
+
+    return jsonify({
+
+        "success":
+            True,
+
+        "message":
+            "Senha redefinida com sucesso."
+
+    })
+
+except Exception as e:
+
+    print(
+        "=================================================="
+    )
+
+    print(
+        "ERRO AO REDEFINIR SENHA:"
+    )
+
+    print(
+        repr(e)
+    )
+
+    print(
+        "=================================================="
+    )
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Erro interno ao redefinir a senha."
+
+    }), 500
+```
+
+# ============================================================
+
+# CONFIGURAÇÕES
+
+# ============================================================
+
+@app.route("/configuracoes")
+def configuracoes():
+
+```
+if "user" not in session:
 
     return redirect(
         url_for("login")
     )
 
+return render_template(
+    "configuracoes.html"
+)
+```
 
 # ============================================================
-# RECUPERAR CONTA - PÁGINA
+
+# LOGIN ADMIN
+
 # ============================================================
 
-@app.route("/recuperar-conta")
-def recuperar_conta():
+@app.route(
+"/admin/login",
+methods=["GET", "POST"]
+)
+def admin_login():
 
-    if "user" in session:
+```
+if request.method == "GET":
+
+    if verificar_admin():
 
         return redirect(
-            url_for("home")
+            url_for("admin_dashboard")
         )
 
     return render_template(
-        "recuperar.html"
+        "admin_login.html"
     )
 
+data = request.get_json(
+    silent=True
+) or {}
+
+username = str(
+    data.get("username") or ""
+).strip()
+
+password = str(
+    data.get("password") or ""
+)
+
+if not username or not password:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Preencha usuário e senha."
+
+    }), 400
+
+if not ADMIN_USERNAME:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "ADMIN_USERNAME não está configurado."
+
+    }), 500
+
+if not ADMIN_PASSWORD:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "ADMIN_PASSWORD não está configurado no servidor."
+
+    }), 500
+
+if username != ADMIN_USERNAME:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Usuário ou senha administrativos incorretos."
+
+    }), 401
+
+if password != ADMIN_PASSWORD:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Usuário ou senha administrativos incorretos."
+
+    }), 401
+
+session.clear()
+
+session["admin"] = True
+
+session["user"] = (
+    ADMIN_USERNAME
+)
+
+session["plan"] = "premium"
+
+return jsonify({
+
+    "success":
+        True,
+
+    "message":
+        "Login administrativo realizado com sucesso."
+
+})
+```
 
 # ============================================================
-# REDEFINIR SENHA - PÁGINA
+
+# PAINEL ADMIN
+
 # ============================================================
 
-@app.route("/reset-password")
-def reset_password_page():
+@app.route("/admin")
+def admin():
 
-    if "user" in session:
+```
+return redirect(
+    url_for("admin_login")
+)
+```
 
-        return redirect(
-            url_for("home")
-        )
+@app.route("/admin/dashboard")
+def admin_dashboard():
 
-    token = request.args.get(
-        "token",
-        ""
-    ).strip()
+```
+if not verificar_admin():
 
-    if not token:
-
-        return render_template(
-            "reset.html",
-            token_invalido=True,
-            token=""
-        )
-
-    item = validar_token_recuperacao(
-        token
+    return redirect(
+        url_for("admin_login")
     )
 
-    if not item:
+return render_template(
+    "admin.html",
+    username=ADMIN_USERNAME
+)
+```
 
-        return render_template(
-            "reset.html",
-            token_invalido=True,
-            token=""
+@app.route("/admin/logout")
+def admin_logout():
+
+```
+session.clear()
+
+return redirect(
+    url_for("admin_login")
+)
+```
+
+# ============================================================
+
+# API ADMIN - USUÁRIOS
+
+# ============================================================
+
+@app.route("/api/admin/users")
+def admin_users():
+
+```
+if not verificar_admin():
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Acesso negado."
+
+    }), 403
+
+try:
+
+    with get_db() as conn:
+
+        cursor = conn.cursor(
+            cursor_factory=
+            psycopg2.extras.RealDictCursor
         )
 
-    return render_template(
-        "reset.html",
-        token_invalido=False,
-        token=token
+        cursor.execute("""
+            SELECT
+                id,
+                username,
+                plan
+            FROM users
+            ORDER BY id DESC
+        """)
+
+        usuarios = cursor.fetchall()
+
+except Exception as e:
+
+    print(
+        "ERRO ADMIN USERS:",
+        repr(e)
     )
 
+    return jsonify({
 
-# ============================================================
-# PERFIL
-# ============================================================
+        "success":
+            False,
 
-@app.route("/perfil")
-def perfil():
+        "message":
+            "Erro ao consultar usuários."
 
-    if "user" not in session:
+    }), 500
 
-        return redirect(
-            url_for("login")
-        )
+total = len(usuarios)
 
-    username = session["user"]
+premium = sum(
 
-    try:
+    1
 
-        with get_db() as conn:
+    for usuario in usuarios
 
-            cursor = conn.cursor(
-                cursor_factory=
-                psycopg2.extras.RealDictCursor
-            )
+    if (
+        usuario["plan"]
+        or "free"
+    ).lower() == "premium"
 
-            cursor.execute("""
-                SELECT
-                    id,
-                    username,
-                    plan,
-                    email,
-                    google_id
-                FROM users
-                WHERE username = %s
-            """, (
-                username,
-            ))
+)
 
-            usuario = cursor.fetchone()
+free = total - premium
 
-            if not usuario:
+return jsonify({
 
-                session.clear()
+    "success":
+        True,
 
-                return redirect(
-                    url_for("login")
-                )
+    "stats": {
 
-            cursor.execute("""
-                SELECT COUNT(*) AS total
-                FROM conversations
-                WHERE username = %s
-            """, (
-                username,
-            ))
+        "total":
+            total,
 
-            resultado_conversas = (
-                cursor.fetchone()
-            )
+        "free":
+            free,
 
-            total_conversas = (
-                resultado_conversas["total"]
-                if resultado_conversas
-                else 0
-            )
+        "premium":
+            premium
 
-            cursor.execute("""
-                SELECT COUNT(*) AS total
-                FROM chat_messages cm
-                INNER JOIN conversations c
-                ON cm.conversation_id = c.id
-                WHERE c.username = %s
-            """, (
-                username,
-            ))
+    },
 
-            resultado_mensagens = (
-                cursor.fetchone()
-            )
+    "users": [
 
-            total_mensagens = (
-                resultado_mensagens["total"]
-                if resultado_mensagens
-                else 0
-            )
-
-        return render_template(
-            "perfil.html",
-            username=usuario["username"],
-            plan=usuario["plan"] or "free",
-            total_conversas=total_conversas,
-            total_mensagens=total_mensagens,
-            email=usuario["email"] or "",
-            login_google=bool(
-                usuario["google_id"]
-            )
-        )
-
-    except Exception as e:
-
-        print(
-            "ERRO AO CARREGAR PERFIL:",
-            repr(e)
-        )
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Erro ao carregar o perfil.",
-
-            "error":
-                str(e)
-
-        }), 500
-
-
-# ============================================================
-# API DO PERFIL
-# ============================================================
-
-@app.route("/api/profile")
-def api_profile():
-
-    if "user" not in session:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Faça login primeiro."
-
-        }), 401
-
-    username = session["user"]
-
-    try:
-
-        with get_db() as conn:
-
-            cursor = conn.cursor(
-                cursor_factory=
-                psycopg2.extras.RealDictCursor
-            )
-
-            cursor.execute("""
-                SELECT
-                    id,
-                    username,
-                    plan,
-                    email,
-                    google_id
-                FROM users
-                WHERE username = %s
-            """, (
-                username,
-            ))
-
-            usuario = cursor.fetchone()
-
-            if not usuario:
-
-                return jsonify({
-
-                    "success":
-                        False,
-
-                    "message":
-                        "Usuário não encontrado."
-
-                }), 404
-
-            cursor.execute("""
-                SELECT COUNT(*) AS total
-                FROM conversations
-                WHERE username = %s
-            """, (
-                username,
-            ))
-
-            resultado_conversas = (
-                cursor.fetchone()
-            )
-
-            total_conversas = (
-                resultado_conversas["total"]
-                if resultado_conversas
-                else 0
-            )
-
-            cursor.execute("""
-                SELECT COUNT(*) AS total
-                FROM chat_messages cm
-                INNER JOIN conversations c
-                ON cm.conversation_id = c.id
-                WHERE c.username = %s
-            """, (
-                username,
-            ))
-
-            resultado_mensagens = (
-                cursor.fetchone()
-            )
-
-            total_mensagens = (
-                resultado_mensagens["total"]
-                if resultado_mensagens
-                else 0
-            )
-
-        return jsonify({
-
-            "success":
-                True,
+        {
 
             "id":
                 usuario["id"],
@@ -1770,2241 +3059,1073 @@ def api_profile():
 
             "plan":
                 usuario["plan"]
-                or "free",
+                or "free"
 
-            "email":
-                usuario["email"]
-                or "",
+        }
 
-            "google":
-                bool(
-                    usuario["google_id"]
-                ),
+        for usuario in usuarios
 
-            "total_conversas":
-                total_conversas,
+    ]
 
-            "total_mensagens":
-                total_mensagens
-
-        })
-
-    except Exception as e:
-
-        print(
-            "ERRO API PROFILE:",
-            repr(e)
-        )
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Erro ao carregar o perfil.",
-
-            "error":
-                str(e)
-
-        }), 500
-
+})
+```
 
 # ============================================================
-# ALTERAR NOME DE USUÁRIO
+
+# ALTERAR PLANO
+
 # ============================================================
 
 @app.route(
-    "/api/change-username",
-    methods=["POST"]
+"/api/admin/user/[int:user_id](int:user_id)/plan",
+methods=["POST"]
 )
-def change_username():
+def admin_change_plan(user_id):
 
-    if "user" not in session:
+```
+if not verificar_admin():
 
-        return jsonify({
+    return jsonify({
 
-            "success":
-                False,
+        "success":
+            False,
 
-            "message":
-                "Faça login primeiro."
+        "message":
+            "Acesso negado."
 
-        }), 401
+    }), 403
 
-    if verificar_admin():
+data = request.get_json(
+    silent=True
+) or {}
 
-        return jsonify({
+plan = str(
+    data.get("plan") or ""
+).strip().lower()
 
-            "success":
-                False,
+if plan not in [
+    "free",
+    "premium"
+]:
 
-            "message":
-                "O administrador não pode alterar o nome de usuário."
+    return jsonify({
 
-        }), 400
+        "success":
+            False,
 
-    data = request.get_json(
-        silent=True
-    ) or {}
+        "message":
+            "Plano inválido."
 
-    novo_username = str(
-        data.get("username")
-        or data.get("new_username")
-        or ""
-    ).strip()
+    }), 400
 
-    if not novo_username:
+try:
 
-        return jsonify({
+    with get_db() as conn:
 
-            "success":
-                False,
+        cursor = conn.cursor(
+            cursor_factory=
+            psycopg2.extras.RealDictCursor
+        )
 
-            "message":
-                "Digite um novo nome de usuário."
+        cursor.execute("""
+            SELECT
+                id,
+                username
+            FROM users
+            WHERE id = %s
+        """, (
+            user_id,
+        ))
 
-        }), 400
+        usuario = cursor.fetchone()
 
-    if len(novo_username) < 3:
+        if not usuario:
 
-        return jsonify({
+            return jsonify({
 
-            "success":
-                False,
+                "success":
+                    False,
 
-            "message":
-                "O usuário precisa ter pelo menos 3 caracteres."
+                "message":
+                    "Usuário não encontrado."
 
-        }), 400
+            }), 404
 
-    if len(novo_username) > 30:
+        if (
+            usuario["username"]
+            == ADMIN_USERNAME
+        ):
 
-        return jsonify({
+            return jsonify({
 
-            "success":
-                False,
+                "success":
+                    False,
 
-            "message":
-                "O usuário pode ter no máximo 30 caracteres."
+                "message":
+                    "O administrador não pode ter o plano alterado."
 
-        }), 400
+            }), 400
 
-    if not re.fullmatch(
-        r"[A-Za-z0-9_]+",
-        novo_username
-    ):
+        cursor.execute("""
+            UPDATE users
+            SET plan = %s
+            WHERE id = %s
+        """, (
+            plan,
+            user_id
+        ))
 
-        return jsonify({
+        conn.commit()
 
-            "success":
-                False,
+except Exception as e:
 
-            "message":
-                "Use apenas letras, números e _ no nome de usuário."
+    print(
+        "ERRO ALTERAR PLANO:",
+        repr(e)
+    )
 
-        }), 400
+    return jsonify({
 
-    if (
-        novo_username.lower()
-        == ADMIN_USERNAME.lower()
-    ):
+        "success":
+            False,
 
-        return jsonify({
+        "message":
+            "Erro interno ao alterar o plano."
 
-            "success":
-                False,
+    }), 500
 
-            "message":
-                "Esse nome de usuário não está disponível."
+return jsonify({
 
-        }), 409
+    "success":
+        True,
 
-    username_atual = session["user"]
+    "message":
+        "Plano atualizado com sucesso.",
 
-    if (
-        novo_username
-        == username_atual
-    ):
+    "plan":
+        plan
 
-        return jsonify({
+})
+```
 
-            "success":
-                False,
+# ============================================================
 
-            "message":
-                "Digite um nome de usuário diferente do atual."
+# EXCLUIR USUÁRIO
 
-        }), 400
+# ============================================================
 
-    try:
+@app.route(
+"/api/admin/user/[int:user_id](int:user_id)/delete",
+methods=["DELETE"]
+)
+def admin_delete_user(user_id):
 
-        with get_db() as conn:
+```
+if not verificar_admin():
 
-            cursor = conn.cursor()
+    return jsonify({
 
-            cursor.execute("""
+        "success":
+            False,
+
+        "message":
+            "Acesso negado."
+
+    }), 403
+
+try:
+
+    with get_db() as conn:
+
+        cursor = conn.cursor(
+            cursor_factory=
+            psycopg2.extras.RealDictCursor
+        )
+
+        cursor.execute("""
+            SELECT username
+            FROM users
+            WHERE id = %s
+        """, (
+            user_id,
+        ))
+
+        usuario = cursor.fetchone()
+
+        if not usuario:
+
+            return jsonify({
+
+                "success":
+                    False,
+
+                "message":
+                    "Usuário não encontrado."
+
+            }), 404
+
+        if (
+            usuario["username"]
+            == ADMIN_USERNAME
+        ):
+
+            return jsonify({
+
+                "success":
+                    False,
+
+                "message":
+                    "Você não pode excluir o administrador."
+
+            }), 400
+
+        username = (
+            usuario["username"]
+        )
+
+        cursor.execute("""
+            DELETE FROM chat_messages
+            WHERE conversation_id IN (
                 SELECT id
-                FROM users
+                FROM conversations
                 WHERE username = %s
-            """, (
-                novo_username,
-            ))
+            )
+        """, (
+            username,
+        ))
 
-            if cursor.fetchone():
+        cursor.execute("""
+            DELETE FROM conversations
+            WHERE username = %s
+        """, (
+            username,
+        ))
 
-                return jsonify({
+        cursor.execute("""
+            DELETE FROM messages
+            WHERE username = %s
+        """, (
+            username,
+        ))
 
-                    "success":
-                        False,
+        cursor.execute("""
+            DELETE FROM password_reset_tokens
+            WHERE user_id = %s
+        """, (
+            user_id,
+        ))
 
-                    "message":
-                        "Esse nome de usuário já está em uso."
+        cursor.execute("""
+            DELETE FROM users
+            WHERE id = %s
+        """, (
+            user_id,
+        ))
 
-                }), 409
+        conn.commit()
 
-            cursor.execute("""
-                UPDATE users
-                SET username = %s
-                WHERE username = %s
-            """, (
-                novo_username,
-                username_atual
-            ))
+except Exception as e:
 
-            if cursor.rowcount == 0:
+    print(
+        "ERRO EXCLUIR USUÁRIO:",
+        repr(e)
+    )
 
-                conn.rollback()
+    return jsonify({
 
-                return jsonify({
+        "success":
+            False,
 
-                    "success":
-                        False,
+        "message":
+            "Erro interno ao excluir usuário."
 
-                    "message":
-                        "Usuário atual não foi encontrado."
+    }), 500
 
-                }), 404
+return jsonify({
 
-            cursor.execute("""
-                UPDATE conversations
-                SET username = %s
-                WHERE username = %s
-            """, (
-                novo_username,
-                username_atual
-            ))
+    "success":
+        True,
 
-            cursor.execute("""
-                UPDATE messages
-                SET username = %s
-                WHERE username = %s
-            """, (
-                novo_username,
-                username_atual
-            ))
+    "message":
+        "Usuário excluído com sucesso."
 
-            conn.commit()
+})
+```
 
-        session["user"] = novo_username
+# ============================================================
+
+# REGISTER
+
+# ============================================================
+
+@app.route(
+"/api/register",
+methods=["POST"]
+)
+def api_register():
+
+```
+data = request.get_json(
+    silent=True
+) or {}
+
+username = str(
+    data.get("username") or ""
+).strip()
+
+password = str(
+    data.get("password") or ""
+)
+
+email = str(
+    data.get("email") or ""
+).strip().lower()
+
+if not username or not password or not email:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Preencha todos os campos."
+
+    }), 400
+
+if len(username) < 3:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "O usuário precisa ter pelo menos 3 caracteres."
+
+    }), 400
+
+if len(username) > 30:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "O usuário pode ter no máximo 30 caracteres."
+
+    }), 400
+
+if not re.fullmatch(
+    r"[A-Za-z0-9_]+",
+    username
+):
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Use apenas letras, números e _ no nome de usuário."
+
+    }), 400
+
+if len(password) < 6:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "A senha precisa ter pelo menos 6 caracteres."
+
+    }), 400
+
+if not any(
+    caractere.isdigit()
+    for caractere in password
+):
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "A senha precisa ter pelo menos 1 número."
+
+    }), 400
+
+if len(password) > 200:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "A senha é muito longa."
+
+    }), 400
+
+if (
+    len(email) > 320
+    or "@" not in email
+    or "." not in email.split("@")[-1]
+):
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Digite um e-mail válido."
+
+    }), 400
+
+if (
+    username.lower()
+    == ADMIN_USERNAME.lower()
+):
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Esse nome de usuário não está disponível."
+
+    }), 409
+
+password_hash = (
+    generate_password_hash(
+        password
+    )
+)
+
+try:
+
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT id
+            FROM users
+            WHERE LOWER(email) = %s
+        """, (
+            email,
+        ))
+
+        if cursor.fetchone():
+
+            return jsonify({
+
+                "success":
+                    False,
+
+                "message":
+                    "Esse e-mail já está cadastrado."
+
+            }), 409
+
+        cursor.execute("""
+            INSERT INTO users
+            (
+                username,
+                password,
+                plan,
+                email
+            )
+            VALUES
+            (%s, %s, %s, %s)
+        """, (
+            username,
+            password_hash,
+            "free",
+            email
+        ))
+
+        conn.commit()
+
+    return jsonify({
+
+        "success":
+            True,
+
+        "message":
+            "Conta criada com sucesso."
+
+    })
+
+except psycopg2.IntegrityError:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Usuário ou e-mail já existe."
+
+    }), 409
+
+except Exception as e:
+
+    print(
+        "ERRO REGISTER:",
+        repr(e)
+    )
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Erro interno ao criar conta."
+
+    }), 500
+```
+
+# ============================================================
+
+# LOGIN
+
+# ============================================================
+
+@app.route(
+"/api/login",
+methods=["POST"]
+)
+def api_login():
+
+```
+data = request.get_json(
+    silent=True
+) or {}
+
+username = str(
+    data.get("username") or ""
+).strip()
+
+password = str(
+    data.get("password") or ""
+)
+
+if not username or not password:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Preencha usuário e senha."
+
+    }), 400
+
+if (
+    username.lower()
+    == ADMIN_USERNAME.lower()
+):
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Use o acesso administrativo."
+
+    }), 403
+
+try:
+
+    with get_db() as conn:
+
+        cursor = conn.cursor(
+            cursor_factory=
+            psycopg2.extras.RealDictCursor
+        )
+
+        cursor.execute("""
+            SELECT
+                id,
+                username,
+                password,
+                plan
+            FROM users
+            WHERE username = %s
+        """, (
+            username,
+        ))
+
+        user = cursor.fetchone()
+
+        if not user:
+
+            return jsonify({
+
+                "success":
+                    False,
+
+                "message":
+                    "Usuário ou senha incorretos."
+
+            }), 401
+
+        senha_correta = False
+
+        try:
+
+            senha_correta = (
+                check_password_hash(
+                    user["password"],
+                    password
+                )
+            )
+
+        except Exception:
+
+            senha_correta = False
+
+        if not senha_correta:
+
+            senha_antiga = (
+                user["password"]
+            )
+
+            if (
+                senha_antiga ==
+                password
+            ):
+
+                senha_correta = True
+
+                nova_hash = (
+                    generate_password_hash(
+                        password
+                    )
+                )
+
+                cursor.execute("""
+                    UPDATE users
+                    SET password = %s
+                    WHERE id = %s
+                """, (
+                    nova_hash,
+                    user["id"]
+                ))
+
+                conn.commit()
+
+        if not senha_correta:
+
+            return jsonify({
+
+                "success":
+                    False,
+
+                "message":
+                    "Usuário ou senha incorretos."
+
+            }), 401
+
+        session.clear()
+
+        session["user"] = (
+            user["username"]
+        )
+
+        session["admin"] = False
+
+        session["plan"] = (
+            user["plan"]
+            or "free"
+        )
+
+        conversation_id = (
+            criar_conversa(
+                user["username"],
+                "Nova conversa"
+            )
+        )
+
+        session["conversation_id"] = (
+            conversation_id
+        )
 
         session.modified = True
-
-        print(
-            "USUÁRIO ALTERADO:",
-            username_atual,
-            "->",
-            novo_username
-        )
 
         return jsonify({
 
             "success":
                 True,
 
-            "message":
-                "Nome de usuário alterado com sucesso.",
+            "plan":
+                session["plan"],
 
-            "username":
-                novo_username
+            "conversation_id":
+                conversation_id
 
         })
 
-    except psycopg2.IntegrityError:
+except Exception as e:
 
-        return jsonify({
+    print(
+        "ERRO LOGIN:",
+        repr(e)
+    )
 
-            "success":
-                False,
+    return jsonify({
 
-            "message":
-                "Esse nome de usuário já está em uso."
+        "success":
+            False,
 
-        }), 409
+        "message":
+            "Erro interno no servidor."
 
-    except Exception as e:
-
-        print(
-            "=================================================="
-        )
-
-        print(
-            "ERRO AO ALTERAR NOME DE USUÁRIO:"
-        )
-
-        print(
-            repr(e)
-        )
-
-        print(
-            "=================================================="
-        )
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Erro interno ao alterar o nome de usuário.",
-
-            "error":
-                str(e)
-
-        }), 500
-
+    }), 500
+```
 
 # ============================================================
-# ALTERAR SENHA
+
+# CHAT COM STREAMING
+
 # ============================================================
 
 @app.route(
-    "/api/change-password",
-    methods=["POST"]
+"/chat",
+methods=["POST"]
 )
-def change_password():
+def chat():
 
-    if "user" not in session:
+```
+if "user" not in session:
 
-        return jsonify({
+    return jsonify({
 
-            "success":
-                False,
+        "reply":
+            "Faça login primeiro.",
 
-            "message":
-                "Faça login primeiro."
+        "message":
+            "Faça login primeiro.",
 
-        }), 401
+        "success":
+            False
+
+    }), 401
+
+try:
 
     data = request.get_json(
         silent=True
     ) or {}
 
-    current_password = str(
-        data.get(
-            "current_password"
-        )
-        or ""
+    mensagem = str(
+        data.get("message") or ""
+    ).strip()
+
+    imagem_base64 = data.get(
+        "image"
     )
 
-    new_password = str(
-        data.get(
-            "new_password"
-        )
-        or ""
+    tipo_imagem = data.get(
+        "image_type"
     )
 
-    confirm_password = str(
-        data.get(
-            "confirm_password"
+    if len(mensagem) > 12000:
+
+        mensagem_erro = (
+            "Sua mensagem é muito grande. "
+            "Tente enviar uma mensagem menor."
         )
-        or ""
-    )
+
+        return jsonify({
+
+            "reply":
+                mensagem_erro,
+
+            "message":
+                mensagem_erro,
+
+            "success":
+                False
+
+        }), 400
+
+    if imagem_base64:
+
+        if not isinstance(
+            imagem_base64,
+            str
+        ):
+
+            mensagem_erro = (
+                "❌ Imagem inválida."
+            )
+
+            return jsonify({
+
+                "reply":
+                    mensagem_erro,
+
+                "message":
+                    mensagem_erro,
+
+                "success":
+                    False
+
+            }), 400
+
+        if not tipo_imagem:
+
+            tipo_imagem = (
+                "image/jpeg"
+            )
+
+        tipos_permitidos = [
+
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/gif"
+
+        ]
+
+        if (
+            tipo_imagem
+            not in tipos_permitidos
+        ):
+
+            mensagem_erro = (
+                "❌ Formato de imagem não suportado. "
+                "Use JPG, PNG, WEBP ou GIF."
+            )
+
+            return jsonify({
+
+                "reply":
+                    mensagem_erro,
+
+                "message":
+                    mensagem_erro,
+
+                "success":
+                    False
+
+            }), 400
+
+        if (
+            len(imagem_base64)
+            > 27_000_000
+        ):
+
+            mensagem_erro = (
+                "❌ A imagem é muito grande. "
+                "Use uma imagem menor."
+            )
+
+            return jsonify({
+
+                "reply":
+                    mensagem_erro,
+
+                "message":
+                    mensagem_erro,
+
+                "success":
+                    False
+
+            }), 400
 
     if (
-        not current_password
-        or not new_password
-        or not confirm_password
+        not mensagem
+        and not imagem_base64
     ):
 
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Preencha todos os campos."
-
-        }), 400
-
-    if len(new_password) < 6:
+        mensagem_erro = (
+            "Digite uma mensagem ou envie uma imagem."
+        )
 
         return jsonify({
 
-            "success":
-                False,
+            "reply":
+                mensagem_erro,
 
             "message":
-                "A nova senha precisa ter pelo menos 6 caracteres."
-
-        }), 400
-
-    if len(new_password) > 200:
-
-        return jsonify({
+                mensagem_erro,
 
             "success":
-                False,
-
-            "message":
-                "A nova senha é muito longa."
-
-        }), 400
-
-    if not any(
-        caractere.isdigit()
-        for caractere in new_password
-    ):
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "A nova senha precisa ter pelo menos 1 número."
-
-        }), 400
-
-    if new_password != confirm_password:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "A confirmação da senha não confere."
-
-        }), 400
-
-    if current_password == new_password:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "A nova senha precisa ser diferente da senha atual."
+                False
 
         }), 400
 
     username = session["user"]
 
-    try:
-
-        with get_db() as conn:
-
-            cursor = conn.cursor(
-                cursor_factory=
-                psycopg2.extras.RealDictCursor
-            )
-
-            cursor.execute("""
-                SELECT
-                    id,
-                    username,
-                    password
-                FROM users
-                WHERE username = %s
-            """, (
-                username,
-            ))
-
-            usuario = cursor.fetchone()
-
-            if not usuario:
-
-                session.clear()
-
-                return jsonify({
-
-                    "success":
-                        False,
-
-                    "message":
-                        "Usuário não encontrado."
-
-                }), 404
-
-            senha_correta = False
-
-            try:
-
-                senha_correta = (
-                    check_password_hash(
-                        usuario["password"],
-                        current_password
-                    )
-                )
-
-            except Exception:
-
-                senha_correta = False
-
-            if not senha_correta:
-
-                senha_antiga = (
-                    usuario["password"]
-                )
-
-                if (
-                    senha_antiga ==
-                    current_password
-                ):
-
-                    senha_correta = True
-
-            if not senha_correta:
-
-                return jsonify({
-
-                    "success":
-                        False,
-
-                    "message":
-                        "A senha atual está incorreta."
-
-                }), 401
-
-            nova_hash = (
-                generate_password_hash(
-                    new_password
-                )
-            )
-
-            cursor.execute("""
-                UPDATE users
-                SET password = %s
-                WHERE id = %s
-            """, (
-                nova_hash,
-                usuario["id"]
-            ))
-
-            conn.commit()
-
-        print(
-            "SENHA ALTERADA COM SUCESSO:",
-            username
-        )
-
-        return jsonify({
-
-            "success":
-                True,
-
-            "message":
-                "Senha alterada com sucesso."
-
-        })
-
-    except Exception as e:
-
-        print(
-            "=================================================="
-        )
-
-        print(
-            "ERRO AO ALTERAR SENHA:"
-        )
-
-        print(
-            repr(e)
-        )
-
-        print(
-            "=================================================="
-        )
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Erro interno ao alterar a senha."
-
-        }), 500
-
-
-# ============================================================
-# API - SOLICITAR RECUPERAÇÃO
-# ============================================================
-
-@app.route(
-    "/api/forgot-password",
-    methods=["POST"]
-)
-def forgot_password():
-
-    data = request.get_json(
-        silent=True
-    ) or {}
-
-    email = str(
-        data.get("email") or ""
-    ).strip().lower()
-
-    resposta_padrao = {
-
-        "success":
-            True,
-
-        "message":
-            "Se existir uma conta com esse e-mail, "
-            "você receberá um link para redefinir sua senha."
-
-    }
-
-    if not email:
-
-        return jsonify(
-            resposta_padrao
-        )
-
-    if (
-        len(email) > 320
-        or "@" not in email
-        or "." not in email.split("@")[-1]
-    ):
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Digite um e-mail válido."
-
-        }), 400
-
-    try:
-
-        with get_db() as conn:
-
-            cursor = conn.cursor(
-                cursor_factory=
-                psycopg2.extras.RealDictCursor
-            )
-
-            cursor.execute("""
-                SELECT
-                    id,
-                    username,
-                    email
-                FROM users
-                WHERE LOWER(email) = %s
-                LIMIT 1
-            """, (
-                email,
-            ))
-
-            usuario = cursor.fetchone()
-
-        if not usuario:
-
-            return jsonify(
-                resposta_padrao
-            )
-
-        token = criar_token_recuperacao(
-            usuario["id"]
-        )
-
-        link = url_for(
-            "reset_password_page",
-            token=token,
-            _external=True
-        )
-
-        enviar_email_recuperacao(
-            email,
-            link
-        )
-
-        print(
-            "RECUPERAÇÃO DE CONTA ENVIADA:",
-            usuario["username"],
-            email
-        )
-
-        return jsonify(
-            resposta_padrao
-        )
-
-    except Exception as e:
-
-        print(
-            "=================================================="
-        )
-
-        print(
-            "ERRO RECUPERAÇÃO DE CONTA:"
-        )
-
-        print(
-            repr(e)
-        )
-
-        print(
-            "=================================================="
-        )
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Não foi possível enviar o e-mail de recuperação agora."
-
-        }), 500
-
-
-# ============================================================
-# API - REDEFINIR SENHA
-# ============================================================
-
-@app.route(
-    "/api/reset-password",
-    methods=["POST"]
-)
-def reset_password():
-
-    data = request.get_json(
-        silent=True
-    ) or {}
-
-    token = str(
-        data.get("token") or ""
-    ).strip()
-
-    nova_senha = str(
-        data.get("new_password") or ""
-    )
-
-    confirmacao = str(
-        data.get("confirm_password") or ""
-    )
-
-    if (
-        not token
-        or not nova_senha
-        or not confirmacao
-    ):
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Preencha todos os campos."
-
-        }), 400
-
-    if len(nova_senha) < 6:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "A senha precisa ter pelo menos 6 caracteres."
-
-        }), 400
-
-    if len(nova_senha) > 200:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "A senha é muito longa."
-
-        }), 400
-
-    if not any(
-        caractere.isdigit()
-        for caractere in nova_senha
-    ):
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "A senha precisa ter pelo menos 1 número."
-
-        }), 400
-
-    if nova_senha != confirmacao:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "As senhas não são iguais."
-
-        }), 400
-
-    item = validar_token_recuperacao(
-        token
-    )
-
-    if not item:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Este link de recuperação é inválido ou expirou."
-
-        }), 400
-
-    nova_hash = (
-        generate_password_hash(
-            nova_senha
-        )
-    )
-
-    try:
-
-        with get_db() as conn:
-
-            cursor = conn.cursor()
-
-            cursor.execute("""
-                UPDATE users
-                SET password = %s
-                WHERE id = %s
-            """, (
-                nova_hash,
-                item["user_id"]
-            ))
-
-            if cursor.rowcount == 0:
-
-                conn.rollback()
-
-                return jsonify({
-
-                    "success":
-                        False,
-
-                    "message":
-                        "Usuário não encontrado."
-
-                }), 404
-
-            cursor.execute("""
-                UPDATE password_reset_tokens
-                SET used = TRUE
-                WHERE id = %s
-            """, (
-                item["id"],
-            ))
-
-            cursor.execute("""
-                UPDATE password_reset_tokens
-                SET used = TRUE
-                WHERE user_id = %s
-                AND id != %s
-                AND used = FALSE
-            """, (
-                item["user_id"],
-                item["id"]
-            ))
-
-            conn.commit()
-
-        print(
-            "SENHA RECUPERADA COM SUCESSO:",
-            item["user_id"]
-        )
-
-        return jsonify({
-
-            "success":
-                True,
-
-            "message":
-                "Senha redefinida com sucesso."
-
-        })
-
-    except Exception as e:
-
-        print(
-            "=================================================="
-        )
-
-        print(
-            "ERRO AO REDEFINIR SENHA:"
-        )
-
-        print(
-            repr(e)
-        )
-
-        print(
-            "=================================================="
-        )
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Erro interno ao redefinir a senha."
-
-        }), 500
-
-
-# ============================================================
-# CONFIGURAÇÕES
-# ============================================================
-
-@app.route("/configuracoes")
-def configuracoes():
-
-    if "user" not in session:
-
-        return redirect(
-            url_for("login")
-        )
-
-    return render_template(
-        "configuracoes.html"
-    )
-
-
-# ============================================================
-# LOGIN ADMIN
-# ============================================================
-
-@app.route(
-    "/admin/login",
-    methods=["GET", "POST"]
-)
-def admin_login():
-
-    if request.method == "GET":
-
-        if verificar_admin():
-
-            return redirect(
-                url_for("admin_dashboard")
-            )
-
-        return render_template(
-            "admin_login.html"
-        )
-
-    data = request.get_json(
-        silent=True
-    ) or {}
-
-    username = str(
-        data.get("username") or ""
-    ).strip()
-
-    password = str(
-        data.get("password") or ""
-    )
-
-    if not username or not password:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Preencha usuário e senha."
-
-        }), 400
-
-    if not ADMIN_USERNAME:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "ADMIN_USERNAME não está configurado."
-
-        }), 500
-
-    if not ADMIN_PASSWORD:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "ADMIN_PASSWORD não está configurado no servidor."
-
-        }), 500
-
-    if username != ADMIN_USERNAME:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Usuário ou senha administrativos incorretos."
-
-        }), 401
-
-    if password != ADMIN_PASSWORD:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Usuário ou senha administrativos incorretos."
-
-        }), 401
-
-    session.clear()
-
-    session["admin"] = True
-
-    session["user"] = (
-        ADMIN_USERNAME
-    )
-
-    session["plan"] = "premium"
-
-    return jsonify({
-
-        "success":
-            True,
-
-        "message":
-            "Login administrativo realizado com sucesso."
-
-    })
-
-
-# ============================================================
-# PAINEL ADMIN
-# ============================================================
-
-@app.route("/admin")
-def admin():
-
-    return redirect(
-        url_for("admin_login")
-    )
-
-
-@app.route("/admin/dashboard")
-def admin_dashboard():
-
-    if not verificar_admin():
-
-        return redirect(
-            url_for("admin_login")
-        )
-
-    return render_template(
-        "admin.html",
-        username=ADMIN_USERNAME
-    )
-
-
-@app.route("/admin/logout")
-def admin_logout():
-
-    session.clear()
-
-    return redirect(
-        url_for("admin_login")
-    )
-
-
-# ============================================================
-# API ADMIN - USUÁRIOS
-# ============================================================
-
-@app.route("/api/admin/users")
-def admin_users():
-
-    if not verificar_admin():
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Acesso negado."
-
-        }), 403
-
-    try:
-
-        with get_db() as conn:
-
-            cursor = conn.cursor(
-                cursor_factory=
-                psycopg2.extras.RealDictCursor
-            )
-
-            cursor.execute("""
-                SELECT
-                    id,
-                    username,
-                    plan
-                FROM users
-                ORDER BY id DESC
-            """)
-
-            usuarios = cursor.fetchall()
-
-    except Exception as e:
-
-        print(
-            "ERRO ADMIN USERS:",
-            repr(e)
-        )
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Erro ao consultar usuários."
-
-        }), 500
-
-    total = len(usuarios)
-
-    premium = sum(
-
-        1
-
-        for usuario in usuarios
-
-        if (
-            usuario["plan"]
-            or "free"
-        ).lower() == "premium"
-
-    )
-
-    free = total - premium
-
-    return jsonify({
-
-        "success":
-            True,
-
-        "stats": {
-
-            "total":
-                total,
-
-            "free":
-                free,
-
-            "premium":
-                premium
-
-        },
-
-        "users": [
-
-            {
-
-                "id":
-                    usuario["id"],
-
-                "username":
-                    usuario["username"],
-
-                "plan":
-                    usuario["plan"]
-                    or "free"
-
-            }
-
-            for usuario in usuarios
-
-        ]
-
-    })
-
-
-# ============================================================
-# ALTERAR PLANO
-# ============================================================
-
-@app.route(
-    "/api/admin/user/<int:user_id>/plan",
-    methods=["POST"]
-)
-def admin_change_plan(user_id):
-
-    if not verificar_admin():
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Acesso negado."
-
-        }), 403
-
-    data = request.get_json(
-        silent=True
-    ) or {}
-
-    plan = str(
-        data.get("plan") or ""
-    ).strip().lower()
-
-    if plan not in [
-        "free",
-        "premium"
-    ]:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Plano inválido."
-
-        }), 400
-
-    try:
-
-        with get_db() as conn:
-
-            cursor = conn.cursor(
-                cursor_factory=
-                psycopg2.extras.RealDictCursor
-            )
-
-            cursor.execute("""
-                SELECT
-                    id,
-                    username
-                FROM users
-                WHERE id = %s
-            """, (
-                user_id,
-            ))
-
-            usuario = cursor.fetchone()
-
-            if not usuario:
-
-                return jsonify({
-
-                    "success":
-                        False,
-
-                    "message":
-                        "Usuário não encontrado."
-
-                }), 404
-
-            if (
-                usuario["username"]
-                == ADMIN_USERNAME
-            ):
-
-                return jsonify({
-
-                    "success":
-                        False,
-
-                    "message":
-                        "O administrador não pode ter o plano alterado."
-
-                }), 400
-
-            cursor.execute("""
-                UPDATE users
-                SET plan = %s
-                WHERE id = %s
-            """, (
-                plan,
-                user_id
-            ))
-
-            conn.commit()
-
-    except Exception as e:
-
-        print(
-            "ERRO ALTERAR PLANO:",
-            repr(e)
-        )
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Erro interno ao alterar o plano."
-
-        }), 500
-
-    return jsonify({
-
-        "success":
-            True,
-
-        "message":
-            "Plano atualizado com sucesso.",
-
-        "plan":
-            plan
-
-    })
-
-
-# ============================================================
-# EXCLUIR USUÁRIO
-# ============================================================
-
-@app.route(
-    "/api/admin/user/<int:user_id>/delete",
-    methods=["DELETE"]
-)
-def admin_delete_user(user_id):
-
-    if not verificar_admin():
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Acesso negado."
-
-        }), 403
-
-    try:
-
-        with get_db() as conn:
-
-            cursor = conn.cursor(
-                cursor_factory=
-                psycopg2.extras.RealDictCursor
-            )
-
-            cursor.execute("""
-                SELECT username
-                FROM users
-                WHERE id = %s
-            """, (
-                user_id,
-            ))
-
-            usuario = cursor.fetchone()
-
-            if not usuario:
-
-                return jsonify({
-
-                    "success":
-                        False,
-
-                    "message":
-                        "Usuário não encontrado."
-
-                }), 404
-
-            if (
-                usuario["username"]
-                == ADMIN_USERNAME
-            ):
-
-                return jsonify({
-
-                    "success":
-                        False,
-
-                    "message":
-                        "Você não pode excluir o administrador."
-
-                }), 400
-
-            username = (
-                usuario["username"]
-            )
-
-            cursor.execute("""
-                DELETE FROM chat_messages
-                WHERE conversation_id IN (
-                    SELECT id
-                    FROM conversations
-                    WHERE username = %s
-                )
-            """, (
-                username,
-            ))
-
-            cursor.execute("""
-                DELETE FROM conversations
-                WHERE username = %s
-            """, (
-                username,
-            ))
-
-            cursor.execute("""
-                DELETE FROM messages
-                WHERE username = %s
-            """, (
-                username,
-            ))
-
-            cursor.execute("""
-                DELETE FROM password_reset_tokens
-                WHERE user_id = %s
-            """, (
-                user_id,
-            ))
-
-            cursor.execute("""
-                DELETE FROM users
-                WHERE id = %s
-            """, (
-                user_id,
-            ))
-
-            conn.commit()
-
-    except Exception as e:
-
-        print(
-            "ERRO EXCLUIR USUÁRIO:",
-            repr(e)
-        )
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Erro interno ao excluir usuário."
-
-        }), 500
-
-    return jsonify({
-
-        "success":
-            True,
-
-        "message":
-            "Usuário excluído com sucesso."
-
-    })
-
-
-# ============================================================
-# REGISTER
-# ============================================================
-
-@app.route(
-    "/api/register",
-    methods=["POST"]
-)
-def api_register():
-
-    data = request.get_json(
-        silent=True
-    ) or {}
-
-    username = str(
-        data.get("username") or ""
-    ).strip()
-
-    password = str(
-        data.get("password") or ""
-    )
-
-    email = str(
-        data.get("email") or ""
-    ).strip().lower()
-
-    if not username or not password or not email:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Preencha todos os campos."
-
-        }), 400
-
-    if len(username) < 3:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "O usuário precisa ter pelo menos 3 caracteres."
-
-        }), 400
-
-    if len(username) > 30:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "O usuário pode ter no máximo 30 caracteres."
-
-        }), 400
-
-    if not re.fullmatch(
-        r"[A-Za-z0-9_]+",
+    plan = obter_plan_usuario(
         username
-    ):
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Use apenas letras, números e _ no nome de usuário."
-
-        }), 400
-
-    if len(password) < 6:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "A senha precisa ter pelo menos 6 caracteres."
-
-        }), 400
-
-    if not any(
-        caractere.isdigit()
-        for caractere in password
-    ):
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "A senha precisa ter pelo menos 1 número."
-
-        }), 400
-
-    if len(password) > 200:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "A senha é muito longa."
-
-        }), 400
-
-    if (
-        len(email) > 320
-        or "@" not in email
-        or "." not in email.split("@")[-1]
-    ):
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Digite um e-mail válido."
-
-        }), 400
-
-    if (
-        username.lower()
-        == ADMIN_USERNAME.lower()
-    ):
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Esse nome de usuário não está disponível."
-
-        }), 409
-
-    password_hash = (
-        generate_password_hash(
-            password
-        )
     )
 
-    try:
+    session["plan"] = plan
 
-        with get_db() as conn:
-
-            cursor = conn.cursor()
-
-            cursor.execute("""
-                SELECT id
-                FROM users
-                WHERE LOWER(email) = %s
-            """, (
-                email,
-            ))
-
-            if cursor.fetchone():
-
-                return jsonify({
-
-                    "success":
-                        False,
-
-                    "message":
-                        "Esse e-mail já está cadastrado."
-
-                }), 409
-
-            cursor.execute("""
-                INSERT INTO users
-                (
-                    username,
-                    password,
-                    plan,
-                    email
-                )
-                VALUES
-                (%s, %s, %s, %s)
-            """, (
-                username,
-                password_hash,
-                "free",
-                email
-            ))
-
-            conn.commit()
-
-        return jsonify({
-
-            "success":
-                True,
-
-            "message":
-                "Conta criada com sucesso."
-
-        })
-
-    except psycopg2.IntegrityError:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Usuário ou e-mail já existe."
-
-        }), 409
-
-    except Exception as e:
-
-        print(
-            "ERRO REGISTER:",
-            repr(e)
-        )
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Erro interno ao criar conta."
-
-        }), 500
-
-
-# ============================================================
-# LOGIN
-# ============================================================
-
-@app.route(
-    "/api/login",
-    methods=["POST"]
-)
-def api_login():
-
-    data = request.get_json(
-        silent=True
-    ) or {}
-
-    username = str(
-        data.get("username") or ""
-    ).strip()
-
-    password = str(
-        data.get("password") or ""
+    conversation_id = (
+        conversa_atual()
     )
 
-    if not username or not password:
+    if not conversation_id:
 
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Preencha usuário e senha."
-
-        }), 400
-
-    if (
-        username.lower()
-        == ADMIN_USERNAME.lower()
-    ):
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Use o acesso administrativo."
-
-        }), 403
-
-    try:
-
-        with get_db() as conn:
-
-            cursor = conn.cursor(
-                cursor_factory=
-                psycopg2.extras.RealDictCursor
-            )
-
-            cursor.execute("""
-                SELECT
-                    id,
-                    username,
-                    password,
-                    plan
-                FROM users
-                WHERE username = %s
-            """, (
-                username,
-            ))
-
-            user = cursor.fetchone()
-
-            if not user:
-
-                return jsonify({
-
-                    "success":
-                        False,
-
-                    "message":
-                        "Usuário ou senha incorretos."
-
-                }), 401
-
-            senha_correta = False
-
-            try:
-
-                senha_correta = (
-                    check_password_hash(
-                        user["password"],
-                        password
-                    )
-                )
-
-            except Exception:
-
-                senha_correta = False
-
-            if not senha_correta:
-
-                senha_antiga = (
-                    user["password"]
-                )
-
-                if (
-                    senha_antiga ==
-                    password
-                ):
-
-                    senha_correta = True
-
-                    nova_hash = (
-                        generate_password_hash(
-                            password
-                        )
-                    )
-
-                    cursor.execute("""
-                        UPDATE users
-                        SET password = %s
-                        WHERE id = %s
-                    """, (
-                        nova_hash,
-                        user["id"]
-                    ))
-
-                    conn.commit()
-
-            if not senha_correta:
-
-                return jsonify({
-
-                    "success":
-                        False,
-
-                    "message":
-                        "Usuário ou senha incorretos."
-
-                }), 401
-
-            session.clear()
-
-            session["user"] = (
-                user["username"]
-            )
-
-            session["admin"] = False
-
-            session["plan"] = (
-                user["plan"]
-                or "free"
-            )
-
-            conversation_id = (
-                criar_conversa(
-                    user["username"],
-                    "Nova conversa"
-                )
-            )
-
-            session["conversation_id"] = (
-                conversation_id
-            )
-
-            session.modified = True
-
-            return jsonify({
-
-                "success":
-                    True,
-
-                "plan":
-                    session["plan"],
-
-                "conversation_id":
-                    conversation_id
-
-            })
-
-    except Exception as e:
-
-        print(
-            "ERRO LOGIN:",
-            repr(e)
+        mensagem_erro = (
+            "Não foi possível abrir a conversa."
         )
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Erro interno no servidor."
-
-        }), 500
-
-
-# ============================================================
-# CHAT COM STREAMING
-# ============================================================
-
-@app.route(
-    "/chat",
-    methods=["POST"]
-)
-def chat():
-
-    if "user" not in session:
 
         return jsonify({
 
             "reply":
-                "Faça login primeiro.",
+                mensagem_erro,
 
             "message":
-                "Faça login primeiro.",
+                mensagem_erro,
 
             "success":
                 False
 
-        }), 401
+        }), 500
 
-    try:
+    with get_db() as conn:
 
-        data = request.get_json(
-            silent=True
-        ) or {}
-
-        mensagem = str(
-            data.get("message") or ""
-        ).strip()
-
-        imagem_base64 = data.get(
-            "image"
-        )
-
-        tipo_imagem = data.get(
-            "image_type"
-        )
-
-        if len(mensagem) > 12000:
-
-            mensagem_erro = (
-                "Sua mensagem é muito grande. "
-                "Tente enviar uma mensagem menor."
-            )
-
-            return jsonify({
-
-                "reply":
-                    mensagem_erro,
-
-                "message":
-                    mensagem_erro,
-
-                "success":
-                    False
-
-            }), 400
-
-        if imagem_base64:
-
-            if not isinstance(
-                imagem_base64,
-                str
-            ):
-
-                mensagem_erro = (
-                    "❌ Imagem inválida."
-                )
-
-                return jsonify({
-
-                    "reply":
-                        mensagem_erro,
-
-                    "message":
-                        mensagem_erro,
-
-                    "success":
-                        False
-
-                }), 400
-
-            if not tipo_imagem:
-
-                tipo_imagem = (
-                    "image/jpeg"
-                )
-
-            tipos_permitidos = [
-
-                "image/jpeg",
-                "image/png",
-                "image/webp",
-                "image/gif"
-
-            ]
-
-            if (
-                tipo_imagem
-                not in tipos_permitidos
-            ):
-
-                mensagem_erro = (
-                    "❌ Formato de imagem não suportado. "
-                    "Use JPG, PNG, WEBP ou GIF."
-                )
-
-                return jsonify({
-
-                    "reply":
-                        mensagem_erro,
-
-                    "message":
-                        mensagem_erro,
-
-                    "success":
-                        False
-
-                }), 400
-
-            if (
-                len(imagem_base64)
-                > 27_000_000
-            ):
-
-                mensagem_erro = (
-                    "❌ A imagem é muito grande. "
-                    "Use uma imagem menor."
-                )
-
-                return jsonify({
-
-                    "reply":
-                        mensagem_erro,
-
-                    "message":
-                        mensagem_erro,
-
-                    "success":
-                        False
-
-                }), 400
-
-        if (
-            not mensagem
-            and not imagem_base64
-        ):
-
-            mensagem_erro = (
-                "Digite uma mensagem ou envie uma imagem."
-            )
-
-            return jsonify({
-
-                "reply":
-                    mensagem_erro,
-
-                "message":
-                    mensagem_erro,
-
-                "success":
-                    False
-
-            }), 400
-
-        username = session["user"]
-
-        plan = obter_plan_usuario(
-            username
-        )
-
-        session["plan"] = plan
-
-        conversation_id = (
-            conversa_atual()
-        )
-
-        if not conversation_id:
-
-            mensagem_erro = (
-                "Não foi possível abrir a conversa."
-            )
-
-            return jsonify({
-
-                "reply":
-                    mensagem_erro,
-
-                "message":
-                    mensagem_erro,
-
-                "success":
-                    False
-
-            }), 500
-
-        with get_db() as conn:
-
-            cursor = conn.cursor()
-
-            if plan == "free":
-
-                cursor.execute("""
-                    SELECT COUNT(*)
-                    FROM chat_messages cm
-                    INNER JOIN conversations c
-                    ON cm.conversation_id = c.id
-                    WHERE c.username = %s
-                    AND cm.sender = 'user'
-                    AND DATE(cm.created_at) =
-                        CURRENT_DATE
-                """, (
-                    username,
-                ))
-
-                total = cursor.fetchone()[0]
-
-                if total >= 20:
-
-                    mensagem_limite = (
-                        "❌ Limite diário do plano FREE "
-                        "atingido (20 mensagens)."
-                    )
-
-                    return jsonify({
-
-                        "reply":
-                            mensagem_limite,
-
-                        "message":
-                            mensagem_limite,
-
-                        "limit_reached":
-                            True,
-
-                        "success":
-                            False,
-
-                        "plan":
-                            plan
-
-                    }), 429
-
-            mensagem_salva = (
-                mensagem
-            )
-
-            if imagem_base64:
-
-                if mensagem:
-
-                    mensagem_salva = (
-                        "📷 [Imagem enviada]\n\n"
-                        + mensagem
-                    )
-
-                else:
-
-                    mensagem_salva = (
-                        "📷 [Imagem enviada]"
-                    )
-
-            cursor.execute("""
-                INSERT INTO chat_messages
-                (conversation_id, sender, message)
-                VALUES (%s, %s, %s)
-                RETURNING id
-            """, (
-                conversation_id,
-                "user",
-                mensagem_salva
-            ))
-
-            resultado = cursor.fetchone()
-
-            if not resultado:
-
-                raise RuntimeError(
-                    "Não foi possível salvar a mensagem."
-                )
-
-            mensagem_id = resultado[0]
-
-            cursor.execute("""
-                UPDATE conversations
-                SET updated_at = CURRENT_TIMESTAMP
-                WHERE id = %s
-            """, (
-                conversation_id,
-            ))
-
-            conn.commit()
-
-        if mensagem:
-
-            try:
-
-                atualizar_titulo_se_necessario(
-                    conversation_id,
-                    mensagem
-                )
-
-            except Exception as erro_titulo:
-
-                print(
-                    "ERRO AO ATUALIZAR TÍTULO:",
-                    repr(erro_titulo)
-                )
-
-        agora = datetime.now()
-
-        data_atual = agora.strftime(
-            "%d/%m/%Y"
-        )
-
-        hora_atual = agora.strftime(
-            "%H:%M"
-        )
+        cursor = conn.cursor()
 
         if plan == "free":
 
-            estilo = """
+            cursor.execute("""
+                SELECT COUNT(*)
+                FROM chat_messages cm
+                INNER JOIN conversations c
+                ON cm.conversation_id = c.id
+                WHERE c.username = %s
+                AND cm.sender = 'user'
+                AND DATE(cm.created_at) =
+                    CURRENT_DATE
+            """, (
+                username,
+            ))
+
+            total = cursor.fetchone()[0]
+
+            if total >= 20:
+
+                mensagem_limite = (
+                    "❌ Limite diário do plano FREE "
+                    "atingido (20 mensagens)."
+                )
+
+                return jsonify({
+
+                    "reply":
+                        mensagem_limite,
+
+                    "message":
+                        mensagem_limite,
+
+                    "limit_reached":
+                        True,
+
+                    "success":
+                        False,
+
+                    "plan":
+                        plan
+
+                }), 429
+
+        mensagem_salva = (
+            mensagem
+        )
+
+        if imagem_base64:
+
+            if mensagem:
+
+                mensagem_salva = (
+                    "📷 [Imagem enviada]\n\n"
+                    + mensagem
+                )
+
+            else:
+
+                mensagem_salva = (
+                    "📷 [Imagem enviada]"
+                )
+
+        cursor.execute("""
+            INSERT INTO chat_messages
+            (conversation_id, sender, message)
+            VALUES (%s, %s, %s)
+            RETURNING id
+        """, (
+            conversation_id,
+            "user",
+            mensagem_salva
+        ))
+
+        resultado = cursor.fetchone()
+
+        if not resultado:
+
+            raise RuntimeError(
+                "Não foi possível salvar a mensagem."
+            )
+
+        mensagem_id = resultado[0]
+
+        cursor.execute("""
+            UPDATE conversations
+            SET updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """, (
+            conversation_id,
+        ))
+
+        conn.commit()
+
+    if mensagem:
+
+        try:
+
+            atualizar_titulo_se_necessario(
+                conversation_id,
+                mensagem
+            )
+
+        except Exception as erro_titulo:
+
+            print(
+                "ERRO AO ATUALIZAR TÍTULO:",
+                repr(erro_titulo)
+            )
+
+    agora = datetime.now()
+
+    data_atual = agora.strftime(
+        "%d/%m/%Y"
+    )
+
+    hora_atual = agora.strftime(
+        "%H:%M"
+    )
+
+    if plan == "free":
+
+        estilo = """
+```
+
 Responda de forma clara, útil e objetiva.
 
 Prefira respostas relativamente curtas,
@@ -4013,9 +4134,12 @@ mas não deixe de explicar o necessário.
 Mantenha boa qualidade e organização.
 """
 
-        else:
+```
+    else:
 
-            estilo = """
+        estilo = """
+```
+
 Responda de forma completa, detalhada
 e inteligente.
 
@@ -4025,14 +4149,17 @@ Use exemplos quando eles ajudarem
 o usuário a entender.
 """
 
-        mensagens_ia = [
+```
+    mensagens_ia = [
 
-            {
+        {
 
-                "role":
-                    "system",
+            "role":
+                "system",
 
-                "content": f"""
+            "content": f"""
+```
+
 Você é o Orion AI, um assistente
 virtual brasileiro inteligente, útil,
 natural e amigável.
@@ -4047,13 +4174,13 @@ Você também possui visão.
 
 Quando o usuário enviar uma imagem:
 
-- analise a imagem cuidadosamente;
-- descreva o que realmente consegue ver;
-- responda perguntas sobre a imagem;
-- leia textos visíveis quando possível;
-- analise gráficos, documentos,
+* analise a imagem cuidadosamente;
+* descreva o que realmente consegue ver;
+* responda perguntas sobre a imagem;
+* leia textos visíveis quando possível;
+* analise gráficos, documentos,
   objetos e capturas de tela quando possível;
-- não invente detalhes que não consegue identificar.
+* não invente detalhes que não consegue identificar.
 
 A data atual é:
 {data_atual}
@@ -4076,11 +4203,11 @@ Use Markdown quando ajudar.
 
 Quando o usuário pedir código:
 
-- entregue código funcional;
-- preserve a estrutura existente;
-- não remova funcionalidades sem motivo;
-- explique brevemente as mudanças;
-- se pedir arquivo inteiro,
+* entregue código funcional;
+* preserve a estrutura existente;
+* não remova funcionalidades sem motivo;
+* explique brevemente as mudanças;
+* se pedir arquivo inteiro,
   entregue o arquivo inteiro.
 
 Não invente conscientemente
@@ -4098,93 +4225,114 @@ PLANO:
 {estilo}
 """
 
+```
+        }
+
+    ]
+
+    # ====================================================
+    # HISTÓRICO REDUZIDO PARA DIMINUIR CONSUMO
+    # ====================================================
+
+    with get_db() as conn:
+
+        cursor = conn.cursor(
+            cursor_factory=
+            psycopg2.extras.RealDictCursor
+        )
+
+        cursor.execute("""
+            SELECT
+                sender,
+                message
+            FROM chat_messages
+            WHERE conversation_id = %s
+            ORDER BY id DESC
+            LIMIT 8
+        """, (
+            conversation_id,
+        ))
+
+        historico = cursor.fetchall()
+
+    for item in reversed(
+        historico
+    ):
+
+        role = (
+            "assistant"
+            if item["sender"] == "bot"
+            else "user"
+        )
+
+        mensagens_ia.append({
+
+            "role":
+                role,
+
+            "content":
+                item["message"]
+
+        })
+
+    conteudo_usuario = []
+
+    if mensagem:
+
+        conteudo_usuario.append({
+
+            "type":
+                "text",
+
+            "text":
+                mensagem
+
+        })
+
+    if imagem_base64:
+
+        conteudo_usuario.append({
+
+            "type":
+                "image_url",
+
+            "image_url": {
+
+                "url":
+                    (
+                        f"data:{tipo_imagem};"
+                        f"base64,{imagem_base64}"
+                    )
+
             }
 
-        ]
+        })
 
-        with get_db() as conn:
+    if client is None:
 
-            cursor = conn.cursor(
-                cursor_factory=
-                psycopg2.extras.RealDictCursor
-            )
-
-            cursor.execute("""
-                SELECT
-                    sender,
-                    message
-                FROM chat_messages
-                WHERE conversation_id = %s
-                ORDER BY id DESC
-                LIMIT 20
-            """, (
-                conversation_id,
-            ))
-
-            historico = cursor.fetchall()
-
-        for item in reversed(
-            historico
-        ):
-
-            role = (
-                "assistant"
-                if item["sender"] == "bot"
-                else "user"
-            )
-
-            mensagens_ia.append({
-
-                "role":
-                    role,
-
-                "content":
-                    item["message"]
-
-            })
-
-        conteudo_usuario = []
-
-        if mensagem:
-
-            conteudo_usuario.append({
-
-                "type":
-                    "text",
-
-                "text":
-                    mensagem
-
-            })
-
-        if imagem_base64:
-
-            conteudo_usuario.append({
-
-                "type":
-                    "image_url",
-
-                "image_url": {
-
-                    "url":
-                        (
-                            f"data:{tipo_imagem};"
-                            f"base64,{imagem_base64}"
-                        )
-
-                }
-
-            })
-
-        if client is None:
-
-            raise RuntimeError(
-                "GROQ_API_KEY não configurada."
-            )
-
-        mensagens_para_api = list(
-            mensagens_ia
+        raise RuntimeError(
+            "GROQ_API_KEY não configurada."
         )
+
+    mensagens_para_api = list(
+        mensagens_ia
+    )
+
+    # ====================================================
+    # IMPORTANTE:
+    # A mensagem atual já foi salva no banco.
+    # Por isso não adicionamos novamente aqui.
+    # ====================================================
+
+    if not historico or (
+        historico
+        and not (
+            historico[-1]["sender"]
+            == "user"
+            and historico[-1]["message"]
+            == mensagem_salva
+        )
+    ):
 
         mensagens_para_api.append({
 
@@ -4196,16 +4344,47 @@ PLANO:
 
         })
 
-        # ========================================================
-        # STREAMING DA RESPOSTA
-        # ========================================================
+    else:
 
-        @stream_with_context
-        def gerar_stream():
+        # Reconstrói a última mensagem com imagem,
+        # caso exista, para que a visão continue funcionando.
 
-            texto_completo = ""
+        if (
+            mensagens_para_api
+            and mensagens_para_api[-1]["role"]
+            == "user"
+        ):
+
+            mensagens_para_api.pop()
+
+        mensagens_para_api.append({
+
+            "role":
+                "user",
+
+            "content":
+                conteudo_usuario
+
+        })
+
+    # ====================================================
+    # STREAMING COM RETENTATIVA PARA 429
+    # ====================================================
+
+    @stream_with_context
+    def gerar_stream():
+
+        texto_completo = ""
+
+        ultimo_erro = None
+
+        for tentativa in range(1, 4):
 
             try:
+
+                print(
+                    f"INICIANDO STREAMING - TENTATIVA {tentativa}/3"
+                )
 
                 stream = (
                     client.chat.completions.create(
@@ -4220,7 +4399,7 @@ PLANO:
                             0.7,
 
                         max_completion_tokens=
-                            2048,
+                            1024,
 
                         reasoning_effort=
                             "none",
@@ -4250,537 +4429,457 @@ PLANO:
 
                         continue
 
-                    texto_completo += parte
+                    texto_completo += (
+                        parte
+                    )
 
                     yield parte
 
-                if not texto_completo.strip():
+                if texto_completo.strip():
 
-                    texto_completo = (
-                        "Não consegui gerar uma resposta."
-                    )
-
-                    yield texto_completo
-
-                # =================================================
-                # SALVAR RESPOSTA COMPLETA
-                # =================================================
-
-                with get_db() as conn:
-
-                    cursor = conn.cursor()
-
-                    cursor.execute("""
-                        INSERT INTO chat_messages
-                        (conversation_id, sender, message)
-                        VALUES (%s, %s, %s)
-                    """, (
-                        conversation_id,
-                        "bot",
-                        texto_completo
-                    ))
-
-                    cursor.execute("""
-                        UPDATE conversations
-                        SET updated_at = CURRENT_TIMESTAMP
-                        WHERE id = %s
-                    """, (
-                        conversation_id,
-                    ))
-
-                    conn.commit()
-
-                print(
-                    "STREAMING FINALIZADO:",
-                    conversation_id
-                )
+                    break
 
             except Exception as e:
 
-                print(
-                    "=================================================="
-                )
-
-                print(
-                    "ERRO NO STREAMING:"
-                )
-
-                print(
-                    repr(e)
-                )
-
-                print(
-                    "=================================================="
-                )
-
-                texto_erro = (
-                    "❌ Ocorreu um erro ao gerar a resposta."
-                )
+                ultimo_erro = e
 
                 erro_texto = str(
                     e
                 ).lower()
 
-                if "api key" in erro_texto:
+                print(
+                    "ERRO STREAMING:",
+                    repr(e)
+                )
 
-                    texto_erro = (
-                        "❌ A GROQ_API_KEY não está configurada corretamente no Render."
+                # ----------------------------------------
+                # RATE LIMIT
+                # ----------------------------------------
+
+                if (
+                    "429" in erro_texto
+                    or "rate limit"
+                    in erro_texto
+                ):
+
+                    if tentativa < 3:
+
+                        espera = (
+                            tentativa * 4
+                        )
+
+                        print(
+                            f"RATE LIMIT. "
+                            f"AGUARDANDO {espera} SEGUNDOS..."
+                        )
+
+                        time.sleep(
+                            espera
+                        )
+
+                        continue
+
+                    yield (
+                        "\n\n❌ A Groq está "
+                        "temporariamente no limite. "
+                        "Tente novamente em alguns segundos."
                     )
 
-                elif (
+                    return
+
+                # ----------------------------------------
+                # CHAVE DA API
+                # ----------------------------------------
+
+                if "api key" in erro_texto:
+
+                    yield (
+                        "\n\n❌ A GROQ_API_KEY "
+                        "não está configurada corretamente."
+                    )
+
+                    return
+
+                # ----------------------------------------
+                # MODELO
+                # ----------------------------------------
+
+                if (
                     "model" in erro_texto
                     and (
-                        "not found" in erro_texto
+                        "not found"
+                        in erro_texto
                         or "model_not_found"
                         in erro_texto
                     )
                 ):
 
-                    texto_erro = (
-                        "❌ O modelo da IA não está disponível para esta chave da Groq."
+                    yield (
+                        "\n\n❌ O modelo da IA "
+                        "não está disponível para esta chave da Groq."
                     )
 
-                elif (
-                    "rate limit" in erro_texto
-                    or "429" in erro_texto
-                ):
+                    return
 
-                    texto_erro = (
-                        "❌ A IA atingiu o limite temporário de requisições. "
-                        "Tente novamente em alguns segundos."
-                    )
+                # ----------------------------------------
+                # BANCO
+                # ----------------------------------------
 
-                elif (
+                if (
                     "database" in erro_texto
-                    or "postgres" in erro_texto
-                    or "psycopg2" in erro_texto
+                    or "postgres"
+                    in erro_texto
+                    or "psycopg2"
+                    in erro_texto
                 ):
 
-                    texto_erro = (
-                        "❌ Erro ao acessar o banco de dados PostgreSQL."
+                    yield (
+                        "\n\n❌ Erro ao acessar "
+                        "o banco de dados PostgreSQL."
                     )
 
-                yield "\n\n" + texto_erro
+                    return
 
-        return Response(
+                yield (
+                    "\n\n❌ Ocorreu um erro "
+                    "ao gerar a resposta."
+                )
 
-            gerar_stream(),
+                return
 
-            mimetype="text/plain",
+        # =================================================
+        # SALVAR RESPOSTA COMPLETA
+        # =================================================
 
-            headers={
+        if not texto_completo.strip():
 
-                "Cache-Control":
-                    "no-cache",
+            if ultimo_erro:
 
-                "X-Accel-Buffering":
-                    "no",
+                print(
+                    "STREAMING FINALIZADO SEM RESPOSTA:",
+                    repr(ultimo_erro)
+                )
 
-                "Connection":
-                    "keep-alive"
+            texto_completo = (
+                "Não consegui gerar uma resposta."
+            )
 
-            }
-
-        )
-
-    except Exception as e:
-
-        print(
-            "=================================================="
-        )
-
-        print(
-            "ERRO NO CHAT:"
-        )
-
-        print(
-            repr(e)
-        )
-
-        print(
-            "=================================================="
-        )
+            yield texto_completo
 
         try:
 
-            if "mensagem_id" in locals():
+            with get_db() as conn:
 
-                with get_db() as conn:
+                cursor = conn.cursor()
 
-                    cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO chat_messages
+                    (conversation_id, sender, message)
+                    VALUES (%s, %s, %s)
+                """, (
+                    conversation_id,
+                    "bot",
+                    texto_completo
+                ))
 
-                    cursor.execute("""
-                        DELETE FROM chat_messages
-                        WHERE id = %s
-                        AND conversation_id = %s
-                        AND sender = 'user'
-                    """, (
-                        mensagem_id,
-                        conversation_id
-                    ))
+                cursor.execute("""
+                    UPDATE conversations
+                    SET updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (
+                    conversation_id,
+                ))
 
-                    conn.commit()
+                conn.commit()
+
+            print(
+                "STREAMING FINALIZADO:",
+                conversation_id
+            )
 
         except Exception as erro_db:
 
             print(
-                "ERRO AO REVERTER MENSAGEM:",
+                "ERRO AO SALVAR RESPOSTA DO STREAMING:",
                 repr(erro_db)
             )
 
-        mensagem_erro = (
-            "❌ Ocorreu um erro ao processar sua mensagem."
+    return Response(
+
+        gerar_stream(),
+
+        mimetype="text/plain",
+
+        headers={
+
+            "Cache-Control":
+                "no-cache, no-transform",
+
+            "X-Accel-Buffering":
+                "no",
+
+            "Connection":
+                "keep-alive",
+
+            "X-Content-Type-Options":
+                "nosniff"
+
+        }
+
+    )
+
+except Exception as e:
+
+    print(
+        "=================================================="
+    )
+
+    print(
+        "ERRO NO CHAT:"
+    )
+
+    print(
+        repr(e)
+    )
+
+    print(
+        "=================================================="
+    )
+
+    try:
+
+        if "mensagem_id" in locals():
+
+            with get_db() as conn:
+
+                cursor = conn.cursor()
+
+                cursor.execute("""
+                    DELETE FROM chat_messages
+                    WHERE id = %s
+                    AND conversation_id = %s
+                    AND sender = 'user'
+                """, (
+                    mensagem_id,
+                    conversation_id
+                ))
+
+                conn.commit()
+
+    except Exception as erro_db:
+
+        print(
+            "ERRO AO REVERTER MENSAGEM:",
+            repr(erro_db)
         )
 
-        texto_erro = str(
-            e
-        ).lower()
+    mensagem_erro = (
+        "❌ Ocorreu um erro ao processar sua mensagem."
+    )
 
-        if "api key" in texto_erro:
+    texto_erro = str(
+        e
+    ).lower()
 
-            mensagem_erro = (
-                "❌ A GROQ_API_KEY não está configurada corretamente no Render."
-            )
+    if "api key" in texto_erro:
 
-        elif (
-            "model" in texto_erro
-            and (
-                "not found" in texto_erro
-                or "model_not_found"
-                in texto_erro
-            )
-        ):
+        mensagem_erro = (
+            "❌ A GROQ_API_KEY não está configurada corretamente no Render."
+        )
 
-            mensagem_erro = (
-                "❌ O modelo da IA não está disponível para esta chave da Groq."
-            )
+    elif (
+        "model" in texto_erro
+        and (
+            "not found" in texto_erro
+            or "model_not_found"
+            in texto_erro
+        )
+    ):
 
-        elif (
-            "rate limit" in texto_erro
-            or "429" in texto_erro
-        ):
+        mensagem_erro = (
+            "❌ O modelo da IA não está disponível para esta chave da Groq."
+        )
 
-            mensagem_erro = (
-                "❌ A IA atingiu o limite temporário de requisições. "
-                "Tente novamente em alguns segundos."
-            )
+    elif (
+        "rate limit" in texto_erro
+        or "429" in texto_erro
+    ):
 
-        elif (
-            "database" in texto_erro
-            or "postgres" in texto_erro
-            or "psycopg2" in texto_erro
-        ):
+        mensagem_erro = (
+            "❌ A Groq está temporariamente no limite. "
+            "Tente novamente em alguns segundos."
+        )
 
-            mensagem_erro = (
-                "❌ Erro ao acessar o banco de dados PostgreSQL."
-            )
+    elif (
+        "database" in texto_erro
+        or "postgres" in texto_erro
+        or "psycopg2" in texto_erro
+    ):
 
-        return jsonify({
+        mensagem_erro = (
+            "❌ Erro ao acessar o banco de dados PostgreSQL."
+        )
 
-            "success":
-                False,
+    return jsonify({
 
-            "reply":
-                mensagem_erro,
+        "success":
+            False,
 
-            "message":
-                mensagem_erro
+        "reply":
+            mensagem_erro,
 
-        }), 500
+        "message":
+            mensagem_erro
 
+    }), 500
+```
 
 # ============================================================
+
 # LISTAR CONVERSAS
+
 # ============================================================
 
 @app.route("/conversations")
 def conversations():
 
-    if "user" not in session:
+```
+if "user" not in session:
 
-        return jsonify({
+    return jsonify({
 
-            "success":
-                False,
+        "success":
+            False,
 
-            "message":
-                "Faça login primeiro.",
+        "message":
+            "Faça login primeiro.",
 
-            "conversations":
-                []
+        "conversations":
+            []
 
-        }), 401
+    }), 401
 
-    try:
+try:
 
-        with get_db() as conn:
+    with get_db() as conn:
 
-            cursor = conn.cursor(
-                cursor_factory=
-                psycopg2.extras.RealDictCursor
-            )
-
-            cursor.execute("""
-                SELECT
-                    id,
-                    title,
-                    created_at,
-                    updated_at
-                FROM conversations
-                WHERE username = %s
-                ORDER BY updated_at DESC, id DESC
-            """, (
-                session["user"],
-            ))
-
-            lista = cursor.fetchall()
-
-        return jsonify([
-
-            {
-
-                "id":
-                    item["id"],
-
-                "title":
-                    item["title"]
-                    or "Nova conversa",
-
-                "created_at":
-                    (
-                        item["created_at"].isoformat()
-                        if item["created_at"]
-                        else None
-                    ),
-
-                "updated_at":
-                    (
-                        item["updated_at"].isoformat()
-                        if item["updated_at"]
-                        else None
-                    )
-
-            }
-
-            for item in lista
-
-        ])
-
-    except Exception as e:
-
-        print(
-            "ERRO CONVERSATIONS:",
-            repr(e)
+        cursor = conn.cursor(
+            cursor_factory=
+            psycopg2.extras.RealDictCursor
         )
 
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Erro ao carregar conversas.",
-
-            "conversations":
-                []
-
-        }), 500
-
-
-# ============================================================
-# ALIAS API - CONVERSAS
-# ============================================================
-
-@app.route("/api/conversations")
-def api_conversations():
-
-    return conversations()
-
-
-# ============================================================
-# ABRIR CONVERSA
-# ============================================================
-
-@app.route(
-    "/conversation/<int:conversation_id>"
-)
-def open_conversation(
-    conversation_id
-):
-
-    if "user" not in session:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Faça login primeiro."
-
-        }), 401
-
-    try:
-
-        if not verificar_conversa(
+        cursor.execute("""
+            SELECT
+                id,
+                title,
+                created_at,
+                updated_at
+            FROM conversations
+            WHERE username = %s
+            ORDER BY updated_at DESC, id DESC
+        """, (
             session["user"],
-            conversation_id
-        ):
+        ))
 
-            return jsonify({
+        lista = cursor.fetchall()
 
-                "success":
-                    False,
+    return jsonify([
 
-                "message":
-                    "Conversa não encontrada."
+        {
 
-            }), 404
-
-        session["conversation_id"] = (
-            conversation_id
-        )
-
-        session.modified = True
-
-        with get_db() as conn:
-
-            cursor = conn.cursor(
-                cursor_factory=
-                psycopg2.extras.RealDictCursor
-            )
-
-            cursor.execute("""
-                SELECT
-                    sender,
-                    message,
-                    created_at
-                FROM chat_messages
-                WHERE conversation_id = %s
-                ORDER BY id ASC
-            """, (
-                conversation_id,
-            ))
-
-            mensagens = cursor.fetchall()
-
-            cursor.execute("""
-                SELECT
-                    title,
-                    created_at,
-                    updated_at
-                FROM conversations
-                WHERE id = %s
-                AND username = %s
-            """, (
-                conversation_id,
-                session["user"]
-            ))
-
-            conversa = cursor.fetchone()
-
-        return jsonify({
-
-            "success":
-                True,
-
-            "conversation_id":
-                conversation_id,
+            "id":
+                item["id"],
 
             "title":
-                (
-                    conversa["title"]
-                    if conversa
-                    else "Nova conversa"
-                ),
+                item["title"]
+                or "Nova conversa",
 
             "created_at":
                 (
-                    conversa["created_at"].isoformat()
-                    if (
-                        conversa
-                        and conversa["created_at"]
-                    )
+                    item["created_at"].isoformat()
+                    if item["created_at"]
                     else None
                 ),
 
             "updated_at":
                 (
-                    conversa["updated_at"].isoformat()
-                    if (
-                        conversa
-                        and conversa["updated_at"]
-                    )
+                    item["updated_at"].isoformat()
+                    if item["updated_at"]
                     else None
-                ),
+                )
 
-            "messages": [
+        }
 
-                {
+        for item in lista
 
-                    "sender":
-                        item["sender"],
+    ])
 
-                    "message":
-                        item["message"],
+except Exception as e:
 
-                    "created_at":
-                        (
-                            item["created_at"].isoformat()
-                            if item["created_at"]
-                            else None
-                        )
+    print(
+        "ERRO CONVERSATIONS:",
+        repr(e)
+    )
 
-                }
+    return jsonify({
 
-                for item in mensagens
+        "success":
+            False,
 
-            ]
+        "message":
+            "Erro ao carregar conversas.",
 
-        })
+        "conversations":
+            []
 
-    except Exception as e:
-
-        print(
-            "ERRO OPEN CONVERSATION:",
-            repr(e)
-        )
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Erro ao abrir a conversa."
-
-        }), 500
-
+    }), 500
+```
 
 # ============================================================
-# ALIAS API - ABRIR CONVERSA
+
+# ALIAS API - CONVERSAS
+
+# ============================================================
+
+@app.route("/api/conversations")
+def api_conversations():
+
+```
+return conversations()
+```
+
+# ============================================================
+
+# ABRIR CONVERSA
+
 # ============================================================
 
 @app.route(
-    "/api/conversation/<int:conversation_id>"
+"/conversation/[int:conversation_id](int:conversation_id)"
 )
-def api_open_conversation(
-    conversation_id
+def open_conversation(
+conversation_id
 ):
 
-    return open_conversation(
+```
+if "user" not in session:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Faça login primeiro."
+
+    }), 401
+
+try:
+
+    if not verificar_conversa(
+        session["user"],
         conversation_id
-    )
-
-
-# ============================================================
-# HISTORY
-# ============================================================
-
-@app.route("/history")
-def history():
-
-    if "user" not in session:
+    ):
 
         return jsonify({
 
@@ -4788,45 +4887,88 @@ def history():
                 False,
 
             "message":
-                "Faça login primeiro.",
+                "Conversa não encontrada."
 
-            "history":
-                []
+        }), 404
 
-        }), 401
+    session["conversation_id"] = (
+        conversation_id
+    )
 
-    try:
+    session.modified = True
 
-        conversation_id = (
-            conversa_atual()
+    with get_db() as conn:
+
+        cursor = conn.cursor(
+            cursor_factory=
+            psycopg2.extras.RealDictCursor
         )
 
-        if not conversation_id:
+        cursor.execute("""
+            SELECT
+                sender,
+                message,
+                created_at
+            FROM chat_messages
+            WHERE conversation_id = %s
+            ORDER BY id ASC
+        """, (
+            conversation_id,
+        ))
 
-            return jsonify([])
+        mensagens = cursor.fetchall()
 
-        with get_db() as conn:
+        cursor.execute("""
+            SELECT
+                title,
+                created_at,
+                updated_at
+            FROM conversations
+            WHERE id = %s
+            AND username = %s
+        """, (
+            conversation_id,
+            session["user"]
+        ))
 
-            cursor = conn.cursor(
-                cursor_factory=
-                psycopg2.extras.RealDictCursor
-            )
+        conversa = cursor.fetchone()
 
-            cursor.execute("""
-                SELECT
-                    sender,
-                    message,
-                    created_at
-                FROM chat_messages
-                WHERE conversation_id = %s
-                ORDER BY id ASC
-            """, (
-                conversation_id,
-            ))
+    return jsonify({
 
-            mensagens = cursor.fetchall()
+        "success":
+            True,
 
-        return jsonify([
+        "conversation_id":
+            conversation_id,
+
+        "title":
+            (
+                conversa["title"]
+                if conversa
+                else "Nova conversa"
+            ),
+
+        "created_at":
+            (
+                conversa["created_at"].isoformat()
+                if (
+                    conversa
+                    and conversa["created_at"]
+                )
+                else None
+            ),
+
+        "updated_at":
+            (
+                conversa["updated_at"].isoformat()
+                if (
+                    conversa
+                    and conversa["updated_at"]
+                )
+                else None
+            ),
+
+        "messages": [
 
             {
 
@@ -4847,138 +4989,285 @@ def history():
 
             for item in mensagens
 
-        ])
+        ]
 
-    except Exception as e:
+    })
 
-        print(
-            "ERRO HISTORY:",
-            repr(e)
-        )
+except Exception as e:
 
-        return jsonify({
+    print(
+        "ERRO OPEN CONVERSATION:",
+        repr(e)
+    )
 
-            "success":
-                False,
+    return jsonify({
 
-            "message":
-                "Erro ao carregar histórico.",
+        "success":
+            False,
 
-            "history":
-                []
+        "message":
+            "Erro ao abrir a conversa."
 
-        }), 500
-
+    }), 500
+```
 
 # ============================================================
+
+# ALIAS API - ABRIR CONVERSA
+
+# ============================================================
+
+@app.route(
+"/api/conversation/[int:conversation_id](int:conversation_id)"
+)
+def api_open_conversation(
+conversation_id
+):
+
+```
+return open_conversation(
+    conversation_id
+)
+```
+
+# ============================================================
+
+# HISTORY
+
+# ============================================================
+
+@app.route("/history")
+def history():
+
+```
+if "user" not in session:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Faça login primeiro.",
+
+        "history":
+            []
+
+    }), 401
+
+try:
+
+    conversation_id = (
+        conversa_atual()
+    )
+
+    if not conversation_id:
+
+        return jsonify([])
+
+    with get_db() as conn:
+
+        cursor = conn.cursor(
+            cursor_factory=
+            psycopg2.extras.RealDictCursor
+        )
+
+        cursor.execute("""
+            SELECT
+                sender,
+                message,
+                created_at
+            FROM chat_messages
+            WHERE conversation_id = %s
+            ORDER BY id ASC
+        """, (
+            conversation_id,
+        ))
+
+        mensagens = cursor.fetchall()
+
+    return jsonify([
+
+        {
+
+            "sender":
+                item["sender"],
+
+            "message":
+                item["message"],
+
+            "created_at":
+                (
+                    item["created_at"].isoformat()
+                    if item["created_at"]
+                    else None
+                )
+
+        }
+
+        for item in mensagens
+
+    ])
+
+except Exception as e:
+
+    print(
+        "ERRO HISTORY:",
+        repr(e)
+    )
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Erro ao carregar histórico.",
+
+        "history":
+            []
+
+    }), 500
+```
+
+# ============================================================
+
 # ALIAS API - HISTORY
+
 # ============================================================
 
 @app.route("/api/history")
 def api_history():
 
-    return history()
-
+```
+return history()
+```
 
 # ============================================================
+
 # NOVA CONVERSA
+
 # ============================================================
 
 @app.route(
-    "/new_chat",
-    methods=["POST"]
+"/new_chat",
+methods=["POST"]
 )
 def new_chat():
 
-    if "user" not in session:
+```
+if "user" not in session:
 
-        return jsonify({
+    return jsonify({
 
-            "success":
-                False,
+        "success":
+            False,
 
-            "message":
-                "Faça login primeiro."
+        "message":
+            "Faça login primeiro."
 
-        }), 401
+    }), 401
 
-    try:
+try:
 
-        username = session["user"]
+    username = session["user"]
 
-        conversation_id = criar_conversa(
-            username,
+    conversation_id = criar_conversa(
+        username,
+        "Nova conversa"
+    )
+
+    session["conversation_id"] = (
+        conversation_id
+    )
+
+    session.modified = True
+
+    print(
+        f"Nova conversa criada: "
+        f"{conversation_id} - {username}"
+    )
+
+    return jsonify({
+
+        "success":
+            True,
+
+        "conversation_id":
+            conversation_id,
+
+        "title":
             "Nova conversa"
-        )
 
-        session["conversation_id"] = (
-            conversation_id
-        )
+    })
 
-        session.modified = True
+except Exception as e:
 
-        print(
-            f"Nova conversa criada: "
-            f"{conversation_id} - {username}"
-        )
+    print(
+        "ERRO NEW CHAT:",
+        repr(e)
+    )
 
-        return jsonify({
+    return jsonify({
 
-            "success":
-                True,
+        "success":
+            False,
 
-            "conversation_id":
-                conversation_id,
+        "message":
+            "Erro ao criar uma nova conversa."
 
-            "title":
-                "Nova conversa"
-
-        })
-
-    except Exception as e:
-
-        print(
-            "ERRO NEW CHAT:",
-            repr(e)
-        )
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Erro ao criar uma nova conversa."
-
-        }), 500
-
+    }), 500
+```
 
 # ============================================================
+
 # ALIAS API - NOVA CONVERSA
+
 # ============================================================
 
 @app.route(
-    "/api/new_chat",
-    methods=["POST"]
+"/api/new_chat",
+methods=["POST"]
 )
 def api_new_chat():
 
-    return new_chat()
-
+```
+return new_chat()
+```
 
 # ============================================================
+
 # RENOMEAR CONVERSA
+
 # ============================================================
 
 @app.route(
-    "/conversation/<int:conversation_id>/rename",
-    methods=["POST"]
+"/conversation/[int:conversation_id](int:conversation_id)/rename",
+methods=["POST"]
 )
 def rename_conversation(
-    conversation_id
+conversation_id
 ):
 
-    if "user" not in session:
+```
+if "user" not in session:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Faça login primeiro."
+
+    }), 401
+
+try:
+
+    if not verificar_conversa(
+        session["user"],
+        conversation_id
+    ):
 
         return jsonify({
 
@@ -4986,16 +5275,188 @@ def rename_conversation(
                 False,
 
             "message":
-                "Faça login primeiro."
+                "Conversa não encontrada."
 
-        }), 401
+        }), 404
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    title = str(
+        data.get("title") or ""
+    ).strip()
+
+    if not title:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Digite um nome para a conversa."
+
+        }), 400
+
+    if len(title) > 100:
+
+        title = title[:100].rstrip()
+
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            UPDATE conversations
+            SET title = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+            AND username = %s
+        """, (
+            title,
+            conversation_id,
+            session["user"]
+        ))
+
+        conn.commit()
+
+    return jsonify({
+
+        "success":
+            True,
+
+        "title":
+            title
+
+    })
+
+except Exception as e:
+
+    print(
+        "ERRO RENAME:",
+        repr(e)
+    )
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Erro ao renomear conversa."
+
+    }), 500
+```
+
+# ============================================================
+
+# ALIAS API - RENOMEAR
+
+# ============================================================
+
+@app.route(
+"/api/conversation/[int:conversation_id](int:conversation_id)/rename",
+methods=["POST"]
+)
+def api_rename_conversation(
+conversation_id
+):
+
+```
+return rename_conversation(
+    conversation_id
+)
+```
+
+# ============================================================
+
+# FUNÇÃO INTERNA - EXCLUIR CONVERSA
+
+# ============================================================
+
+def executar_exclusao_conversa(
+conversation_id
+):
+
+```
+if "user" not in session:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Faça login primeiro."
+
+    }), 401
+
+try:
+
+    username = session["user"]
 
     try:
 
-        if not verificar_conversa(
-            session["user"],
+        conversation_id = int(
             conversation_id
-        ):
+        )
+
+    except (
+        ValueError,
+        TypeError
+    ):
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "ID da conversa inválido."
+
+        }), 400
+
+    if not verificar_conversa(
+        username,
+        conversation_id
+    ):
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Conversa não encontrada."
+
+        }), 404
+
+    with get_db() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            DELETE FROM chat_messages
+            WHERE conversation_id = %s
+        """, (
+            conversation_id,
+        ))
+
+        cursor.execute("""
+            DELETE FROM conversations
+            WHERE id = %s
+            AND username = %s
+        """, (
+            conversation_id,
+            username
+        ))
+
+        excluida = cursor.rowcount
+
+        if excluida == 0:
+
+            conn.rollback()
 
             return jsonify({
 
@@ -5007,121 +5468,315 @@ def rename_conversation(
 
             }), 404
 
-        data = request.get_json(
-            silent=True
-        ) or {}
+        conn.commit()
 
-        title = str(
-            data.get("title") or ""
-        ).strip()
+    conversa_atual_id = (
+        session.get(
+            "conversation_id"
+        )
+    )
 
-        if not title:
+    if (
+        conversa_atual_id is not None
+        and int(conversa_atual_id)
+        == int(conversation_id)
+    ):
 
-            return jsonify({
-
-                "success":
-                    False,
-
-                "message":
-                    "Digite um nome para a conversa."
-
-            }), 400
-
-        if len(title) > 100:
-
-            title = title[:100].rstrip()
-
-        with get_db() as conn:
-
-            cursor = conn.cursor()
-
-            cursor.execute("""
-                UPDATE conversations
-                SET title = %s,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = %s
-                AND username = %s
-            """, (
-                title,
-                conversation_id,
-                session["user"]
-            ))
-
-            conn.commit()
-
-        return jsonify({
-
-            "success":
-                True,
-
-            "title":
-                title
-
-        })
-
-    except Exception as e:
-
-        print(
-            "ERRO RENAME:",
-            repr(e)
+        nova_conversa = criar_conversa(
+            username,
+            "Nova conversa"
         )
 
-        return jsonify({
+        session["conversation_id"] = (
+            nova_conversa
+        )
 
-            "success":
-                False,
+        session.modified = True
 
-            "message":
-                "Erro ao renomear conversa."
+    else:
 
-        }), 500
+        atual = session.get(
+            "conversation_id"
+        )
 
+        if atual:
+
+            try:
+
+                atual_existe = (
+                    verificar_conversa(
+                        username,
+                        atual
+                    )
+                )
+
+            except Exception:
+
+                atual_existe = False
+
+            if not atual_existe:
+
+                nova_conversa = (
+                    criar_conversa(
+                        username,
+                        "Nova conversa"
+                    )
+                )
+
+                session["conversation_id"] = (
+                    nova_conversa
+                )
+
+                session.modified = True
+
+        else:
+
+            nova_conversa = (
+                criar_conversa(
+                    username,
+                    "Nova conversa"
+                )
+            )
+
+            session["conversation_id"] = (
+                nova_conversa
+            )
+
+            session.modified = True
+
+    print(
+        "CONVERSA EXCLUÍDA:",
+        conversation_id,
+        "USUÁRIO:",
+        username
+    )
+
+    return jsonify({
+
+        "success":
+            True,
+
+        "message":
+            "Conversa excluída com sucesso.",
+
+        "deleted_id":
+            int(conversation_id),
+
+        "conversation_id":
+            session.get(
+                "conversation_id"
+            )
+
+    })
+
+except Exception as e:
+
+    print(
+        "=================================================="
+    )
+
+    print(
+        "ERRO DELETE CONVERSATION:"
+    )
+
+    print(
+        repr(e)
+    )
+
+    print(
+        "=================================================="
+    )
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Erro interno ao excluir conversa.",
+
+        "error":
+            str(e)
+
+    }), 500
+```
 
 # ============================================================
-# ALIAS API - RENOMEAR
+
+# EXCLUIR UMA CONVERSA
+
 # ============================================================
 
 @app.route(
-    "/api/conversation/<int:conversation_id>/rename",
-    methods=["POST"]
+"/conversation/[int:conversation_id](int:conversation_id)",
+methods=["DELETE"]
 )
-def api_rename_conversation(
-    conversation_id
+def delete_conversation(
+conversation_id
 ):
 
-    return rename_conversation(
-        conversation_id
-    )
-
-
-# ============================================================
-# FUNÇÃO INTERNA - EXCLUIR CONVERSA
-# ============================================================
-
-def executar_exclusao_conversa(
+```
+return executar_exclusao_conversa(
     conversation_id
+)
+```
+
+# ============================================================
+
+# DELETE LEGACY
+
+# ============================================================
+
+@app.route(
+"/delete_conversation",
+methods=["POST"]
+)
+def delete_conversation_legacy():
+
+```
+data = request.get_json(
+    silent=True
+) or {}
+
+conversation_id = (
+    data.get("conversation_id")
+    or data.get("id")
+)
+
+if not conversation_id:
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "ID da conversa não informado."
+
+    }), 400
+
+return executar_exclusao_conversa(
+    conversation_id
+)
+```
+
+# ============================================================
+
+# ALIAS API DELETE
+
+# ============================================================
+
+@app.route(
+"/api/conversation/[int:conversation_id](int:conversation_id)",
+methods=["DELETE"]
+)
+def api_delete_conversation(
+conversation_id
 ):
 
-    if "user" not in session:
+```
+return executar_exclusao_conversa(
+    conversation_id
+)
+```
+
+# ============================================================
+
+# ALIAS /delete
+
+# ============================================================
+
+@app.route(
+"/conversation/[int:conversation_id](int:conversation_id)/delete",
+methods=["DELETE", "POST"]
+)
+def delete_conversation_with_delete(
+conversation_id
+):
+
+```
+return executar_exclusao_conversa(
+    conversation_id
+)
+```
+
+# ============================================================
+
+# ALIAS API /delete
+
+# ============================================================
+
+@app.route(
+"/api/conversation/[int:conversation_id](int:conversation_id)/delete",
+methods=["DELETE", "POST"]
+)
+def api_delete_conversation_with_delete(
+conversation_id
+):
+
+```
+return executar_exclusao_conversa(
+    conversation_id
+)
+```
+
+# ============================================================
+
+# FUNÇÃO INTERNA - EXCLUIR VÁRIAS
+
+# ============================================================
+
+def executar_exclusao_varias_conversas(
+ids
+):
+
+```
+if "user" not in session:
+
+    return jsonify({
+
+        "success": False,
+
+        "message":
+            "Faça login primeiro."
+
+    }), 401
+
+try:
+
+    if not isinstance(
+        ids,
+        list
+    ):
 
         return jsonify({
 
-            "success":
-                False,
+            "success": False,
 
             "message":
-                "Faça login primeiro."
+                "Lista de conversas inválida."
 
-        }), 401
+        }), 400
 
-    try:
+    if not ids:
 
-        username = session["user"]
+        return jsonify({
+
+            "success": False,
+
+            "message":
+                "Nenhuma conversa foi selecionada."
+
+        }), 400
+
+    conversation_ids = []
+
+    for item in ids:
 
         try:
 
             conversation_id = int(
-                conversation_id
+                item
             )
 
         except (
@@ -5129,525 +5784,151 @@ def executar_exclusao_conversa(
             TypeError
         ):
 
-            return jsonify({
+            continue
 
-                "success":
-                    False,
+        if conversation_id > 0:
 
-                "message":
-                    "ID da conversa inválido."
-
-            }), 400
-
-        if not verificar_conversa(
-            username,
-            conversation_id
-        ):
-
-            return jsonify({
-
-                "success":
-                    False,
-
-                "message":
-                    "Conversa não encontrada."
-
-            }), 404
-
-        with get_db() as conn:
-
-            cursor = conn.cursor()
-
-            cursor.execute("""
-                DELETE FROM chat_messages
-                WHERE conversation_id = %s
-            """, (
-                conversation_id,
-            ))
-
-            cursor.execute("""
-                DELETE FROM conversations
-                WHERE id = %s
-                AND username = %s
-            """, (
-                conversation_id,
-                username
-            ))
-
-            excluida = cursor.rowcount
-
-            if excluida == 0:
-
-                conn.rollback()
-
-                return jsonify({
-
-                    "success":
-                        False,
-
-                    "message":
-                        "Conversa não encontrada."
-
-                }), 404
-
-            conn.commit()
-
-        conversa_atual_id = (
-            session.get(
-                "conversation_id"
-            )
-        )
-
-        if (
-            conversa_atual_id is not None
-            and int(conversa_atual_id)
-            == int(conversation_id)
-        ):
-
-            nova_conversa = criar_conversa(
-                username,
-                "Nova conversa"
+            conversation_ids.append(
+                conversation_id
             )
 
-            session["conversation_id"] = (
-                nova_conversa
-            )
-
-            session.modified = True
-
-        else:
-
-            atual = session.get(
-                "conversation_id"
-            )
-
-            if atual:
-
-                try:
-
-                    atual_existe = (
-                        verificar_conversa(
-                            username,
-                            atual
-                        )
-                    )
-
-                except Exception:
-
-                    atual_existe = False
-
-                if not atual_existe:
-
-                    nova_conversa = (
-                        criar_conversa(
-                            username,
-                            "Nova conversa"
-                        )
-                    )
-
-                    session["conversation_id"] = (
-                        nova_conversa
-                    )
-
-                    session.modified = True
-
-            else:
-
-                nova_conversa = (
-                    criar_conversa(
-                        username,
-                        "Nova conversa"
-                    )
-                )
-
-                session["conversation_id"] = (
-                    nova_conversa
-                )
-
-                session.modified = True
-
-        print(
-            "CONVERSA EXCLUÍDA:",
-            conversation_id,
-            "USUÁRIO:",
-            username
+    conversation_ids = list(
+        dict.fromkeys(
+            conversation_ids
         )
-
-        return jsonify({
-
-            "success":
-                True,
-
-            "message":
-                "Conversa excluída com sucesso.",
-
-            "deleted_id":
-                int(conversation_id),
-
-            "conversation_id":
-                session.get(
-                    "conversation_id"
-                )
-
-        })
-
-    except Exception as e:
-
-        print(
-            "=================================================="
-        )
-
-        print(
-            "ERRO DELETE CONVERSATION:"
-        )
-
-        print(
-            repr(e)
-        )
-
-        print(
-            "=================================================="
-        )
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "Erro interno ao excluir conversa.",
-
-            "error":
-                str(e)
-
-        }), 500
-
-
-# ============================================================
-# EXCLUIR UMA CONVERSA
-# ============================================================
-
-@app.route(
-    "/conversation/<int:conversation_id>",
-    methods=["DELETE"]
-)
-def delete_conversation(
-    conversation_id
-):
-
-    return executar_exclusao_conversa(
-        conversation_id
     )
 
-
-# ============================================================
-# DELETE LEGACY
-# ============================================================
-
-@app.route(
-    "/delete_conversation",
-    methods=["POST"]
-)
-def delete_conversation_legacy():
-
-    data = request.get_json(
-        silent=True
-    ) or {}
-
-    conversation_id = (
-        data.get("conversation_id")
-        or data.get("id")
-    )
-
-    if not conversation_id:
-
-        return jsonify({
-
-            "success":
-                False,
-
-            "message":
-                "ID da conversa não informado."
-
-        }), 400
-
-    return executar_exclusao_conversa(
-        conversation_id
-    )
-
-
-# ============================================================
-# ALIAS API DELETE
-# ============================================================
-
-@app.route(
-    "/api/conversation/<int:conversation_id>",
-    methods=["DELETE"]
-)
-def api_delete_conversation(
-    conversation_id
-):
-
-    return executar_exclusao_conversa(
-        conversation_id
-    )
-
-
-# ============================================================
-# ALIAS /delete
-# ============================================================
-
-@app.route(
-    "/conversation/<int:conversation_id>/delete",
-    methods=["DELETE", "POST"]
-)
-def delete_conversation_with_delete(
-    conversation_id
-):
-
-    return executar_exclusao_conversa(
-        conversation_id
-    )
-
-
-# ============================================================
-# ALIAS API /delete
-# ============================================================
-
-@app.route(
-    "/api/conversation/<int:conversation_id>/delete",
-    methods=["DELETE", "POST"]
-)
-def api_delete_conversation_with_delete(
-    conversation_id
-):
-
-    return executar_exclusao_conversa(
-        conversation_id
-    )
-
-
-# ============================================================
-# FUNÇÃO INTERNA - EXCLUIR VÁRIAS
-# ============================================================
-
-def executar_exclusao_varias_conversas(
-    ids
-):
-
-    if "user" not in session:
+    if not conversation_ids:
 
         return jsonify({
 
             "success": False,
 
             "message":
-                "Faça login primeiro."
+                "Nenhuma conversa válida foi selecionada."
 
-        }), 401
+        }), 400
 
-    try:
+    username = session["user"]
 
-        if not isinstance(
-            ids,
-            list
-        ):
+    conversa_atual_id = (
+        session.get(
+            "conversation_id"
+        )
+    )
 
-            return jsonify({
+    with get_db() as conn:
 
-                "success": False,
+        cursor = conn.cursor()
 
-                "message":
-                    "Lista de conversas inválida."
+        cursor.execute("""
+            SELECT id
+            FROM conversations
+            WHERE username = %s
+            AND id = ANY(%s)
+        """, (
+            username,
+            conversation_ids
+        ))
 
-            }), 400
-
-        if not ids:
-
-            return jsonify({
-
-                "success": False,
-
-                "message":
-                    "Nenhuma conversa foi selecionada."
-
-            }), 400
-
-        conversation_ids = []
-
-        for item in ids:
-
-            try:
-
-                conversation_id = int(
-                    item
-                )
-
-            except (
-                ValueError,
-                TypeError
-            ):
-
-                continue
-
-            if conversation_id > 0:
-
-                conversation_ids.append(
-                    conversation_id
-                )
-
-        conversation_ids = list(
-            dict.fromkeys(
-                conversation_ids
-            )
+        conversas_validas = (
+            cursor.fetchall()
         )
 
-        if not conversation_ids:
+        ids_validos = [
 
-            return jsonify({
+            item[0]
 
-                "success": False,
-
-                "message":
-                    "Nenhuma conversa válida foi selecionada."
-
-            }), 400
-
-        username = session["user"]
-
-        conversa_atual_id = (
-            session.get(
-                "conversation_id"
-            )
-        )
-
-        with get_db() as conn:
-
-            cursor = conn.cursor()
-
-            cursor.execute("""
-                SELECT id
-                FROM conversations
-                WHERE username = %s
-                AND id = ANY(%s)
-            """, (
-                username,
-                conversation_ids
-            ))
-
-            conversas_validas = (
-                cursor.fetchall()
-            )
-
-            ids_validos = [
-
-                item[0]
-
-                for item in conversas_validas
-
-            ]
-
-            if not ids_validos:
-
-                conn.rollback()
-
-                return jsonify({
-
-                    "success": False,
-
-                    "message":
-                        "Nenhuma das conversas selecionadas pertence ao usuário."
-
-                }), 404
-
-            cursor.execute("""
-                DELETE FROM chat_messages
-                WHERE conversation_id = ANY(%s)
-            """, (
-                ids_validos,
-            ))
-
-            cursor.execute("""
-                DELETE FROM conversations
-                WHERE username = %s
-                AND id = ANY(%s)
-                RETURNING id
-            """, (
-                username,
-                ids_validos
-            ))
-
-            excluidas = cursor.fetchall()
-
-            conn.commit()
-
-        ids_excluidos = [
-
-            int(item[0])
-
-            for item in excluidas
+            for item in conversas_validas
 
         ]
 
-        conversa_atual_excluida = (
+        if not ids_validos:
 
-            conversa_atual_id is not None
+            conn.rollback()
 
-            and int(conversa_atual_id)
-            in ids_excluidos
+            return jsonify({
 
+                "success": False,
+
+                "message":
+                    "Nenhuma das conversas selecionadas pertence ao usuário."
+
+            }), 404
+
+        cursor.execute("""
+            DELETE FROM chat_messages
+            WHERE conversation_id = ANY(%s)
+        """, (
+            ids_validos,
+        ))
+
+        cursor.execute("""
+            DELETE FROM conversations
+            WHERE username = %s
+            AND id = ANY(%s)
+            RETURNING id
+        """, (
+            username,
+            ids_validos
+        ))
+
+        excluidas = cursor.fetchall()
+
+        conn.commit()
+
+    ids_excluidos = [
+
+        int(item[0])
+
+        for item in excluidas
+
+    ]
+
+    conversa_atual_excluida = (
+
+        conversa_atual_id is not None
+
+        and int(conversa_atual_id)
+        in ids_excluidos
+
+    )
+
+    if conversa_atual_excluida:
+
+        nova_conversa = criar_conversa(
+            username,
+            "Nova conversa"
         )
 
-        if conversa_atual_excluida:
+        session["conversation_id"] = (
+            nova_conversa
+        )
 
-            nova_conversa = criar_conversa(
-                username,
-                "Nova conversa"
-            )
+        session.modified = True
 
-            session["conversation_id"] = (
-                nova_conversa
-            )
+    else:
 
-            session.modified = True
+        atual = session.get(
+            "conversation_id"
+        )
 
-        else:
+        if atual:
 
-            atual = session.get(
-                "conversation_id"
-            )
+            try:
 
-            if atual:
-
-                try:
-
-                    atual_existe = (
-                        verificar_conversa(
-                            username,
-                            atual
-                        )
+                atual_existe = (
+                    verificar_conversa(
+                        username,
+                        atual
                     )
+                )
 
-                except Exception:
+            except Exception:
 
-                    atual_existe = False
+                atual_existe = False
 
-                if not atual_existe:
-
-                    nova_conversa = (
-                        criar_conversa(
-                            username,
-                            "Nova conversa"
-                        )
-                    )
-
-                    session["conversation_id"] = (
-                        nova_conversa
-                    )
-
-                    session.modified = True
-
-            else:
+            if not atual_existe:
 
                 nova_conversa = (
                     criar_conversa(
@@ -5662,360 +5943,400 @@ def executar_exclusao_varias_conversas(
 
                 session.modified = True
 
-        print(
-            "CONVERSAS EXCLUÍDAS:",
-            ids_excluidos,
-            "USUÁRIO:",
-            username
-        )
+        else:
 
-        return jsonify({
-
-            "success":
-                True,
-
-            "message":
-                (
-                    f"{len(ids_excluidos)} "
-                    "conversa(s) excluída(s) permanentemente."
-                ),
-
-            "deleted_ids":
-                ids_excluidos,
-
-            "deleted_count":
-                len(ids_excluidos),
-
-            "conversation_id":
-                session.get(
-                    "conversation_id"
+            nova_conversa = (
+                criar_conversa(
+                    username,
+                    "Nova conversa"
                 )
+            )
 
-        })
+            session["conversation_id"] = (
+                nova_conversa
+            )
 
-    except Exception as e:
+            session.modified = True
 
-        print(
-            "=================================================="
-        )
+    print(
+        "CONVERSAS EXCLUÍDAS:",
+        ids_excluidos,
+        "USUÁRIO:",
+        username
+    )
 
-        print(
-            "ERRO DELETE MULTIPLE CONVERSATIONS:"
-        )
+    return jsonify({
 
-        print(
-            repr(e)
-        )
+        "success":
+            True,
 
-        print(
-            "=================================================="
-        )
+        "message":
+            (
+                f"{len(ids_excluidos)} "
+                "conversa(s) excluída(s) permanentemente."
+            ),
 
-        return jsonify({
+        "deleted_ids":
+            ids_excluidos,
 
-            "success":
-                False,
+        "deleted_count":
+            len(ids_excluidos),
 
-            "message":
-                "Erro ao excluir as conversas.",
+        "conversation_id":
+            session.get(
+                "conversation_id"
+            )
 
-            "error":
-                str(e)
+    })
 
-        }), 500
+except Exception as e:
 
+    print(
+        "=================================================="
+    )
+
+    print(
+        "ERRO DELETE MULTIPLE CONVERSATIONS:"
+    )
+
+    print(
+        repr(e)
+    )
+
+    print(
+        "=================================================="
+    )
+
+    return jsonify({
+
+        "success":
+            False,
+
+        "message":
+            "Erro ao excluir as conversas.",
+
+        "error":
+            str(e)
+
+    }), 500
+```
 
 # ============================================================
+
 # EXCLUIR VÁRIAS - PRINCIPAL
+
 # ============================================================
 
 @app.route(
-    "/conversations/delete-multiple",
-    methods=["POST"]
+"/conversations/delete-multiple",
+methods=["POST"]
 )
 def delete_multiple_conversations():
 
-    data = request.get_json(
-        silent=True
-    ) or {}
+```
+data = request.get_json(
+    silent=True
+) or {}
 
-    ids = (
+ids = (
 
-        data.get("ids")
+    data.get("ids")
 
-        if data.get("ids") is not None
+    if data.get("ids") is not None
 
-        else data.get(
-            "conversation_ids"
-        )
-
+    else data.get(
+        "conversation_ids"
     )
 
-    return executar_exclusao_varias_conversas(
-        ids
-    )
+)
 
+return executar_exclusao_varias_conversas(
+    ids
+)
+```
 
 # ============================================================
+
 # EXCLUIR VÁRIAS - LEGACY
+
 # ============================================================
 
 @app.route(
-    "/delete_conversations",
-    methods=["POST"]
+"/delete_conversations",
+methods=["POST"]
 )
 def delete_conversations_legacy():
 
-    data = request.get_json(
-        silent=True
-    ) or {}
+```
+data = request.get_json(
+    silent=True
+) or {}
 
-    ids = (
+ids = (
 
-        data.get(
-            "conversation_ids"
-        )
-
-        if data.get(
-            "conversation_ids"
-        ) is not None
-
-        else data.get("ids")
-
+    data.get(
+        "conversation_ids"
     )
 
-    return executar_exclusao_varias_conversas(
-        ids
-    )
+    if data.get(
+        "conversation_ids"
+    ) is not None
 
+    else data.get("ids")
+
+)
+
+return executar_exclusao_varias_conversas(
+    ids
+)
+```
 
 # ============================================================
+
 # API VÁRIAS
+
 # ============================================================
 
 @app.route(
-    "/api/conversations/delete-multiple",
-    methods=["POST"]
+"/api/conversations/delete-multiple",
+methods=["POST"]
 )
 def api_delete_multiple_conversations():
 
-    data = request.get_json(
-        silent=True
-    ) or {}
+```
+data = request.get_json(
+    silent=True
+) or {}
 
-    ids = (
+ids = (
 
-        data.get("ids")
+    data.get("ids")
 
-        if data.get("ids") is not None
+    if data.get("ids") is not None
 
-        else data.get(
-            "conversation_ids"
-        )
-
+    else data.get(
+        "conversation_ids"
     )
 
-    return executar_exclusao_varias_conversas(
-        ids
-    )
+)
 
+return executar_exclusao_varias_conversas(
+    ids
+)
+```
 
 # ============================================================
+
 # PLANO
+
 # ============================================================
 
 @app.route("/api/plan")
 def api_plan():
 
-    if "user" not in session:
+```
+if "user" not in session:
 
-        return jsonify({
+    return jsonify({
 
-            "success":
-                False,
+        "success":
+            False,
 
-            "message":
-                "Faça login primeiro."
+        "message":
+            "Faça login primeiro."
 
-        }), 401
+    }), 401
 
-    try:
+try:
 
-        plan = obter_plan_usuario(
-            session["user"]
-        )
+    plan = obter_plan_usuario(
+        session["user"]
+    )
 
-        session["plan"] = plan
+    session["plan"] = plan
 
-        return jsonify({
+    return jsonify({
 
-            "success":
-                True,
+        "success":
+            True,
 
-            "plan":
-                plan
+        "plan":
+            plan
 
-        })
+    })
 
-    except Exception as e:
+except Exception as e:
 
-        print(
-            "ERRO PLAN:",
-            repr(e)
-        )
+    print(
+        "ERRO PLAN:",
+        repr(e)
+    )
 
-        return jsonify({
+    return jsonify({
 
-            "success":
-                False,
+        "success":
+            False,
 
-            "message":
-                "Erro ao consultar plano."
+        "message":
+            "Erro ao consultar plano."
 
-        }), 500
-
+    }), 500
+```
 
 # ============================================================
+
 # STATUS
+
 # ============================================================
 
 @app.route("/api/status")
 def api_status():
 
-    if "user" not in session:
+```
+if "user" not in session:
 
-        return jsonify({
+    return jsonify({
 
-            "logged":
-                False
+        "logged":
+            False
 
-        })
+    })
 
-    try:
+try:
 
-        return jsonify({
+    return jsonify({
 
-            "logged":
-                True,
+        "logged":
+            True,
 
-            "username":
-                session["user"],
+        "username":
+            session["user"],
 
-            "plan":
-                obter_plan_usuario(
-                    session["user"]
-                ),
+        "plan":
+            obter_plan_usuario(
+                session["user"]
+            ),
 
-            "conversation_id":
-                session.get(
-                    "conversation_id"
-                ),
+        "conversation_id":
+            session.get(
+                "conversation_id"
+            ),
 
-            "admin":
-                verificar_admin()
+        "admin":
+            verificar_admin()
 
-        })
+    })
 
-    except Exception as e:
+except Exception as e:
 
-        print(
-            "ERRO STATUS:",
-            repr(e)
-        )
+    print(
+        "ERRO STATUS:",
+        repr(e)
+    )
 
-        return jsonify({
+    return jsonify({
 
-            "logged":
-                True,
+        "logged":
+            True,
 
-            "username":
-                session["user"],
+        "username":
+            session["user"],
 
-            "plan":
-                "free",
+        "plan":
+            "free",
 
-            "conversation_id":
-                session.get(
-                    "conversation_id"
-                ),
+        "conversation_id":
+            session.get(
+                "conversation_id"
+            ),
 
-            "admin":
-                verificar_admin()
+        "admin":
+            verificar_admin()
 
-        })
-
+    })
+```
 
 # ============================================================
+
 # TRATAMENTO 404
+
 # ============================================================
 
 @app.errorhandler(404)
 def erro_404(error):
 
-    print(
-        "ROTA 404:",
-        request.method,
+```
+print(
+    "ROTA 404:",
+    request.method,
+    request.path
+)
+
+return jsonify({
+
+    "success":
+        False,
+
+    "error":
+        "not_found",
+
+    "message":
+        "Rota não encontrada.",
+
+    "path":
         request.path
-    )
 
-    return jsonify({
-
-        "success":
-            False,
-
-        "error":
-            "not_found",
-
-        "message":
-            "Rota não encontrada.",
-
-        "path":
-            request.path
-
-    }), 404
-
+}), 404
+```
 
 # ============================================================
+
 # TRATAMENTO 500
+
 # ============================================================
 
 @app.errorhandler(500)
 def erro_500(error):
 
-    print(
-        "ERRO 500 GLOBAL:",
-        repr(error)
-    )
+```
+print(
+    "ERRO 500 GLOBAL:",
+    repr(error)
+)
 
-    return jsonify({
+return jsonify({
 
-        "success":
-            False,
+    "success":
+        False,
 
-        "error":
-            "internal_server_error",
+    "error":
+        "internal_server_error",
 
-        "message":
-            "Erro interno no servidor."
+    "message":
+        "Erro interno no servidor."
 
-    }), 500
-
+}), 500
+```
 
 # ============================================================
+
 # START
+
 # ============================================================
 
-if __name__ == "__main__":
+if **name** == "**main**":
 
-    port = int(
-        os.environ.get(
-            "PORT",
-            5000
-        )
+```
+port = int(
+    os.environ.get(
+        "PORT",
+        5000
     )
+)
 
-    app.run(
-        host="0.0.0.0",
-        port=port,
-        debug=False
-    )
+app.run(
+    host="0.0.0.0",
+    port=port,
+    debug=False
+)
+
