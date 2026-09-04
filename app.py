@@ -1,4 +1,3 @@
-
 import os
 import secrets
 import re
@@ -16,7 +15,9 @@ from flask import (
     jsonify,
     session,
     redirect,
-    url_for
+    url_for,
+    Response,
+    stream_with_context
 )
 
 from werkzeug.security import (
@@ -3678,7 +3679,7 @@ def api_login():
 
 
 # ============================================================
-# CHAT
+# CHAT COM STREAMING
 # ============================================================
 
 @app.route(
@@ -4195,82 +4196,192 @@ PLANO:
 
         })
 
-        resposta = (
-            client.chat.completions.create(
+        # ========================================================
+        # STREAMING DA RESPOSTA
+        # ========================================================
 
-                model=
-                    "qwen/qwen3.6-27b",
+        @stream_with_context
+        def gerar_stream():
 
-                messages=
-                    mensagens_para_api,
+            texto_completo = ""
 
-                temperature=
-                    0.7,
+            try:
 
-                max_completion_tokens=
-                    2048,
+                stream = (
+                    client.chat.completions.create(
 
-                reasoning_effort=
-                    "none"
+                        model=
+                            "qwen/qwen3.6-27b",
 
-            )
+                        messages=
+                            mensagens_para_api,
+
+                        temperature=
+                            0.7,
+
+                        max_completion_tokens=
+                            2048,
+
+                        reasoning_effort=
+                            "none",
+
+                        stream=
+                            True
+
+                    )
+                )
+
+                for chunk in stream:
+
+                    if not chunk.choices:
+
+                        continue
+
+                    delta = (
+                        chunk.choices[0].delta
+                    )
+
+                    parte = (
+                        delta.content
+                        or ""
+                    )
+
+                    if not parte:
+
+                        continue
+
+                    texto_completo += parte
+
+                    yield parte
+
+                if not texto_completo.strip():
+
+                    texto_completo = (
+                        "Não consegui gerar uma resposta."
+                    )
+
+                    yield texto_completo
+
+                # =================================================
+                # SALVAR RESPOSTA COMPLETA
+                # =================================================
+
+                with get_db() as conn:
+
+                    cursor = conn.cursor()
+
+                    cursor.execute("""
+                        INSERT INTO chat_messages
+                        (conversation_id, sender, message)
+                        VALUES (%s, %s, %s)
+                    """, (
+                        conversation_id,
+                        "bot",
+                        texto_completo
+                    ))
+
+                    cursor.execute("""
+                        UPDATE conversations
+                        SET updated_at = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                    """, (
+                        conversation_id,
+                    ))
+
+                    conn.commit()
+
+                print(
+                    "STREAMING FINALIZADO:",
+                    conversation_id
+                )
+
+            except Exception as e:
+
+                print(
+                    "=================================================="
+                )
+
+                print(
+                    "ERRO NO STREAMING:"
+                )
+
+                print(
+                    repr(e)
+                )
+
+                print(
+                    "=================================================="
+                )
+
+                texto_erro = (
+                    "❌ Ocorreu um erro ao gerar a resposta."
+                )
+
+                erro_texto = str(
+                    e
+                ).lower()
+
+                if "api key" in erro_texto:
+
+                    texto_erro = (
+                        "❌ A GROQ_API_KEY não está configurada corretamente no Render."
+                    )
+
+                elif (
+                    "model" in erro_texto
+                    and (
+                        "not found" in erro_texto
+                        or "model_not_found"
+                        in erro_texto
+                    )
+                ):
+
+                    texto_erro = (
+                        "❌ O modelo da IA não está disponível para esta chave da Groq."
+                    )
+
+                elif (
+                    "rate limit" in erro_texto
+                    or "429" in erro_texto
+                ):
+
+                    texto_erro = (
+                        "❌ A IA atingiu o limite temporário de requisições. "
+                        "Tente novamente em alguns segundos."
+                    )
+
+                elif (
+                    "database" in erro_texto
+                    or "postgres" in erro_texto
+                    or "psycopg2" in erro_texto
+                ):
+
+                    texto_erro = (
+                        "❌ Erro ao acessar o banco de dados PostgreSQL."
+                    )
+
+                yield "\n\n" + texto_erro
+
+        return Response(
+
+            gerar_stream(),
+
+            mimetype="text/plain",
+
+            headers={
+
+                "Cache-Control":
+                    "no-cache",
+
+                "X-Accel-Buffering":
+                    "no",
+
+                "Connection":
+                    "keep-alive"
+
+            }
+
         )
-
-        texto = (
-            resposta
-            .choices[0]
-            .message
-            .content
-        )
-
-        if not texto:
-
-            texto = (
-                "Não consegui gerar uma resposta."
-            )
-
-        with get_db() as conn:
-
-            cursor = conn.cursor()
-
-            cursor.execute("""
-                INSERT INTO chat_messages
-                (conversation_id, sender, message)
-                VALUES (%s, %s, %s)
-            """, (
-                conversation_id,
-                "bot",
-                texto
-            ))
-
-            cursor.execute("""
-                UPDATE conversations
-                SET updated_at = CURRENT_TIMESTAMP
-                WHERE id = %s
-            """, (
-                conversation_id,
-            ))
-
-            conn.commit()
-
-        return jsonify({
-
-            "success":
-                True,
-
-            "reply":
-                texto,
-
-            "message":
-                texto,
-
-            "conversation_id":
-                conversation_id,
-
-            "plan":
-                plan
-
-        })
 
     except Exception as e:
 
@@ -4321,7 +4432,9 @@ PLANO:
             "❌ Ocorreu um erro ao processar sua mensagem."
         )
 
-        texto_erro = str(e).lower()
+        texto_erro = str(
+            e
+        ).lower()
 
         if "api key" in texto_erro:
 
@@ -4348,7 +4461,8 @@ PLANO:
         ):
 
             mensagem_erro = (
-                "❌ A IA atingiu o limite temporário de requisições. Tente novamente em alguns segundos."
+                "❌ A IA atingiu o limite temporário de requisições. "
+                "Tente novamente em alguns segundos."
             )
 
         elif (
@@ -5905,4 +6019,3 @@ if __name__ == "__main__":
         port=port,
         debug=False
     )
-
