@@ -179,7 +179,8 @@ def init_db():
                 username TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
                 plan TEXT DEFAULT 'free',
-                auth_version INTEGER DEFAULT 1
+                auth_version INTEGER DEFAULT 1,
+                last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
@@ -204,9 +205,21 @@ def init_db():
         """)
 
         cursor.execute("""
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS last_activity TIMESTAMP
+            DEFAULT CURRENT_TIMESTAMP
+        """)
+
+        cursor.execute("""
             UPDATE users
             SET auth_version = 1
             WHERE auth_version IS NULL
+        """)
+
+        cursor.execute("""
+            UPDATE users
+            SET last_activity = CURRENT_TIMESTAMP
+            WHERE last_activity IS NULL
         """)
 
         cursor.execute("""
@@ -417,6 +430,79 @@ def validar_sessao_usuario():
         return True
 
 
+# ============================================================
+# REGISTRAR ÚLTIMA ATIVIDADE
+# ============================================================
+
+def registrar_atividade_usuario(username):
+
+    if not username:
+
+        return
+
+    agora_timestamp = time.time()
+
+    ultima_atualizacao = session.get(
+        "_last_activity_update",
+        0
+    )
+
+    try:
+
+        ultima_atualizacao = float(
+            ultima_atualizacao
+        )
+
+    except (
+        ValueError,
+        TypeError
+    ):
+
+        ultima_atualizacao = 0
+
+    # Evita atualizar o banco em todas as requisições.
+    # A atividade será registrada no máximo uma vez
+    # a cada 60 segundos por sessão.
+
+    if (
+        agora_timestamp
+        - ultima_atualizacao
+        < 60
+    ):
+
+        return
+
+    try:
+
+        with get_db() as conn:
+
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                UPDATE users
+                SET last_activity =
+                    CURRENT_TIMESTAMP
+                WHERE username = %s
+            """, (
+                username,
+            ))
+
+            conn.commit()
+
+        session["_last_activity_update"] = (
+            agora_timestamp
+        )
+
+        session.modified = True
+
+    except Exception as e:
+
+        print(
+            "ERRO AO REGISTRAR ÚLTIMA ATIVIDADE:",
+            repr(e)
+        )
+
+
 @app.before_request
 def proteger_sessao():
 
@@ -429,6 +515,10 @@ def proteger_sessao():
         return None
 
     if validar_sessao_usuario():
+
+        registrar_atividade_usuario(
+            session.get("user")
+        )
 
         return None
 
@@ -871,6 +961,10 @@ def login_com_google(
 
             session.modified = True
 
+            registrar_atividade_usuario(
+                username
+            )
+
             return username
 
         usuario = None
@@ -932,6 +1026,10 @@ def login_com_google(
             )
 
             session.modified = True
+
+            registrar_atividade_usuario(
+                username
+            )
 
             return username
 
@@ -1004,6 +1102,10 @@ def login_com_google(
     )
 
     session.modified = True
+
+    registrar_atividade_usuario(
+        username
+    )
 
     return username
 
@@ -1825,6 +1927,10 @@ def perfil():
 
     try:
 
+        registrar_atividade_usuario(
+            username
+        )
+
         with get_db() as conn:
 
             cursor = conn.cursor(
@@ -1838,7 +1944,8 @@ def perfil():
                     username,
                     plan,
                     email,
-                    google_id
+                    google_id,
+                    last_activity
                 FROM users
                 WHERE username = %s
             """, (
@@ -1902,6 +2009,13 @@ def perfil():
             email=usuario["email"] or "",
             login_google=bool(
                 usuario["google_id"]
+            ),
+            ultima_atividade=(
+                usuario["last_activity"].strftime(
+                    "%d/%m/%Y às %H:%M"
+                )
+                if usuario["last_activity"]
+                else "Nenhuma atividade registrada"
             )
         )
 
@@ -1960,7 +2074,8 @@ def api_profile():
                     username,
                     plan,
                     email,
-                    google_id
+                    google_id,
+                    last_activity
                 FROM users
                 WHERE username = %s
             """, (
@@ -2043,7 +2158,14 @@ def api_profile():
                 total_conversas,
 
             "total_mensagens":
-                total_mensagens
+                total_mensagens,
+
+            "last_activity":
+                (
+                    usuario["last_activity"].isoformat()
+                    if usuario["last_activity"]
+                    else None
+                )
 
         })
 
@@ -3632,10 +3754,11 @@ def api_register():
                     password,
                     plan,
                     email,
-                    auth_version
+                    auth_version,
+                    last_activity
                 )
                 VALUES
-                (%s, %s, %s, %s, %s)
+                (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
             """, (
                 username,
                 password_hash,
@@ -3839,6 +3962,10 @@ def api_login():
             session["auth_version"] = (
                 auth_version
             )
+
+        registrar_atividade_usuario(
+            user["username"]
+        )
 
         conversation_id = criar_conversa(
             user["username"],
