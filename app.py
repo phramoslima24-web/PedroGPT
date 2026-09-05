@@ -104,6 +104,19 @@ RESET_TOKEN_EXPIRATION_MINUTES = 30
 
 
 # ============================================================
+# PROTEÇÃO CONTRA TENTATIVAS DE LOGIN
+# ============================================================
+
+LOGIN_FAILURE_WINDOW_MINUTES = 15
+
+LOGIN_LOCKOUT_MINUTES = 10
+
+LOGIN_MAX_FAILURES_USER = 5
+
+LOGIN_MAX_FAILURES_IP = 10
+
+
+# ============================================================
 # GROQ
 # ============================================================
 
@@ -342,6 +355,43 @@ def init_db():
             ON access_logs (created_at DESC)
         """)
 
+        # ----------------------------------------------------
+        # PROTEÇÃO DE LOGIN
+        # ----------------------------------------------------
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS login_attempts (
+                id SERIAL PRIMARY KEY,
+                identifier_type TEXT NOT NULL,
+                identifier TEXT NOT NULL,
+                failed_attempts INTEGER DEFAULT 0,
+                first_failed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_failed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                blocked_until TIMESTAMP
+            )
+        """)
+
+        cursor.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            login_attempts_identifier_unique
+            ON login_attempts (
+                identifier_type,
+                identifier
+            )
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS
+            login_attempts_blocked_index
+            ON login_attempts (blocked_until)
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS
+            login_attempts_last_failed_index
+            ON login_attempts (last_failed_at)
+        """)
+
         conn.commit()
 
 
@@ -359,6 +409,750 @@ except Exception as e:
         "ERRO AO INICIALIZAR BANCO:",
         repr(e)
     )
+
+
+# ============================================================
+# PROTEÇÃO CONTRA BRUTE FORCE
+# ============================================================
+
+def obter_ip_cliente():
+
+    try:
+
+        forwarded_for = request.headers.get(
+            "X-Forwarded-For",
+            ""
+        )
+
+        if forwarded_for:
+
+            ip = (
+                forwarded_for
+                .split(",")[0]
+                .strip()
+            )
+
+            if ip:
+
+                return str(ip)[:100]
+
+        ip = (
+            request.remote_addr
+            or "desconhecido"
+        )
+
+        return str(ip)[:100]
+
+    except Exception:
+
+        return "desconhecido"
+
+
+def normalizar_identificador_login(
+    identifier_type,
+    identifier
+):
+
+    tipo = str(
+        identifier_type or ""
+    ).strip().lower()
+
+    valor = str(
+        identifier or ""
+    ).strip()
+
+    if tipo == "username":
+
+        valor = valor.lower()
+
+    return valor[:255]
+
+
+def limpar_tentativa_expirada(
+    identifier_type,
+    identifier
+):
+
+    identifier_type = (
+        normalizar_identificador_login(
+            identifier_type,
+            identifier
+        )
+    )
+
+    # A função acima retorna somente o valor.
+    # Recriamos os valores normalizados.
+
+    tipo = str(
+        identifier_type or ""
+    ).strip()
+
+    valor = str(
+        identifier or ""
+    ).strip()
+
+    if not valor:
+
+        return
+
+    try:
+
+        with get_db() as conn:
+
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                DELETE FROM login_attempts
+                WHERE last_failed_at <
+                    CURRENT_TIMESTAMP
+                    - (%s * INTERVAL '1 minute')
+            """, (
+                LOGIN_FAILURE_WINDOW_MINUTES,
+            ))
+
+            conn.commit()
+
+    except Exception as e:
+
+        print(
+            "ERRO AO LIMPAR TENTATIVAS EXPIRADAS:",
+            repr(e)
+        )
+
+
+def verificar_bloqueio_login(
+    identifier_type,
+    identifier
+):
+
+    tipo = str(
+        identifier_type or ""
+    ).strip().lower()
+
+    valor = str(
+        identifier or ""
+    ).strip()
+
+    if not valor:
+
+        return {
+
+            "blocked":
+                False,
+
+            "seconds":
+                0
+
+        }
+
+    if tipo == "username":
+
+        valor = valor.lower()
+
+    valor = valor[:255]
+
+    try:
+
+        with get_db() as conn:
+
+            cursor = conn.cursor(
+                cursor_factory=
+                psycopg2.extras.RealDictCursor
+            )
+
+            cursor.execute("""
+                SELECT
+                    failed_attempts,
+                    first_failed_at,
+                    last_failed_at,
+                    blocked_until
+                FROM login_attempts
+                WHERE identifier_type = %s
+                AND identifier = %s
+            """, (
+                tipo,
+                valor
+            ))
+
+            registro = cursor.fetchone()
+
+            if not registro:
+
+                return {
+
+                    "blocked":
+                        False,
+
+                    "seconds":
+                        0
+
+                }
+
+            agora = datetime.utcnow()
+
+            blocked_until = (
+                registro["blocked_until"]
+            )
+
+            if blocked_until:
+
+                if blocked_until > agora:
+
+                    segundos = int(
+                        (
+                            blocked_until
+                            - agora
+                        ).total_seconds()
+                    )
+
+                    return {
+
+                        "blocked":
+                            True,
+
+                        "seconds":
+                            max(
+                                1,
+                                segundos
+                            )
+
+                    }
+
+                cursor.execute("""
+                    DELETE FROM login_attempts
+                    WHERE identifier_type = %s
+                    AND identifier = %s
+                """, (
+                    tipo,
+                    valor
+                ))
+
+                conn.commit()
+
+                return {
+
+                    "blocked":
+                        False,
+
+                    "seconds":
+                        0
+
+                }
+
+            primeira_tentativa = (
+                registro["first_failed_at"]
+            )
+
+            if primeira_tentativa:
+
+                limite_janela = (
+                    agora
+                    - timedelta(
+                        minutes=
+                            LOGIN_FAILURE_WINDOW_MINUTES
+                    )
+                )
+
+                if primeira_tentativa < limite_janela:
+
+                    cursor.execute("""
+                        DELETE FROM login_attempts
+                        WHERE identifier_type = %s
+                        AND identifier = %s
+                    """, (
+                        tipo,
+                        valor
+                    ))
+
+                    conn.commit()
+
+                    return {
+
+                        "blocked":
+                            False,
+
+                        "seconds":
+                            0
+
+                    }
+
+            return {
+
+                "blocked":
+                    False,
+
+                "seconds":
+                    0
+
+            }
+
+    except Exception as e:
+
+        print(
+            "ERRO AO VERIFICAR BLOQUEIO:",
+            repr(e)
+        )
+
+        # Em caso de erro no mecanismo de proteção,
+        # não impede usuários legítimos de entrarem.
+
+        return {
+
+            "blocked":
+                False,
+
+            "seconds":
+                0
+
+        }
+
+
+def registrar_falha_login(
+    identifier_type,
+    identifier,
+    max_failures
+):
+
+    tipo = str(
+        identifier_type or ""
+    ).strip().lower()
+
+    valor = str(
+        identifier or ""
+    ).strip()
+
+    if not valor:
+
+        return {
+
+            "blocked":
+                False,
+
+            "seconds":
+                0,
+
+            "attempts":
+                0
+
+        }
+
+    if tipo == "username":
+
+        valor = valor.lower()
+
+    valor = valor[:255]
+
+    try:
+
+        with get_db() as conn:
+
+            cursor = conn.cursor(
+                cursor_factory=
+                psycopg2.extras.RealDictCursor
+            )
+
+            cursor.execute("""
+                SELECT
+                    id,
+                    failed_attempts,
+                    first_failed_at,
+                    last_failed_at,
+                    blocked_until
+                FROM login_attempts
+                WHERE identifier_type = %s
+                AND identifier = %s
+                FOR UPDATE
+            """, (
+                tipo,
+                valor
+            ))
+
+            registro = cursor.fetchone()
+
+            agora = datetime.utcnow()
+
+            if not registro:
+
+                tentativas = 1
+
+                cursor.execute("""
+                    INSERT INTO login_attempts
+                    (
+                        identifier_type,
+                        identifier,
+                        failed_attempts,
+                        first_failed_at,
+                        last_failed_at,
+                        blocked_until
+                    )
+                    VALUES
+                    (%s, %s, %s, %s, %s, NULL)
+                """, (
+                    tipo,
+                    valor,
+                    tentativas,
+                    agora,
+                    agora
+                ))
+
+            else:
+
+                primeira_tentativa = (
+                    registro["first_failed_at"]
+                )
+
+                if (
+                    primeira_tentativa is None
+                    or primeira_tentativa
+                    <
+                    (
+                        agora
+                        - timedelta(
+                            minutes=
+                                LOGIN_FAILURE_WINDOW_MINUTES
+                        )
+                    )
+                ):
+
+                    tentativas = 1
+
+                    cursor.execute("""
+                        UPDATE login_attempts
+                        SET failed_attempts = %s,
+                            first_failed_at = %s,
+                            last_failed_at = %s,
+                            blocked_until = NULL
+                        WHERE id = %s
+                    """, (
+                        tentativas,
+                        agora,
+                        agora,
+                        registro["id"]
+                    ))
+
+                else:
+
+                    tentativas = (
+                        int(
+                            registro["failed_attempts"]
+                            or 0
+                        )
+                        + 1
+                    )
+
+                    bloqueado_ate = None
+
+                    if tentativas >= max_failures:
+
+                        bloqueado_ate = (
+                            agora
+                            + timedelta(
+                                minutes=
+                                    LOGIN_LOCKOUT_MINUTES
+                            )
+                        )
+
+                    cursor.execute("""
+                        UPDATE login_attempts
+                        SET failed_attempts = %s,
+                            last_failed_at = %s,
+                            blocked_until = %s
+                        WHERE id = %s
+                    """, (
+                        tentativas,
+                        agora,
+                        bloqueado_ate,
+                        registro["id"]
+                    ))
+
+            bloqueado = (
+                tentativas >= max_failures
+            )
+
+            segundos = (
+                LOGIN_LOCKOUT_MINUTES
+                * 60
+                if bloqueado
+                else 0
+            )
+
+            conn.commit()
+
+            return {
+
+                "blocked":
+                    bloqueado,
+
+                "seconds":
+                    segundos,
+
+                "attempts":
+                    tentativas
+
+            }
+
+    except Exception as e:
+
+        print(
+            "ERRO AO REGISTRAR FALHA DE LOGIN:",
+            repr(e)
+        )
+
+        return {
+
+            "blocked":
+                False,
+
+            "seconds":
+                0,
+
+            "attempts":
+                0
+
+        }
+
+
+def limpar_falhas_login(
+    identifier_type,
+    identifier
+):
+
+    tipo = str(
+        identifier_type or ""
+    ).strip().lower()
+
+    valor = str(
+        identifier or ""
+    ).strip()
+
+    if not valor:
+
+        return
+
+    if tipo == "username":
+
+        valor = valor.lower()
+
+    valor = valor[:255]
+
+    try:
+
+        with get_db() as conn:
+
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                DELETE FROM login_attempts
+                WHERE identifier_type = %s
+                AND identifier = %s
+            """, (
+                tipo,
+                valor
+            ))
+
+            conn.commit()
+
+    except Exception as e:
+
+        print(
+            "ERRO AO LIMPAR FALHAS DE LOGIN:",
+            repr(e)
+        )
+
+
+def formatar_tempo_bloqueio(
+    segundos
+):
+
+    segundos = max(
+        1,
+        int(segundos or 0)
+    )
+
+    minutos = (
+        segundos + 59
+    ) // 60
+
+    if minutos <= 1:
+
+        return "aproximadamente 1 minuto"
+
+    return (
+        f"aproximadamente {minutos} minutos"
+    )
+
+
+def verificar_protecao_login(
+    username
+):
+
+    ip = obter_ip_cliente()
+
+    bloqueio_ip = (
+        verificar_bloqueio_login(
+            "ip",
+            ip
+        )
+    )
+
+    if bloqueio_ip["blocked"]:
+
+        return {
+
+            "blocked":
+                True,
+
+            "message":
+                (
+                    "Muitas tentativas de login "
+                    "foram detectadas neste endereço. "
+                    "Tente novamente em "
+                    +
+                    formatar_tempo_bloqueio(
+                        bloqueio_ip["seconds"]
+                    )
+                    +
+                    "."
+                ),
+
+            "retry_after":
+                bloqueio_ip["seconds"]
+
+        }
+
+    if username:
+
+        bloqueio_usuario = (
+            verificar_bloqueio_login(
+                "username",
+                username
+            )
+        )
+
+        if bloqueio_usuario["blocked"]:
+
+            return {
+
+                "blocked":
+                    True,
+
+                "message":
+                    (
+                        "Esta conta foi temporariamente "
+                        "bloqueada após várias tentativas "
+                        "de login. Tente novamente em "
+                        +
+                        formatar_tempo_bloqueio(
+                            bloqueio_usuario["seconds"]
+                        )
+                        +
+                        "."
+                    ),
+
+                "retry_after":
+                    bloqueio_usuario["seconds"]
+
+            }
+
+    return {
+
+        "blocked":
+            False,
+
+        "message":
+            "",
+
+        "retry_after":
+            0
+
+    }
+
+
+def registrar_falha_login_completa(
+    username
+):
+
+    ip = obter_ip_cliente()
+
+    resultado_ip = (
+        registrar_falha_login(
+            "ip",
+            ip,
+            LOGIN_MAX_FAILURES_IP
+        )
+    )
+
+    resultado_usuario = {
+
+        "blocked":
+            False,
+
+        "seconds":
+            0,
+
+        "attempts":
+            0
+
+    }
+
+    if username:
+
+        resultado_usuario = (
+            registrar_falha_login(
+                "username",
+                username,
+                LOGIN_MAX_FAILURES_USER
+            )
+        )
+
+    if (
+        resultado_ip["blocked"]
+        or resultado_usuario["blocked"]
+    ):
+
+        segundos = max(
+            resultado_ip["seconds"],
+            resultado_usuario["seconds"]
+        )
+
+        return {
+
+            "blocked":
+                True,
+
+            "seconds":
+                segundos
+
+        }
+
+    return {
+
+        "blocked":
+            False,
+
+        "seconds":
+            0
+
+    }
+
+
+def limpar_falhas_login_completa(
+    username
+):
+
+    ip = obter_ip_cliente()
+
+    limpar_falhas_login(
+        "ip",
+        ip
+    )
+
+    if username:
+
+        limpar_falhas_login(
+            "username",
+            username
+        )
 
 
 # ============================================================
@@ -491,10 +1285,6 @@ def registrar_atividade_usuario(username):
 
         ultima_atualizacao = 0
 
-    # Evita atualizar o banco em todas as requisições.
-    # A atividade será registrada no máximo uma vez
-    # a cada 60 segundos por sessão.
-
     if (
         agora_timestamp
         - ultima_atualizacao
@@ -549,16 +1339,7 @@ def registrar_acesso(
 
     try:
 
-        ip_address = (
-            request.headers.get(
-                "X-Forwarded-For",
-                ""
-            )
-            .split(",")[0]
-            .strip()
-            or request.remote_addr
-            or "desconhecido"
-        )
+        ip_address = obter_ip_cliente()
 
         user_agent = request.headers.get(
             "User-Agent",
@@ -1116,6 +1897,10 @@ def login_com_google(
                 "google"
             )
 
+            limpar_falhas_login_completa(
+                username
+            )
+
             return username
 
         usuario = None
@@ -1185,6 +1970,10 @@ def login_com_google(
             registrar_acesso(
                 username,
                 "google"
+            )
+
+            limpar_falhas_login_completa(
+                username
             )
 
             return username
@@ -1266,6 +2055,10 @@ def login_com_google(
     registrar_acesso(
         username,
         "google"
+    )
+
+    limpar_falhas_login_completa(
+        username
     )
 
     return username
@@ -3463,27 +4256,114 @@ def admin_login():
 
         }), 500
 
-    if username != ADMIN_USERNAME:
+    # --------------------------------------------------------
+    # PROTEÇÃO DO LOGIN ADMINISTRATIVO
+    # --------------------------------------------------------
+
+    protecao_admin = (
+        verificar_protecao_login(
+            ADMIN_USERNAME
+        )
+    )
+
+    if protecao_admin["blocked"]:
 
         return jsonify({
 
-            "success": False,
+            "success":
+                False,
 
             "message":
-                "Usuário ou senha administrativos incorretos."
+                protecao_admin["message"],
+
+            "locked":
+                True,
+
+            "retry_after":
+                protecao_admin["retry_after"]
+
+        }), 429
+
+    if username != ADMIN_USERNAME:
+
+        resultado_falha = (
+            registrar_falha_login_completa(
+                ADMIN_USERNAME
+            )
+        )
+
+        mensagem = (
+            "Usuário ou senha administrativos incorretos."
+        )
+
+        if resultado_falha["blocked"]:
+
+            mensagem = (
+                "Muitas tentativas incorretas. "
+                "O acesso administrativo foi "
+                "temporariamente bloqueado."
+            )
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                mensagem,
+
+            "locked":
+                resultado_falha["blocked"],
+
+            "retry_after":
+                resultado_falha["seconds"]
 
         }), 401
 
     if password != ADMIN_PASSWORD:
 
+        resultado_falha = (
+            registrar_falha_login_completa(
+                ADMIN_USERNAME
+            )
+        )
+
+        mensagem = (
+            "Usuário ou senha administrativos incorretos."
+        )
+
+        status = 401
+
+        if resultado_falha["blocked"]:
+
+            mensagem = (
+                "Muitas tentativas incorretas. "
+                "O acesso administrativo foi "
+                "temporariamente bloqueado."
+            )
+
+            status = 429
+
         return jsonify({
 
-            "success": False,
+            "success":
+                False,
 
             "message":
-                "Usuário ou senha administrativos incorretos."
+                mensagem,
 
-        }), 401
+            "locked":
+                resultado_falha["blocked"],
+
+            "retry_after":
+                resultado_falha["seconds"]
+
+        }), status
+
+    # Login administrativo correto
+    limpar_falhas_login_completa(
+        ADMIN_USERNAME
+    )
 
     session.clear()
 
@@ -4178,6 +5058,34 @@ def api_login():
 
         }), 403
 
+    # --------------------------------------------------------
+    # VERIFICAR BLOQUEIO ANTES DE CONSULTAR A SENHA
+    # --------------------------------------------------------
+
+    protecao = (
+        verificar_protecao_login(
+            username
+        )
+    )
+
+    if protecao["blocked"]:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                protecao["message"],
+
+            "locked":
+                True,
+
+            "retry_after":
+                protecao["retry_after"]
+
+        }), 429
+
     try:
 
         with get_db() as conn:
@@ -4204,14 +5112,42 @@ def api_login():
 
             if not user:
 
+                resultado_falha = (
+                    registrar_falha_login_completa(
+                        username
+                    )
+                )
+
+                mensagem = (
+                    "Usuário ou senha incorretos."
+                )
+
+                status = 401
+
+                if resultado_falha["blocked"]:
+
+                    mensagem = (
+                        "Muitas tentativas incorretas. "
+                        "Este acesso foi temporariamente "
+                        "bloqueado."
+                    )
+
+                    status = 429
+
                 return jsonify({
 
                     "success": False,
 
                     "message":
-                        "Usuário ou senha incorretos."
+                        mensagem,
 
-                }), 401
+                    "locked":
+                        resultado_falha["blocked"],
+
+                    "retry_after":
+                        resultado_falha["seconds"]
+
+                }), status
 
             senha_correta = False
 
@@ -4257,14 +5193,42 @@ def api_login():
 
             if not senha_correta:
 
+                resultado_falha = (
+                    registrar_falha_login_completa(
+                        user["username"]
+                    )
+                )
+
+                mensagem = (
+                    "Usuário ou senha incorretos."
+                )
+
+                status = 401
+
+                if resultado_falha["blocked"]:
+
+                    mensagem = (
+                        "Muitas tentativas incorretas. "
+                        "Esta conta foi temporariamente "
+                        "bloqueada."
+                    )
+
+                    status = 429
+
                 return jsonify({
 
                     "success": False,
 
                     "message":
-                        "Usuário ou senha incorretos."
+                        mensagem,
 
-                }), 401
+                    "locked":
+                        resultado_falha["blocked"],
+
+                    "retry_after":
+                        resultado_falha["seconds"]
+
+                }), status
 
             auth_version = (
                 user["auth_version"]
@@ -4287,6 +5251,14 @@ def api_login():
             session["auth_version"] = (
                 auth_version
             )
+
+        # ----------------------------------------------------
+        # LOGIN CORRETO
+        # ----------------------------------------------------
+
+        limpar_falhas_login_completa(
+            user["username"]
+        )
 
         registrar_atividade_usuario(
             user["username"]
