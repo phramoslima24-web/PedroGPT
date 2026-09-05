@@ -1,4 +1,4 @@
-```python
+
 import os
 import secrets
 import re
@@ -371,8 +371,6 @@ def validar_sessao_usuario():
                 "auth_version"
             )
 
-            # Sessões antigas, criadas antes da nova
-            # proteção, recebem a versão atual.
             if auth_version_sessao is None:
 
                 session["auth_version"] = (
@@ -416,8 +414,6 @@ def validar_sessao_usuario():
             repr(e)
         )
 
-        # Em caso de falha temporária do banco,
-        # não derruba a sessão imediatamente.
         return True
 
 
@@ -850,6 +846,7 @@ def login_com_google(
 
             username = usuario["username"]
             plan = usuario["plan"] or "free"
+
             auth_version = (
                 usuario["auth_version"] or 1
             )
@@ -911,6 +908,7 @@ def login_com_google(
 
             username = usuario["username"]
             plan = usuario["plan"] or "free"
+
             auth_version = (
                 usuario["auth_version"] or 1
             )
@@ -1672,7 +1670,8 @@ def logout_all():
 
             cursor.execute("""
                 UPDATE users
-                SET auth_version = COALESCE(auth_version, 1) + 1
+                SET auth_version =
+                    COALESCE(auth_version, 1) + 1
                 WHERE username = %s
                 RETURNING auth_version
             """, (
@@ -1700,7 +1699,6 @@ def logout_all():
 
             conn.commit()
 
-        # Remove a sessão atual também.
         session.clear()
 
         print(
@@ -2254,7 +2252,6 @@ def change_username():
 
         session["user"] = novo_username
 
-        # Mantém a mesma versão da sessão.
         session["auth_version"] = (
             session.get(
                 "auth_version",
@@ -2521,7 +2518,8 @@ def change_password():
             cursor.execute("""
                 UPDATE users
                 SET password = %s,
-                    auth_version = COALESCE(auth_version, 1) + 1
+                    auth_version =
+                        COALESCE(auth_version, 1) + 1
                 WHERE id = %s
                 RETURNING auth_version
             """, (
@@ -2550,8 +2548,6 @@ def change_password():
 
             conn.commit()
 
-        # A senha mudou, então outras sessões
-        # ficam inválidas. Mantemos apenas a atual.
         session["auth_version"] = (
             nova_auth_version
         )
@@ -2851,7 +2847,8 @@ def reset_password():
             cursor.execute("""
                 UPDATE users
                 SET password = %s,
-                    auth_version = COALESCE(auth_version, 1) + 1
+                    auth_version =
+                        COALESCE(auth_version, 1) + 1
                 WHERE id = %s
             """, (
                 nova_hash,
@@ -4294,10 +4291,6 @@ PLANO:
 
         ]
 
-        # ====================================================
-        # HISTÓRICO SEM DUPLICAR A MENSAGEM ATUAL
-        # ====================================================
-
         with get_db() as conn:
 
             cursor = conn.cursor(
@@ -4395,10 +4388,6 @@ PLANO:
 
         })
 
-        # ====================================================
-        # STREAMING COM RETENTATIVA
-        # ====================================================
-
         @stream_with_context
         def gerar_stream():
 
@@ -4442,6 +4431,7 @@ PLANO:
                     for chunk in stream:
 
                         if not chunk.choices:
+
                             continue
 
                         delta = (
@@ -4454,6 +4444,7 @@ PLANO:
                         )
 
                         if not parte:
+
                             continue
 
                         resposta_comecou = True
@@ -4463,6 +4454,7 @@ PLANO:
                         yield parte
 
                     if texto_completo.strip():
+
                         break
 
                 except Exception as e:
@@ -6332,3 +6324,4 @@ if __name__ == "__main__":
         port=port,
         debug=False
     )
+
