@@ -1,4 +1,3 @@
-
 import os
 import secrets
 import re
@@ -311,6 +310,38 @@ def init_db():
             ON password_reset_tokens (expires_at)
         """)
 
+        # ----------------------------------------------------
+        # HISTÓRICO DE ACESSOS
+        # ----------------------------------------------------
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS access_logs (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                username TEXT NOT NULL,
+                login_method TEXT NOT NULL,
+                ip_address TEXT,
+                user_agent TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (user_id)
+                REFERENCES users(id)
+                ON DELETE CASCADE
+            )
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS
+            access_logs_user_index
+            ON access_logs (user_id)
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS
+            access_logs_created_index
+            ON access_logs (created_at DESC)
+        """)
+
         conn.commit()
 
 
@@ -499,6 +530,121 @@ def registrar_atividade_usuario(username):
 
         print(
             "ERRO AO REGISTRAR ÚLTIMA ATIVIDADE:",
+            repr(e)
+        )
+
+
+# ============================================================
+# REGISTRAR ACESSO
+# ============================================================
+
+def registrar_acesso(
+    username,
+    login_method="senha"
+):
+
+    if not username:
+
+        return
+
+    try:
+
+        ip_address = (
+            request.headers.get(
+                "X-Forwarded-For",
+                ""
+            )
+            .split(",")[0]
+            .strip()
+            or request.remote_addr
+            or "desconhecido"
+        )
+
+        user_agent = request.headers.get(
+            "User-Agent",
+            "Desconhecido"
+        )
+
+        login_method = str(
+            login_method or "senha"
+        ).strip().lower()
+
+        if login_method not in [
+            "senha",
+            "google"
+        ]:
+
+            login_method = "senha"
+
+        ip_address = str(
+            ip_address
+        )[:100]
+
+        user_agent = str(
+            user_agent
+        )[:1000]
+
+        with get_db() as conn:
+
+            cursor = conn.cursor(
+                cursor_factory=
+                psycopg2.extras.RealDictCursor
+            )
+
+            cursor.execute("""
+                SELECT id
+                FROM users
+                WHERE username = %s
+            """, (
+                username,
+            ))
+
+            usuario = cursor.fetchone()
+
+            if not usuario:
+
+                return
+
+            cursor.execute("""
+                INSERT INTO access_logs
+                (
+                    user_id,
+                    username,
+                    login_method,
+                    ip_address,
+                    user_agent
+                )
+                VALUES
+                (%s, %s, %s, %s, %s)
+            """, (
+                usuario["id"],
+                username,
+                login_method,
+                ip_address,
+                user_agent
+            ))
+
+            cursor.execute("""
+                DELETE FROM access_logs
+                WHERE user_id = %s
+                AND id NOT IN (
+                    SELECT id
+                    FROM access_logs
+                    WHERE user_id = %s
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT 50
+                )
+            """, (
+                usuario["id"],
+                usuario["id"]
+            ))
+
+            conn.commit()
+
+    except Exception as e:
+
+        print(
+            "ERRO AO REGISTRAR ACESSO:",
             repr(e)
         )
 
@@ -965,6 +1111,11 @@ def login_com_google(
                 username
             )
 
+            registrar_acesso(
+                username,
+                "google"
+            )
+
             return username
 
         usuario = None
@@ -1029,6 +1180,11 @@ def login_com_google(
 
             registrar_atividade_usuario(
                 username
+            )
+
+            registrar_acesso(
+                username,
+                "google"
             )
 
             return username
@@ -1105,6 +1261,11 @@ def login_com_google(
 
     registrar_atividade_usuario(
         username
+    )
+
+    registrar_acesso(
+        username,
+        "google"
     )
 
     return username
@@ -2000,6 +2161,52 @@ def perfil():
                 else 0
             )
 
+            cursor.execute("""
+                SELECT
+                    login_method,
+                    ip_address,
+                    user_agent,
+                    created_at
+                FROM access_logs
+                WHERE username = %s
+                ORDER BY created_at DESC, id DESC
+                LIMIT 10
+            """, (
+                username,
+            ))
+
+            registros_acessos = (
+                cursor.fetchall()
+            )
+
+        historico_acessos = [
+
+            {
+                "login_method":
+                    item["login_method"],
+
+                "ip_address":
+                    item["ip_address"]
+                    or "Desconhecido",
+
+                "user_agent":
+                    item["user_agent"]
+                    or "Desconhecido",
+
+                "created_at":
+                    (
+                        item["created_at"].strftime(
+                            "%d/%m/%Y às %H:%M"
+                        )
+                        if item["created_at"]
+                        else "Data desconhecida"
+                    )
+            }
+
+            for item in registros_acessos
+
+        ]
+
         return render_template(
             "perfil.html",
             username=usuario["username"],
@@ -2016,7 +2223,8 @@ def perfil():
                 )
                 if usuario["last_activity"]
                 else "Nenhuma atividade registrada"
-            )
+            ),
+            historico_acessos=historico_acessos
         )
 
     except Exception as e:
@@ -2185,6 +2393,114 @@ def api_profile():
 
             "error":
                 str(e)
+
+        }), 500
+
+
+# ============================================================
+# API - HISTÓRICO DE ACESSOS
+# ============================================================
+
+@app.route("/api/access-history")
+def access_history():
+
+    if "user" not in session:
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Faça login primeiro.",
+
+            "accesses":
+                []
+
+        }), 401
+
+    username = session["user"]
+
+    try:
+
+        with get_db() as conn:
+
+            cursor = conn.cursor(
+                cursor_factory=
+                psycopg2.extras.RealDictCursor
+            )
+
+            cursor.execute("""
+                SELECT
+                    login_method,
+                    ip_address,
+                    user_agent,
+                    created_at
+                FROM access_logs
+                WHERE username = %s
+                ORDER BY created_at DESC, id DESC
+                LIMIT 10
+            """, (
+                username,
+            ))
+
+            registros = cursor.fetchall()
+
+        acessos = [
+
+            {
+
+                "login_method":
+                    item["login_method"],
+
+                "ip_address":
+                    item["ip_address"]
+                    or "Desconhecido",
+
+                "user_agent":
+                    item["user_agent"]
+                    or "Desconhecido",
+
+                "created_at":
+                    (
+                        item["created_at"].isoformat()
+                        if item["created_at"]
+                        else None
+                    )
+
+            }
+
+            for item in registros
+
+        ]
+
+        return jsonify({
+
+            "success":
+                True,
+
+            "accesses":
+                acessos
+
+        })
+
+    except Exception as e:
+
+        print(
+            "ERRO ACCESS HISTORY:",
+            repr(e)
+        )
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Erro ao carregar o histórico de acessos.",
+
+            "accesses":
+                []
 
         }), 500
 
@@ -2363,6 +2679,15 @@ def change_username():
 
             cursor.execute("""
                 UPDATE messages
+                SET username = %s
+                WHERE username = %s
+            """, (
+                novo_username,
+                username_atual
+            ))
+
+            cursor.execute("""
+                UPDATE access_logs
                 SET username = %s
                 WHERE username = %s
             """, (
@@ -3965,6 +4290,11 @@ def api_login():
 
         registrar_atividade_usuario(
             user["username"]
+        )
+
+        registrar_acesso(
+            user["username"],
+            "senha"
         )
 
         conversation_id = criar_conversa(
@@ -6451,4 +6781,3 @@ if __name__ == "__main__":
         port=port,
         debug=False
     )
-
