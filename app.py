@@ -1,3 +1,4 @@
+```python
 import os
 import secrets
 import re
@@ -110,6 +111,7 @@ RESET_TOKEN_EXPIRATION_MINUTES = 30
 client = None
 
 if GROQ_API_KEY:
+
     client = Groq(
         api_key=GROQ_API_KEY
     )
@@ -146,6 +148,7 @@ if GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET:
 def get_db():
 
     if not DATABASE_URL:
+
         raise RuntimeError(
             "DATABASE_URL não está configurada no servidor."
         )
@@ -175,7 +178,8 @@ def init_db():
                 id SERIAL PRIMARY KEY,
                 username TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
-                plan TEXT DEFAULT 'free'
+                plan TEXT DEFAULT 'free',
+                auth_version INTEGER DEFAULT 1
             )
         """)
 
@@ -192,6 +196,17 @@ def init_db():
         cursor.execute("""
             ALTER TABLE users
             ADD COLUMN IF NOT EXISTS email TEXT
+        """)
+
+        cursor.execute("""
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS auth_version INTEGER DEFAULT 1
+        """)
+
+        cursor.execute("""
+            UPDATE users
+            SET auth_version = 1
+            WHERE auth_version IS NULL
         """)
 
         cursor.execute("""
@@ -303,6 +318,154 @@ except Exception as e:
 
 
 # ============================================================
+# CONTROLE DE SESSÃO
+# ============================================================
+
+def validar_sessao_usuario():
+
+    if "user" not in session:
+
+        return True
+
+    if session.get("admin") is True:
+
+        return True
+
+    username = session.get("user")
+
+    if not username:
+
+        session.clear()
+
+        return False
+
+    try:
+
+        with get_db() as conn:
+
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT auth_version
+                FROM users
+                WHERE username = %s
+            """, (
+                username,
+            ))
+
+            resultado = cursor.fetchone()
+
+            if not resultado:
+
+                session.clear()
+
+                return False
+
+            auth_version_banco = (
+                resultado[0]
+                if resultado[0] is not None
+                else 1
+            )
+
+            auth_version_sessao = session.get(
+                "auth_version"
+            )
+
+            # Sessões antigas, criadas antes da nova
+            # proteção, recebem a versão atual.
+            if auth_version_sessao is None:
+
+                session["auth_version"] = (
+                    auth_version_banco
+                )
+
+                session.modified = True
+
+                return True
+
+            try:
+
+                auth_version_sessao = int(
+                    auth_version_sessao
+                )
+
+            except (
+                ValueError,
+                TypeError
+            ):
+
+                session.clear()
+
+                return False
+
+            if (
+                auth_version_sessao
+                != auth_version_banco
+            ):
+
+                session.clear()
+
+                return False
+
+            return True
+
+    except Exception as e:
+
+        print(
+            "ERRO AO VALIDAR SESSÃO:",
+            repr(e)
+        )
+
+        # Em caso de falha temporária do banco,
+        # não derruba a sessão imediatamente.
+        return True
+
+
+@app.before_request
+def proteger_sessao():
+
+    if "user" not in session:
+
+        return None
+
+    if session.get("admin") is True:
+
+        return None
+
+    if validar_sessao_usuario():
+
+        return None
+
+    caminho = request.path
+
+    if (
+        caminho.startswith("/api/")
+        or caminho == "/chat"
+        or caminho == "/history"
+        or caminho == "/conversations"
+        or caminho == "/new_chat"
+        or caminho.startswith("/conversation/")
+    ):
+
+        return jsonify({
+
+            "success":
+                False,
+
+            "message":
+                "Sua sessão expirou. Faça login novamente.",
+
+            "session_expired":
+                True
+
+        }), 401
+
+    return redirect(
+        url_for("login")
+    )
+
+
+# ============================================================
 # VERSION
 # ============================================================
 
@@ -365,6 +528,7 @@ def verificar_conversa(
 ):
 
     if not conversation_id:
+
         return False
 
     try:
@@ -403,6 +567,7 @@ def verificar_conversa(
 def conversa_atual():
 
     if "user" not in session:
+
         return None
 
     username = session["user"]
@@ -454,6 +619,7 @@ def gerar_titulo(mensagem):
     )
 
     if not titulo:
+
         return "Nova conversa"
 
     if len(titulo) > 45:
@@ -490,6 +656,7 @@ def atualizar_titulo_se_necessario(
         conversa = cursor.fetchone()
 
         if not conversa:
+
             return
 
         titulo_atual = (
@@ -497,6 +664,7 @@ def atualizar_titulo_se_necessario(
         ).strip()
 
         if titulo_atual != "Nova conversa":
+
             return
 
         novo_titulo = gerar_titulo(
@@ -536,6 +704,7 @@ def obter_plan_usuario(username):
         usuario = cursor.fetchone()
 
         if not usuario:
+
             return "free"
 
         return (
@@ -580,6 +749,7 @@ def gerar_username_google(
     )
 
     if len(nome_base) < 3:
+
         nome_base = "google_user"
 
     if len(nome_base) > 24:
@@ -612,6 +782,7 @@ def gerar_username_google(
             )
 
         if not existe:
+
             return candidato
 
         candidato = (
@@ -665,7 +836,8 @@ def login_com_google(
             SELECT
                 id,
                 username,
-                plan
+                plan,
+                auth_version
             FROM users
             WHERE google_id = %s
         """, (
@@ -678,12 +850,18 @@ def login_com_google(
 
             username = usuario["username"]
             plan = usuario["plan"] or "free"
+            auth_version = (
+                usuario["auth_version"] or 1
+            )
 
             session.clear()
 
             session["user"] = username
             session["admin"] = False
             session["plan"] = plan
+            session["auth_version"] = (
+                auth_version
+            )
 
             conversation_id = criar_conversa(
                 username,
@@ -706,7 +884,8 @@ def login_com_google(
                 SELECT
                     id,
                     username,
-                    plan
+                    plan,
+                    auth_version
                 FROM users
                 WHERE LOWER(email) = %s
             """, (
@@ -732,12 +911,18 @@ def login_com_google(
 
             username = usuario["username"]
             plan = usuario["plan"] or "free"
+            auth_version = (
+                usuario["auth_version"] or 1
+            )
 
             session.clear()
 
             session["user"] = username
             session["admin"] = False
             session["plan"] = plan
+            session["auth_version"] = (
+                auth_version
+            )
 
             conversation_id = criar_conversa(
                 username,
@@ -772,17 +957,19 @@ def login_com_google(
                 password,
                 plan,
                 google_id,
-                email
+                email,
+                auth_version
             )
             VALUES
-            (%s, %s, %s, %s, %s)
-            RETURNING id
+            (%s, %s, %s, %s, %s, %s)
+            RETURNING id, auth_version
         """, (
             username,
             password_hash,
             "free",
             google_id,
-            email or None
+            email or None,
+            1
         ))
 
         resultado = cursor.fetchone()
@@ -793,6 +980,11 @@ def login_com_google(
                 "Não foi possível criar a conta Google."
             )
 
+        auth_version = (
+            resultado["auth_version"]
+            or 1
+        )
+
         conn.commit()
 
     session.clear()
@@ -800,6 +992,9 @@ def login_com_google(
     session["user"] = username
     session["admin"] = False
     session["plan"] = "free"
+    session["auth_version"] = (
+        auth_version
+    )
 
     conversation_id = criar_conversa(
         username,
@@ -1150,6 +1345,7 @@ def validar_token_recuperacao(
 ):
 
     if not token:
+
         return None
 
     agora = datetime.utcnow()
@@ -1194,6 +1390,7 @@ def validar_token_recuperacao(
                     valido = False
 
                 if valido:
+
                     return item
 
     except Exception as e:
@@ -1279,6 +1476,7 @@ def google_callback():
         )
 
         if not userinfo:
+
             userinfo = google.userinfo()
 
         google_id = (
@@ -1428,6 +1626,125 @@ def logout():
     return redirect(
         url_for("login")
     )
+
+
+# ============================================================
+# SAIR DE TODOS OS DISPOSITIVOS
+# ============================================================
+
+@app.route(
+    "/api/logout-all",
+    methods=["POST"]
+)
+def logout_all():
+
+    if "user" not in session:
+
+        return jsonify({
+
+            "success": False,
+
+            "message":
+                "Faça login primeiro."
+
+        }), 401
+
+    if verificar_admin():
+
+        session.clear()
+
+        return jsonify({
+
+            "success": True,
+
+            "message":
+                "Sessão administrativa encerrada."
+
+        })
+
+    username = session["user"]
+
+    try:
+
+        with get_db() as conn:
+
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                UPDATE users
+                SET auth_version = COALESCE(auth_version, 1) + 1
+                WHERE username = %s
+                RETURNING auth_version
+            """, (
+                username,
+            ))
+
+            resultado = cursor.fetchone()
+
+            if not resultado:
+
+                conn.rollback()
+
+                session.clear()
+
+                return jsonify({
+
+                    "success": False,
+
+                    "message":
+                        "Usuário não encontrado."
+
+                }), 404
+
+            nova_auth_version = resultado[0]
+
+            conn.commit()
+
+        # Remove a sessão atual também.
+        session.clear()
+
+        print(
+            "TODAS AS SESSÕES ENCERRADAS:",
+            username,
+            "NOVA VERSÃO:",
+            nova_auth_version
+        )
+
+        return jsonify({
+
+            "success": True,
+
+            "message":
+                "Todas as sessões foram encerradas com sucesso."
+
+        })
+
+    except Exception as e:
+
+        print(
+            "=================================================="
+        )
+
+        print(
+            "ERRO AO SAIR DE TODOS OS DISPOSITIVOS:"
+        )
+
+        print(
+            repr(e)
+        )
+
+        print(
+            "=================================================="
+        )
+
+        return jsonify({
+
+            "success": False,
+
+            "message":
+                "Não foi possível encerrar todas as sessões."
+
+        }), 500
 
 
 # ============================================================
@@ -1936,6 +2253,15 @@ def change_username():
             conn.commit()
 
         session["user"] = novo_username
+
+        # Mantém a mesma versão da sessão.
+        session["auth_version"] = (
+            session.get(
+                "auth_version",
+                1
+            )
+        )
+
         session.modified = True
 
         print(
@@ -2127,7 +2453,8 @@ def change_password():
                 SELECT
                     id,
                     username,
-                    password
+                    password,
+                    auth_version
                 FROM users
                 WHERE username = %s
             """, (
@@ -2193,18 +2520,49 @@ def change_password():
 
             cursor.execute("""
                 UPDATE users
-                SET password = %s
+                SET password = %s,
+                    auth_version = COALESCE(auth_version, 1) + 1
                 WHERE id = %s
+                RETURNING auth_version
             """, (
                 nova_hash,
                 usuario["id"]
             ))
 
+            resultado = cursor.fetchone()
+
+            if not resultado:
+
+                conn.rollback()
+
+                return jsonify({
+
+                    "success": False,
+
+                    "message":
+                        "Não foi possível atualizar a senha."
+
+                }), 500
+
+            nova_auth_version = (
+                resultado["auth_version"]
+            )
+
             conn.commit()
+
+        # A senha mudou, então outras sessões
+        # ficam inválidas. Mantemos apenas a atual.
+        session["auth_version"] = (
+            nova_auth_version
+        )
+
+        session.modified = True
 
         print(
             "SENHA ALTERADA COM SUCESSO:",
-            username
+            username,
+            "VERSÃO DA SESSÃO:",
+            nova_auth_version
         )
 
         return jsonify({
@@ -2492,7 +2850,8 @@ def reset_password():
 
             cursor.execute("""
                 UPDATE users
-                SET password = %s
+                SET password = %s,
+                    auth_version = COALESCE(auth_version, 1) + 1
                 WHERE id = %s
             """, (
                 nova_hash,
@@ -3275,15 +3634,17 @@ def api_register():
                     username,
                     password,
                     plan,
-                    email
+                    email,
+                    auth_version
                 )
                 VALUES
-                (%s, %s, %s, %s)
+                (%s, %s, %s, %s, %s)
             """, (
                 username,
                 password_hash,
                 "free",
-                email
+                email,
+                1
             ))
 
             conn.commit()
@@ -3386,7 +3747,8 @@ def api_login():
                     id,
                     username,
                     password,
-                    plan
+                    plan,
+                    auth_version
                 FROM users
                 WHERE username = %s
             """, (
@@ -3459,6 +3821,11 @@ def api_login():
 
                 }), 401
 
+            auth_version = (
+                user["auth_version"]
+                or 1
+            )
+
             session.clear()
 
             session["user"] = (
@@ -3470,6 +3837,10 @@ def api_login():
             session["plan"] = (
                 user["plan"]
                 or "free"
+            )
+
+            session["auth_version"] = (
+                auth_version
             )
 
         conversation_id = criar_conversa(
@@ -3603,6 +3974,7 @@ def chat():
                 }), 400
 
             if not tipo_imagem:
+
                 tipo_imagem = "image/jpeg"
 
             tipos_permitidos = [
@@ -4106,10 +4478,6 @@ PLANO:
                         e
                     ).lower()
 
-                    # ----------------------------------------
-                    # RATE LIMIT
-                    # ----------------------------------------
-
                     if (
                         "429" in erro_texto
                         or "rate limit" in erro_texto
@@ -4198,10 +4566,6 @@ PLANO:
 
                         return
 
-                    # ----------------------------------------
-                    # CHAVE DA API
-                    # ----------------------------------------
-
                     if "api key" in erro_texto:
 
                         yield (
@@ -4210,10 +4574,6 @@ PLANO:
                         )
 
                         return
-
-                    # ----------------------------------------
-                    # MODELO
-                    # ----------------------------------------
 
                     if (
                         "model" in erro_texto
@@ -4231,10 +4591,6 @@ PLANO:
                         )
 
                         return
-
-                    # ----------------------------------------
-                    # BANCO
-                    # ----------------------------------------
 
                     if (
                         "database" in erro_texto
@@ -4270,10 +4626,6 @@ PLANO:
                 )
 
                 yield texto_completo
-
-            # =================================================
-            # SALVAR RESPOSTA COMPLETA
-            # =================================================
 
             try:
 
@@ -4758,6 +5110,7 @@ def history():
         )
 
         if not conversation_id:
+
             return jsonify([])
 
         with get_db() as conn:
@@ -4983,6 +5336,7 @@ def rename_conversation(
             }), 400
 
         if len(title) > 100:
+
             title = title[:100].rstrip()
 
         with get_db() as conn:
