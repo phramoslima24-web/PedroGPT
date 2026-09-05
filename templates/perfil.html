@@ -242,7 +242,7 @@ body {
         1px solid
         rgba(255,255,255,.07);
 
-    margin-bottom: 18px;
+    margin-bottom: 12px;
 }
 
 .info-titulo {
@@ -269,6 +269,8 @@ body {
     flex-direction: column;
 
     gap: 10px;
+
+    margin-top: 18px;
 }
 
 .botao {
@@ -816,6 +818,26 @@ body {
             id="usuarioInfo"
         >
             {{ username }}
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         ÚLTIMA ATIVIDADE
+    ====================================================== -->
+
+    <div class="info">
+
+        <div class="info-titulo">
+            🕒 Última atividade
+        </div>
+
+        <div
+            class="info-valor"
+            id="ultimaAtividade"
+        >
+            {{ ultima_atividade or "Nenhuma atividade registrada" }}
         </div>
 
     </div>
