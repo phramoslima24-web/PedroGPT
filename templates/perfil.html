@@ -310,6 +310,15 @@ body {
 
 }
 
+.botao:disabled {
+
+    opacity: .55;
+
+    cursor: not-allowed;
+
+    transform: none;
+}
+
 .botao-sair {
 
     background:
@@ -326,6 +335,24 @@ body {
 
     background:
         rgba(239,68,68,.2);
+}
+
+.botao-seguranca {
+
+    background:
+        rgba(245,158,11,.10);
+
+    border-color:
+        rgba(245,158,11,.20);
+
+    color:
+        #fcd34d;
+}
+
+.botao-seguranca:hover {
+
+    background:
+        rgba(245,158,11,.18);
 }
 
 
@@ -819,6 +846,15 @@ body {
         </button>
 
 
+        <button
+            type="button"
+            class="botao botao-seguranca"
+            id="btnSairTodos"
+        >
+            🔐 Sair de todos os dispositivos
+        </button>
+
+
         <a
             href="/logout"
             class="botao botao-sair"
@@ -945,8 +981,6 @@ body {
         ></div>
 
 
-        <!-- SENHA ATUAL -->
-
         <div class="campo">
 
             <label for="senhaAtual">
@@ -1000,8 +1034,6 @@ body {
         </div>
 
 
-        <!-- NOVA SENHA -->
-
         <div class="campo">
 
             <label for="novaSenha">
@@ -1054,8 +1086,6 @@ body {
 
         </div>
 
-
-        <!-- CONFIRMAR SENHA -->
 
         <div class="campo">
 
@@ -1956,6 +1986,138 @@ btnSalvarSenha.addEventListener(
 
     }
 );
+
+
+/* ============================================================
+   SAIR DE TODOS OS DISPOSITIVOS
+============================================================ */
+
+const btnSairTodos =
+    document.getElementById(
+        "btnSairTodos"
+    );
+
+
+if (btnSairTodos) {
+
+    btnSairTodos.addEventListener(
+        "click",
+        async function () {
+
+            const confirmar =
+                confirm(
+                    "🔐 Sair de todos os dispositivos?\n\n" +
+                    "Isso encerrará todas as sessões da sua conta, " +
+                    "incluindo esta. Você precisará entrar novamente."
+                );
+
+
+            if (!confirmar) {
+
+                return;
+            }
+
+
+            btnSairTodos.disabled =
+                true;
+
+            btnSairTodos.textContent =
+                "⏳ Encerrando sessões...";
+
+
+            try {
+
+                const resposta =
+                    await fetch(
+                        "/api/logout-all",
+                        {
+                            method:
+                                "POST",
+
+                            credentials:
+                                "same-origin",
+
+                            headers: {
+
+                                "Accept":
+                                    "application/json",
+
+                                "Content-Type":
+                                    "application/json"
+
+                            },
+
+                            body:
+                                JSON.stringify({})
+                        }
+                    );
+
+
+                let dados = {};
+
+                try {
+
+                    dados =
+                        await resposta.json();
+
+                } catch (
+                    erroJson
+                ) {
+
+                    dados = {};
+
+                }
+
+
+                if (
+                    !resposta.ok ||
+                    dados.success === false
+                ) {
+
+                    throw new Error(
+                        dados.message ||
+                        "Não foi possível encerrar as sessões."
+                    );
+
+                }
+
+
+                alert(
+                    "✅ Todas as sessões foram encerradas.\n\n" +
+                    "Você será redirecionado para o login."
+                );
+
+
+                window.location.href =
+                    "/login";
+
+
+            } catch (erro) {
+
+                console.error(
+                    "ERRO AO SAIR DE TODOS OS DISPOSITIVOS:",
+                    erro
+                );
+
+
+                alert(
+                    "❌ " +
+                    erro.message
+                );
+
+
+                btnSairTodos.disabled =
+                    false;
+
+                btnSairTodos.textContent =
+                    "🔐 Sair de todos os dispositivos";
+
+            }
+
+        }
+    );
+
+}
 
 
 /* ============================================================
