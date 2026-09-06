@@ -47,6 +47,118 @@ app.secret_key = os.getenv(
     "orion_ai_secret_key"
 )
 
+
+# ============================================================
+# PROTEÇÃO CSRF
+# ============================================================
+
+CSRF_TOKEN_SESSION_KEY = "_csrf_token"
+CSRF_COOKIE_NAME = "orion_csrf"
+CSRF_COOKIE_MAX_AGE = 7 * 24 * 60 * 60
+
+
+def obter_token_csrf():
+
+    token = session.get(
+        CSRF_TOKEN_SESSION_KEY
+    )
+
+    if not token:
+
+        token = secrets.token_urlsafe(32)
+
+        session[CSRF_TOKEN_SESSION_KEY] = token
+
+        session.modified = True
+
+    return str(token)
+
+
+def validar_csrf():
+
+    if request.method not in [
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE"
+    ]:
+
+        return None
+
+    token_sessao = session.get(
+        CSRF_TOKEN_SESSION_KEY
+    )
+
+    token_recebido = (
+        request.headers.get(
+            "X-CSRF-Token",
+            ""
+        ).strip()
+        or request.cookies.get(
+            CSRF_COOKIE_NAME,
+            ""
+        ).strip()
+    )
+
+    if not token_sessao or not token_recebido:
+
+        return jsonify({
+
+            "success": False,
+
+            "error": "csrf_failed",
+
+            "message":
+                "Requisição bloqueada por proteção de segurança. "
+                "Recarregue a página e tente novamente."
+
+        }), 403
+
+    try:
+
+        valido = secrets.compare_digest(
+            str(token_sessao),
+            str(token_recebido)
+        )
+
+    except Exception:
+
+        valido = False
+
+    if not valido:
+
+        return jsonify({
+
+            "success": False,
+
+            "error": "csrf_failed",
+
+            "message":
+                "Requisição bloqueada por proteção de segurança."
+
+        }), 403
+
+    return None
+
+
+@app.after_request
+def adicionar_cookie_csrf(response):
+
+    token = obter_token_csrf()
+
+    response.set_cookie(
+        CSRF_COOKIE_NAME,
+        token,
+        max_age=CSRF_COOKIE_MAX_AGE,
+        secure=True,
+        httponly=False,
+        samesite="Lax",
+        path="/"
+    )
+
+    return response
+
+
 GROQ_API_KEY = os.getenv(
     "GROQ_API_KEY"
 )
@@ -54,6 +166,18 @@ GROQ_API_KEY = os.getenv(
 DATABASE_URL = os.getenv(
     "DATABASE_URL"
 )
+
+
+@app.before_request
+def preparar_csrf():
+
+    obter_token_csrf()
+
+    resultado = validar_csrf()
+
+    if resultado is not None:
+
+        return resultado
 
 
 # ============================================================
