@@ -156,6 +156,61 @@ def adicionar_cookie_csrf(response):
         path="/"
     )
 
+    # --------------------------------------------------------
+    # HEADERS DE SEGURANÇA HTTP
+    # --------------------------------------------------------
+
+    response.headers["X-Content-Type-Options"] = "nosniff"
+
+    response.headers["X-Frame-Options"] = "DENY"
+
+    response.headers["Referrer-Policy"] = (
+        "strict-origin-when-cross-origin"
+    )
+
+    response.headers["Permissions-Policy"] = (
+        "camera=(), "
+        "microphone=(), "
+        "geolocation=(), "
+        "payment=(), "
+        "usb=(), "
+        "bluetooth=()"
+    )
+
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self' https: data: blob:; "
+        "script-src 'self' 'unsafe-inline' https:; "
+        "style-src 'self' 'unsafe-inline' https:; "
+        "img-src 'self' data: blob: https:; "
+        "font-src 'self' data: https:; "
+        "connect-src 'self' https:; "
+        "frame-src https:; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'; "
+        "frame-ancestors 'none'"
+    )
+
+    response.headers["Cross-Origin-Opener-Policy"] = (
+        "same-origin-allow-popups"
+    )
+
+    protocolo = (
+        request.headers.get(
+            "X-Forwarded-Proto",
+            ""
+        )
+        .split(",")[0]
+        .strip()
+        .lower()
+    )
+
+    if request.is_secure or protocolo == "https":
+
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
+
     return response
 
 
@@ -1613,7 +1668,7 @@ def version():
 
         "success": True,
 
-        "version": "1.4",
+        "version": "1.5",
 
         "apk_url":
             "https://drive.google.com/file/d/1mdpeCrIJNcU2DlHLabjgh17zvM2ha703/view?usp=drive_link"
